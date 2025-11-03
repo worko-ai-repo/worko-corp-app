@@ -15,6 +15,9 @@
  */
 import type { AWS } from "@serverless/typescript";
 
+// Import constants
+import APP_CONSTANTS from "./src/configs/constants.config";
+
 // Import dotenv
 import * as dotenv from "dotenv";
 dotenv.config();
@@ -166,7 +169,9 @@ const serverlessConfiguration: AWS = {
             path: "/{proxy+}",
             method: "ANY",
             cors: {
-              origin: "*",
+              // For dev and prod allow specific origins
+              origins: process.env.APP_STAGE === APP_CONSTANTS.STAGES.PROD ? APP_CONSTANTS.FRONTEND_ORIGINS.PROD : APP_CONSTANTS.FRONTEND_ORIGINS.DEV,
+
               headers: [
                 "Content-Type",
                 "X-Amz-Date",

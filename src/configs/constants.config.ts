@@ -33,20 +33,44 @@ const APP_CONSTANTS = {
   // The possible options for the page sizes that is expected in the request payload.
   PAGE_LENGTH_OPTIONS: [10, 25, 50, 100, 150, 200, 250],
 
+  /**
+   * Signed URL expires in the given seconds.
+   * Formula: {NUMBER OF MINUTES} * 60 [Unit: Seconds]
+   */
+  AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS: 15 * 60, // Pre-Signed url to upload the files expires in 15 minutes
+  AWS_S3_SIGNED_URL_TO_VIEW_FILE_EXPIRY_IN_SECONDS: 15 * 60, // Pre-Signed url to view the files expires in 15 minutes
+
+  AWS_S3_DIR_PATHS: {
+    USER_RESUME: "users/{userId}/resumes", // To upload the individual user's resume
+    USER_PROFILE_PIC: "users/{userId}/profilePics", // To upload the individual user's profile pics
+    AGENCY_INVITE_CONTRACT_COPY: `companies/{companyId}/agency-invites/{agencyInviteId}/contract-copies`,
+  },
+
+  /**
+   * Cognito Identity Pool Groups
+   * * ADMIN
+   * * CORPORATE-ADMIN
+   * * CORPORATE-RECRUITER
+   */
+  COGNITO_IDENTITY_POOL_GROUPS: {
+    ADMIN: "admin",
+    CORPORATE_ADMIN: "corporate-admin",
+    CORPORATE_RECRUITER: "corporate-recruiter",
+    EVALUATOR: "evaluator",
+  },
+
   // If "pageSize" from the request does not match with one of the "PAGE_LENGTH_OPTIONS" value, then this value would be used.
   PAGE_LENGTH_DEFAULT: 25,
 
   FRONTEND_ORIGINS: {
-    PROD: [
-      "https://worko.ai",
-    ],
+    PROD: ["https://worko.ai"],
     DEV: [
-      "https://dev-ui.worko.work", 
-      "https://dev.worko.work",    
+      "https://dev-ui.worko.work",
+      "https://dev.worko.work",
       "http://localhost:4200",
       "http://localhost:8080",
-      "http://localhost:3001", 
-      "http://localhost:3002",  
+      "http://localhost:3001",
+      "http://localhost:3002",
     ],
   },
 

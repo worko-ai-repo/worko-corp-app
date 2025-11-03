@@ -5,6 +5,11 @@ import * as dynamoose from "dynamoose";
 import APP_CONSTANTS from "../configs/constants.config";
 import { DB_CONSTANTS } from "./DB.constants";
 
+// Import models
+import { CompanyDetailModel } from "./aws-dynamodb-models/CompanyDetail.model";
+import { UserDetailModel } from "./aws-dynamodb-models/UserDetail.model";
+import { CorporateUserModel } from "./aws-dynamodb-models/CorporateUser.model";
+
 /**
  * DBConfig
  *
@@ -87,7 +92,11 @@ class DBConfig {
     );
     const workoTable = new dynamoose.Table(
       DB_CONSTANTS.WORKO_TABLE_NAMES.workoTableName,
-      []
+      [
+        CompanyDetailModel,
+        UserDetailModel,
+        CorporateUserModel
+      ]
     );
   }
 

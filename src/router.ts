@@ -3,6 +3,13 @@ import { Router } from "express";
 
 // Import the routes
 import TestRouter from "./routers/Test.router";
+import AgencyUserInviteRouter from "./routers/AgencyUserInvite.router";
+import AgencyJobAssignmentRouter from "./routers/AgencyJobAssignment.router";
+import AgencyUserSubmissionRouter from "./routers/AgencyUserSubmission.router";
+import AgencyUserRouter from "./routers/AgencyUser.router";
+import CandidateProfileRouter from "./routers/CandidateProfile.router";
+import CandidateCvParsedRouter from "./routers/CandidateCvParsed.router";
+import FileRouter from "./routers/File.router";
 
 // Router that contains all the routes/endpoints in the application
 const router = Router();
@@ -25,10 +32,45 @@ const router = Router();
  * 
  * Regitser the "TEST CRUD" routers
  * 
- * @todo: Need to remove this entire route related piece of code befor pushing code to `dev` branch
+ * @todo: Need to remove this entire route related piece of code before pushing code to `dev` branch
  * 
  * @authorisedRoles ["public"]
  */
 router.use("/test", TestRouter);
+
+/**
+ * Agency User Invite Routers
+ */
+router.use("/agency-invite", AgencyUserInviteRouter);
+
+/**
+ * Agency Job Assignment Routers
+ */
+router.use("/agency-job-assignment", AgencyJobAssignmentRouter);
+
+/**
+ * Agency User Submission Routers
+ */
+router.use("/agency-user-submission", AgencyUserSubmissionRouter);
+
+/**
+ * Agency User Routers
+ */
+router.use("/agency-user", AgencyUserRouter);
+
+/**
+ * Candidate Profile Routers
+ */
+router.use("/candidate-profile", CandidateProfileRouter);
+
+/**
+ * Candidate CV Parsed Routers
+ */
+router.use("/candidate-cv-parsed", CandidateCvParsedRouter);
+
+/**
+ * File Routers
+ */
+router.use("/file", FileRouter);
 
 export default router;

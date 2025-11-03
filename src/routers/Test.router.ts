@@ -17,5 +17,19 @@ const TestRouter = Router();
  */
 TestRouter.get("/", testController.getAllTestsByFilterOptions);
 
+/**
+ * Create document in GCP Firestore
+ *
+ * @authorisedRoles ["public"]
+ */
+TestRouter.post("/document", testController.createDocument);
+
+/**
+ * Get document by ID from GCP Firestore
+ *
+ * @authorisedRoles ["public"]
+ */
+TestRouter.get("/document/:id", testController.getDocumentById);
+
 // Export the "TestRouter" router
 export default TestRouter;
