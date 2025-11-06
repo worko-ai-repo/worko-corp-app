@@ -31,7 +31,7 @@ const APP_CONSTANTS = {
     "The requested resource is not found with the provided details.",
 
   // The possible options for the page sizes that is expected in the request payload.
-  PAGE_LENGTH_OPTIONS: [10, 25, 50, 100, 150, 200, 250],
+  PAGE_LENGTH_OPTIONS: [5, 10, 25, 50, 100, 150, 200, 250],
 
   /**
    * Signed URL expires in the given seconds.

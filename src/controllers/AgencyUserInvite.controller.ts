@@ -3,13 +3,20 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { AgencyUserInviteCreateApiDto, AgencyUserInviteUpdateApiDto } from "../dtos/AgencyUserInvite.dto";
+import { AgencyUserInviteCreateApiDto, AgencyUserInviteListingFilterOptions, AgencyUserInviteListingFilterRequestDTO, AgencyUserInviteUpdateApiDto } from "../dtos/AgencyUserInvite.dto";
+import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
+
+// Import helpers
+import { GcpFirestoreRequestHelper } from "../helpers/request.gcp-firestore.helper";
+
+// Import models
+import { DbAgencyUserInviteDto } from "../db/gcp-firestore-models/AgencyUserInvite.model";
 
 // Import services
 import { agencyUserInviteServiceObj } from "../services/AgencyUserInvite.service";
 
 // Import schemas
-import { agencyUserInviteCreateApiValidationDto, agencyUserInviteUpdateApiValidationDto } from "../schemas/AgencyUserInvite.schema";
+import { agencyUserInviteCreateApiValidationDto, agencyUserInviteFilterDtoValidation, agencyUserInviteUpdateApiValidationDto } from "../schemas/AgencyUserInvite.schema";
 
 // import utils
 import HttpStatusCode from "../utils/http-codes.util";
@@ -35,7 +42,7 @@ class AgencyUserInviteController {
         throw new RequestValidationError(reqBodyError);
       }
   
-      const agencyUserInviteDetails = await agencyUserInviteServiceObj.performCreateAgencyUserInviteActivities(
+      const agencyUserInviteDetails: DbAgencyUserInviteDto = await agencyUserInviteServiceObj.performCreateAgencyUserInviteActivities(
         validatedRequestBody
       );
 
@@ -58,6 +65,27 @@ class AgencyUserInviteController {
       global.logger.info(`Get All Agency User Invites By Filter Options [Controller]`, {
         methodName: this.getAllAgencyUserInvitesByFilterOptions.name,
       });
+
+      const agencyUserInviteListingFilterRequest: AgencyUserInviteListingFilterOptions =
+        GcpFirestoreRequestHelper.parseFilterOptions<
+          AgencyUserInviteListingFilterRequestDTO,
+          AgencyUserInviteListingFilterOptions
+        >(req.query as unknown as AgencyUserInviteListingFilterRequestDTO);
+
+      let { error, value: agencyUserInviteFilterOptions } = agencyUserInviteFilterDtoValidation.validate(
+        agencyUserInviteListingFilterRequest,
+        { abortEarly: false }
+      );
+      if (error) {
+        throw new RequestValidationError(error);
+      }
+
+      const jobDetails: GcpFirestoreRecordListingResponseDTO<DbAgencyUserInviteDto[]> =
+        await agencyUserInviteServiceObj.getAllAgencyUserInvitesByFilterOptions(
+          agencyUserInviteFilterOptions
+        );
+
+      res.status(HttpStatusCode.OK_200).json(jobDetails);
       
     } catch (error) {
       global.logger.error(`Get All Agency User Invites By Filter Options [Controller]`, {

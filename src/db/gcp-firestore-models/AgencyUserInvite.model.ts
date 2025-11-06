@@ -10,17 +10,17 @@ import { BaseFirestoreModel } from "./Base.model";
 
 interface DbAgencyUserInviteDto extends BaseFirestoreModel {
   /**
-   * @reference "id" attribute of "CorporateUser.model.ts"
+   * @reference "id" attribute of "CorporateUser.model.ts" from "AWS DynamoDB"
    */
   invitedByCorporateUserId: string;
 
   /**
-   * @reference "id" attribute of "CorporateUser.model.ts"
+   * @reference "id" attribute of "CorporateUser.model.ts" from "AWS DynamoDB"
    */
   updatedByCorporateUserId?: string;
 
   /**
-   * @reference "id" attribute of "CompanyDetail.model.ts"
+   * @reference "id" attribute of "CompanyDetail.model.ts" from "AWS DynamoDB"
    */
   companyId: string;
 

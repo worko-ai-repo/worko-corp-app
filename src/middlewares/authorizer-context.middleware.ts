@@ -58,6 +58,10 @@ export function getAuthorizerContext() {
       // Everything is good, you can proceed ahead!
       next();
     } catch (error) {
+      global.logger.error("getAuthorizerContext error: ", {
+        methodName: "getAuthorizerContext",
+        error,
+      });
       // Let global error handler handle the exception (app.ts)
       next(error);
     }

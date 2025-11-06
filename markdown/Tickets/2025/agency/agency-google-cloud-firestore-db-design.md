@@ -23,9 +23,9 @@ interface AgencyUserInvite {
 }
 ```
 **Composite Indexes:**
-- `companyId` + `invitedByCorporateUserId` + `inviteStatus`
-- `email` + `inviteStatus` + `companyId`
-- `companyId` + `inviteStatus`
+- `↓companyId` + `↓invitedByCorporateUserId` + `↓inviteStatus` 
+- `↓email` + `↓inviteStatus` + `↓companyId` 
+- `↓companyId` + `↓inviteStatus`
 
 
 

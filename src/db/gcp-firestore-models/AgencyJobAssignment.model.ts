@@ -1,12 +1,36 @@
+
 import { BaseFirestoreModel } from "./Base.model";
 
-interface AgencyJobAssignment extends BaseFirestoreModel {
+// Import enums
+import { AgencyJobAssignmentStatusEnum } from "../../enums/AgencyJobAssignment.enum";
+
+interface DbAgencyJobAssignmentDto extends BaseFirestoreModel {
+  /**
+   * @reference "id" attribute of "CompanyDetail.model.ts" from "AWS DynamoDB"
+   */
   companyId: string;
+
+  /**
+   * @reference "id" attribute of "OpensearchJob.model.ts" from  from "AWS Opensearch"
+   */
   jobId: string;
-  assignedByCorporateUserId: string;
-  agencyUserId: string;
+
+  /**
+   * @reference "id" attribute of "CorporateUser.model.ts" from "AWS DynamoDB"
+   */
+  assignedByCorporateUserId?: string;
+
+  /**
+   * @referenc "id" attribute of "UserDetail.model.ts" from "AWS DynamoDB"
+   */
+  assignedByUserId?: string;
+
+  /**
+   * @reference "email" attribute of "AgencyUser.model.ts"  from "GCP Firestore"
+   */
   agencyRegisteredEmail: string;
-  status: string;
+
+  status: AgencyJobAssignmentStatusEnum;
 }
 
-export { AgencyJobAssignment };
+export { DbAgencyJobAssignmentDto };

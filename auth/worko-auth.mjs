@@ -486,6 +486,10 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
 
     // Agency User Invite Routers
     { path: "/agency-invite/", method: HttpMethodsConstants.POST },
+    { path: "/agency-invite*", method: HttpMethodsConstants.GET },
+
+    // Agency Job Assignment Routers
+    { path: "/agency-job-assignment/bulk", method: HttpMethodsConstants.POST },
 
     // File routers
     { path: "/file/gsu2u/AGENCY_INVITE_CONTRACT_COPY", method: HttpMethodsConstants.POST },
@@ -581,6 +585,10 @@ var isCorporateAdminUrl = function (url, httpMethod) {
 
     // Agency User Invite Routers
     { path: "/agency-invite/", method: HttpMethodsConstants.POST },
+    { path: "/agency-invite*", method: HttpMethodsConstants.GET },
+
+    // Agency Job Assignment Routers
+    { path: "/agency-job-assignment/bulk", method: HttpMethodsConstants.POST },
 
     // File routers
     { path: "/file/gsu2u/AGENCY_INVITE_CONTRACT_COPY", method: HttpMethodsConstants.POST },
@@ -721,6 +729,12 @@ var isAdminUrl = function (url, httpMethod) {
       path: "/counts/:companyId/:jobId/:entityType/company-job",
       method: HttpMethodsConstants.GET,
     },
+
+    // Agency User Invite Routers
+    { path: "/agency-invite*", method: HttpMethodsConstants.GET },
+
+    // Agency Job Assignment Routers
+    { path: "/agency-job-assignment/bulk", method: HttpMethodsConstants.POST },
   ];
 
   const result = checkMatchingPattern(url, adminUrlList, httpMethod);

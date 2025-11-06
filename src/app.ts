@@ -8,6 +8,7 @@ import express, {
   ErrorRequestHandler,
 } from "express";
 import serverless from "serverless-http";
+import cors from "cors";
 
 // Import extensions
 import "./extensions/string.extension";
@@ -18,6 +19,7 @@ import "./libraries/logger.library";
 // Import configs
 import DBConfig from "./db/DB.config";
 import "./configs/gcp-sdk.config";
+import APP_CONSTANTS from "./configs/constants.config";
 
 // Import middlewares
 import { getAuthorizerContext } from "./middlewares/authorizer-context.middleware";
@@ -74,6 +76,10 @@ class App {
    * This method registers the required middlewares to handle/customise the requests, responses, etc.
    */
   registerMiddleWares() {
+    const origins: string[] = process.env.APP_STAGE === APP_CONSTANTS.STAGES.PROD ? APP_CONSTANTS.FRONTEND_ORIGINS.PROD : APP_CONSTANTS.FRONTEND_ORIGINS.DEV;
+    this.app.use(cors({ 
+      origin: origins,
+    })); 
     this.app.use(express.json()); // 100 KB default limit
   }
 
@@ -132,7 +138,7 @@ class App {
     });
 
     // Handle error/exception on the "uncaughtException" event
-    process.on("uncaughtException", (error: Error) => {
+    process.on("uncaughtException", (error: Error, promise: Promise<any>) => {
       errorHandler.handleError(error);
       if (!errorHandler.isTrustedError(error)) {
         process.exit(1);

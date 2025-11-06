@@ -10,13 +10,14 @@ import { agencyUserInviteDaoObj } from "../daos/AgencyUserInvite.dao";
 import { agencyUserDaoObj } from "../daos/AgencyUser.dao";
 
 // Import dtos
-import { AgencyUserInviteCommonUpdateDto, AgencyUserInviteCreateApiDto, AgencyUserInviteCreateDto, AgencyUserInviteUpdateApiDto } from "../dtos/AgencyUserInvite.dto";
+import { AgencyUserInviteCommonUpdateDto, AgencyUserInviteCreateApiDto, AgencyUserInviteCreateDto, AgencyUserInviteListingFilterOptions, AgencyUserInviteUpdateApiDto } from "../dtos/AgencyUserInvite.dto";
 
 // Import enums
 import { AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
 
 // Import helpers
 import { getActionByUserId } from "../helpers/user.helper";
+import { dateHelperObj } from "../helpers/date.helper";
 
 // Import models
 import { DbCompanyDetailDto } from "../db/aws-dynamodb-models/CompanyDetail.model";
@@ -31,7 +32,7 @@ import { corporateUserServiceObj } from "./CorporateUser.service";
 // Import utils
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
-import { dateHelperObj } from "../helpers/date.helper";
+import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 class AgencyUserInviteService {
   async createAgencyUserInvite(
@@ -44,10 +45,12 @@ class AgencyUserInviteService {
     return agencyUserInviteDaoObj.createAgencyUserInvite(createDto);
   }
 
-  async getAllAgencyUserInvitesByFilterOptions() {
+  async getAllAgencyUserInvitesByFilterOptions(filterOptions: AgencyUserInviteListingFilterOptions): Promise<GcpFirestoreRecordListingResponseDTO<DbAgencyUserInviteDto[]>> {
     global.logger.info(`Get All Agency User Invites [Service]`, {
       methodName: this.getAllAgencyUserInvitesByFilterOptions.name,
     })
+
+    return agencyUserInviteDaoObj.getAllAgencyUserInvitesByFilterOptions(filterOptions);
   }
 
   async getAgencyUserInviteByCompIdEmailAndInvitedByUserId(

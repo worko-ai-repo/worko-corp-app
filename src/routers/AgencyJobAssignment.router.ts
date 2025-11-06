@@ -9,8 +9,13 @@ const AgencyJobAssignmentRouter = Router();
 
 /**
  * Create Agency Job Assignment
- * @authorisedRoles ["corporate-admin","corporate-recruiter"]
+ * 
+ * @note As of now only `corporate-recruiter/admin` or `worko-admin` 
+ *   will upload different jobs for same `company` to single `agency registered user`, 
+ *   If requirement change in near future then we need to update the logic in this api flow
+ * 
+ * @authorisedRoles ["corporate-admin","corporate-recruiter", "admin"]
  */
-AgencyJobAssignmentRouter.post("/", agencyJobAssignmentController.createAgencyJobAssignment);
+AgencyJobAssignmentRouter.post("/bulk", agencyJobAssignmentController.createBulkAgencyJobAssignment);
 
 export default AgencyJobAssignmentRouter;

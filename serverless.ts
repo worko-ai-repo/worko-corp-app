@@ -15,15 +15,12 @@
  */
 import type { AWS } from "@serverless/typescript";
 
-// Import constants
-import APP_CONSTANTS from "./src/configs/constants.config";
-
 // Import dotenv
 import * as dotenv from "dotenv";
 dotenv.config();
 
 const serverlessConfiguration: AWS = {
-  service: "worko-corp-app", // Name of the service
+  service: "worko-corp", // Name of the service
 
   frameworkVersion: "^3.40.0",
 
@@ -151,15 +148,15 @@ const serverlessConfiguration: AWS = {
 
   functions: {
     /**
-     * workoCorpApp
+     * workoCorp
      *
      * AWS Lambda Function Format:- {service}-{enviroment}-{functionName}
-     * Ex:
-     *  1. `worko-corp-app-local-workoCorpApp`
-     *  2. `worko-corp-app-dev-workoCorpApp`
-     *  3. `worko-corp-app-prod-workoCorpApp`
+     * Example:
+     *  1. `worko-corp-local-workoCorp`
+     *  2. `worko-corp-dev-workoCorp`
+     *  3. `worko-corp-prod-workoCorp`
      */
-    workoCorpApp: {
+    workoCorp: {
       handler: "dist/src/app.handler",
       timeout: 900, // Set timeout to 900 seconds (15 minutes)
 
@@ -169,9 +166,7 @@ const serverlessConfiguration: AWS = {
             path: "/{proxy+}",
             method: "ANY",
             cors: {
-              // For dev and prod allow specific origins
-              origins: process.env.APP_STAGE === APP_CONSTANTS.STAGES.PROD ? APP_CONSTANTS.FRONTEND_ORIGINS.PROD : APP_CONSTANTS.FRONTEND_ORIGINS.DEV,
-
+              origin: "*",
               headers: [
                 "Content-Type",
                 "X-Amz-Date",

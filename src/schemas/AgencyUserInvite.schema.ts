@@ -1,6 +1,12 @@
 
 import Joi from "joi";
 
+// Import enums
+import { AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
+
+// Import schemas
+import { gcpFirestoreCommonSchema } from "./Common.gcp-firestore.schema";
+
 export const agencyUserInviteCreateApiValidationDto = Joi.object({
    name: Joi.string().required().lowercase().trim().messages({
       "string.empty": "Name is required",
@@ -46,3 +52,30 @@ export const agencyUserInviteUpdateApiValidationDto = Joi.object({
       "any.required": "Contract copy aws s3 file name is required",
    }),
 });
+
+export const agencyUserInviteFilterDtoValidation = gcpFirestoreCommonSchema.concat(
+  Joi.object({
+    invitedByCorporateUserId: Joi.string().optional().messages({
+      "string.empty": "Invited by corporate user id should not be empty",
+    }),
+    companyId: Joi.string().optional().messages({
+      "string.empty": "Company id should not be empty",
+    }),
+    inviteStatus: Joi.string().valid(...Object.values(AgencyUserInviteDbStatusEnum)).optional().uppercase().messages({
+      "string.empty": "Invite status should not be empty",
+      "any.only": `Invalid invite status. Please provide a valid value from ${Object.values(
+        AgencyUserInviteDbStatusEnum
+      ).join(", ")}.`,
+    }),
+    agencyEmail: Joi.string().email().optional().lowercase().messages({
+      "string.empty": "Agency Email should not be empty",
+      "string.email": "Invalid email",
+    }),
+    includeCompanyDetails: Joi.boolean().optional().messages({
+      "boolean.base": "Include company details should be a boolean",
+    }),
+    includeInvitedOwnerDetails: Joi.boolean().optional().messages({
+      "boolean.base": "Include invited owner details should be a boolean",
+    }),
+  })
+);

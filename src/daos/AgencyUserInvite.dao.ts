@@ -1,6 +1,6 @@
 
 // Import firestore package
-import { DocumentData, Firestore, QuerySnapshot } from "@google-cloud/firestore";
+import { DocumentData, Firestore, Query, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import configs
 import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
@@ -9,8 +9,9 @@ import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
 import BaseDao from "./BaseGcpFirestore.dao";
 
 // Import dtos
-import { AgencyUserInviteCommonUpdateDto, AgencyUserInviteCreateDto } from "../dtos/AgencyUserInvite.dto";
+import { AgencyUserInviteCommonUpdateDto, AgencyUserInviteCreateDto, AgencyUserInviteListingFilterOptions } from "../dtos/AgencyUserInvite.dto";
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
+import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import helpers
 import { dateHelperObj } from "../helpers/date.helper";
@@ -20,6 +21,9 @@ import { DbAgencyUserInviteDto } from "../db/gcp-firestore-models/AgencyUserInvi
 
 // Import services
 import UlidService from "../services/Ulid.service";
+
+// Import utils
+import { gcpFirestoreUtilObj } from "../utils/gcp-firestore.util";
 
 class AgencyUserInviteDao implements BaseDao {
   databaseName: string = `worko-corp-db-${process.env.APP_SLS_STAGE}`;
@@ -36,11 +40,13 @@ class AgencyUserInviteDao implements BaseDao {
     return gcpFirestoreLibrary.getFirestoreDatabase(this.databaseName);
   }
 
-  async createAgencyUserInvite(createDto: AgencyUserInviteCreateDto): Promise<DbAgencyUserInviteDto | undefined> {
+  async createAgencyUserInvite(
+    createDto: AgencyUserInviteCreateDto
+  ): Promise<DbAgencyUserInviteDto | undefined> {
     global.logger.info("Create Agency User Invite [DAO]", {
       methodName: this.createAgencyUserInvite.name,
       createDto,
-    })
+    });
 
     const currentDate: string = dateHelperObj.getISODate();
 
@@ -55,22 +61,43 @@ class AgencyUserInviteDao implements BaseDao {
     );
   }
 
-  async getAllAgencyUserInvitesByFilterOptions() {
+  async getAllAgencyUserInvitesByFilterOptions(
+    filterOptions: AgencyUserInviteListingFilterOptions
+  ): Promise<GcpFirestoreRecordListingResponseDTO<DbAgencyUserInviteDto[]>> {
     global.logger.info("Get All Agency User Invites [DAO]", {
       methodName: this.getAllAgencyUserInvitesByFilterOptions.name,
     });
+
+    const { companyId, invitedByCorporateUserId, inviteStatus, agencyEmail } =
+      filterOptions;
+
+    const db: Firestore = this.getAgencyUserInviteFirestoreDatabase();
+    let baseQuery: Query<DocumentData, DocumentData> = db.collection(
+      this.collectionName
+    );
+
+    if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
+    if (invitedByCorporateUserId)
+      baseQuery = baseQuery.where(
+        "invitedByCorporateUserId",
+        "==",
+        invitedByCorporateUserId
+      );
+    if (inviteStatus)
+      baseQuery = baseQuery.where("inviteStatus", "==", inviteStatus);
+    if (agencyEmail) baseQuery = baseQuery.where("email", "==", agencyEmail);
+
+    return gcpFirestoreUtilObj.paginateGcpFirestore<
+      AgencyUserInviteListingFilterOptions,
+      DbAgencyUserInviteDto
+    >(db, this.collectionName, baseQuery, filterOptions);
   }
 
   async getAgencyUserInviteByCompIdEmailAndInvitedByUserId(
     companyId: string,
     agencyInvitedEmail: string,
     invitedByCorporateUserId: string
-  ): Promise<
-    QuerySnapshot<
-      DocumentData,
-      DocumentData
-    >
-  > {
+  ): Promise<QuerySnapshot<DocumentData, DocumentData>> {
     global.logger.info("Get Agency User Invite [DAO]", {
       methodName: this.getAgencyUserInviteByCompIdEmailAndInvitedByUserId.name,
       companyId,
@@ -88,7 +115,9 @@ class AgencyUserInviteDao implements BaseDao {
       .get();
   }
 
-  async getAgencyUserInviteById(id: string): Promise<DbAgencyUserInviteDto | undefined> {
+  async getAgencyUserInviteById(
+    id: string
+  ): Promise<DbAgencyUserInviteDto | undefined> {
     global.logger.info("Get Agency User Invite [DAO]", {
       methodName: this.getAgencyUserInviteById.name,
       id,
@@ -97,21 +126,23 @@ class AgencyUserInviteDao implements BaseDao {
     return gcpFirestoreLibrary.getDocumentById<DbAgencyUserInviteDto>(
       this.getAgencyUserInviteModelDetails(),
       id
-    )
+    );
   }
 
-  async updateAgencyUserInviteById(id: string, data: Partial<AgencyUserInviteCommonUpdateDto>): Promise<DbAgencyUserInviteDto | undefined> {
+  async updateAgencyUserInviteById(
+    id: string,
+    data: Partial<AgencyUserInviteCommonUpdateDto>
+  ): Promise<DbAgencyUserInviteDto | undefined> {
     global.logger.info("Update Agency User Invite By Id [DAO]", {
       methodName: this.updateAgencyUserInviteById.name,
       id,
       data,
     });
 
-    return gcpFirestoreLibrary.updateDocumentById<Partial<AgencyUserInviteCommonUpdateDto>, DbAgencyUserInviteDto>(
-      this.getAgencyUserInviteModelDetails(),
-      id,
-      data
-    );
+    return gcpFirestoreLibrary.updateDocumentById<
+      Partial<AgencyUserInviteCommonUpdateDto>,
+      DbAgencyUserInviteDto
+    >(this.getAgencyUserInviteModelDetails(), id, data);
   }
 }
 

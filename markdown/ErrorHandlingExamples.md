@@ -114,3 +114,26 @@
    "Message": "User is not authorized to access this resource because no identity-based policy allows the execute-api:Invoke action"
 }
 ```
+
+5. 
+```ts
+/**
+ * @see https://repost.aws/knowledge-center/api-gateway-cors-errors
+ */
+```
+```sh
+Access to fetch at 'https://bdwmxdaqll.execute-api.ap-south-1.amazonaws.com/dev/agency-invite/01JWAQF1G96E0SE9XHXSFGHNWW/' from origin 'http://localhost:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+
+Access to fetch at 'https://bdwmxdaqll.execute-api.ap-south-1.amazonaws.com/dev/file/gsu2u/AGENCY_INVITE_CONTRACT_COPY' from origin 'http://localhost:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+```
+
+6. 
+```json
+{
+  "code": 9,
+  "details": "The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/worko-dev/firestore/databases/worko-corp-db-dev/indexes?create_composite=Cltwcm9qZWN0cy93b3Jrby1kZXYvZGF0YWJhc2VzL3dvcmtvLWNvcnAtZGItZGV2L2NvbGxlY3Rpb25Hcm91cHMvYWdlbmN5VXNlckludml0ZXMvaW5kZXhlcy9fEAEaDQoJY29tcGFueUlkEAEaEAoMaW52aXRlU3RhdHVzEAEaHAoYaW52aXRlZEJ5Q29ycG9yYXRlVXNlcklkEAEaDQoJY3JlYXRlZEF0EAIaDAoIX19uYW1lX18QAg",
+  "metadata": {
+    "x-debug-tracking-id": ["10899137199917501285;o=1"]
+  }
+}
+```

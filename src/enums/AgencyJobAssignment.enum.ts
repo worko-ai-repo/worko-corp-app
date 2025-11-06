@@ -1,3 +1,5 @@
-export enum AgencyJobAssignmentEnum {
-  
+
+export enum AgencyJobAssignmentStatusEnum {
+   ACTIVE = "ACTIVE",
+   INACTIVE = "INACTIVE",
 }

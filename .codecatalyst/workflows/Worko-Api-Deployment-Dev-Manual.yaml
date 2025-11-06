@@ -23,12 +23,12 @@ Actions:
       # Required - Steps are sequential instructions that run shell commands
       Steps:
         - Run: npm install -g n
-        - Run: npm i -g serverless@3.40.0
+        - Run: npm install serverless@3.40.0 --save-dev
         - Run: npm i
         - Run: npm run build
         - Run: export AWS_REGION=ap-south-1
         - Run: cp environments/.env.dev .env
-        - Run: sls deploy --stage=dev
+        - Run: npx sls deploy --stage=dev
       Container:
         Registry: CODECATALYST
         Image: CodeCatalystLinuxLambda_Arm64:2024_03

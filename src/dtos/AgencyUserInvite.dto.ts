@@ -1,4 +1,10 @@
 
+// Import dtos
+import {
+  GcpFirestoreRecordListingFilterOptions,
+  GcpFirestoreRecordListingFilterRequestDTO,
+} from "./Common.gcp-firestore.dto";
+
 // Import enums
 import { AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
 
@@ -49,4 +55,51 @@ export interface AgencyUserInviteCommonUpdateDto {
   updatedByCorporateUserId: string;
 
   updatedAt: string;
+}
+
+export interface AgencyUserInviteListingFilterOptions extends GcpFirestoreRecordListingFilterOptions {
+  /**
+   * @reference "id" attribute of "CorporateUser.model.ts"
+   */
+  invitedByCorporateUserId?: string;
+
+  /**
+   * @reference "id" attribute of "CompanyDetail.model.ts"
+   */
+  companyId?: string;
+
+  inviteStatus?: AgencyUserInviteDbStatusEnum;
+
+  /**
+   * @description The email of the person who is being invited
+   */
+  agencyEmail?: string;
+
+  includeCompanyDetails?: boolean;
+
+  includeInvitedOwnerDetails?: boolean;
+}
+
+
+export interface AgencyUserInviteListingFilterRequestDTO extends GcpFirestoreRecordListingFilterRequestDTO {
+  /**
+   * @reference "id" attribute of "CorporateUser.model.ts"
+   */
+  invitedByCorporateUserId?: string;
+
+  /**
+   * @reference "id" attribute of "CompanyDetail.model.ts"
+   */
+  companyId?: string;
+
+  inviteStatus?: AgencyUserInviteDbStatusEnum;
+
+  /**
+   * @description The email of the person who is being invited
+   */
+  agencyEmail?: string;
+
+  includeCompanyDetails?: boolean;
+
+  includeInvitedOwnerDetails?: boolean;
 }
