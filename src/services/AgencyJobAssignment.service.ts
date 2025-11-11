@@ -12,21 +12,24 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { agencyJobAssignmentDaoObj } from "../daos/AgencyJobAssignment.dao";
 
 // Import dtos
-import { AgencyJobAssignmentBulkCreateApiDto } from "../dtos/AgencyJobAssignment.dto";
+import { AgencyJobAssignmentBulkCreateApiDto, AgencyJobAssignmentListingFilterOptions } from "../dtos/AgencyJobAssignment.dto";
+import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import enums
-import { AgencyJobAssignmentStatusEnum } from "../enums/AgencyJobAssignment.enum";
+import { AgencyJobAssignmentDbStatusEnum } from "../enums/AgencyJobAssignment.enum";
 import { AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
 
 // Import helpers
 import { getActionByUserId } from "../helpers/user.helper";
 import { dateHelperObj } from "../helpers/date.helper";
+import { injectEntityDetailsGlobalIteratorHelper } from "../helpers/injectEntityDetailsGlobalIterator.helper";
 
 // Import models
 import { DbAgencyJobAssignmentDto } from "../db/gcp-firestore-models/AgencyJobAssignment.model";
 import { DbCorporateUserDto } from "../db/aws-dynamodb-models/CorporateUser.model";
 import { DbUserDetailDto } from "../db/aws-dynamodb-models/UserDetail.model";
 import { DbAgencyUserInviteDto } from "../db/gcp-firestore-models/AgencyUserInvite.model";
+import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
 
 // Import services
 import { corporateUserServiceObj } from "./CorporateUser.service";
@@ -165,7 +168,7 @@ class AgencyJobAssignmentService {
         assignedByUserId: actionByUserId,
         createdAt: currentDate,
         updatedAt: currentDate,
-        status: AgencyJobAssignmentStatusEnum.ACTIVE,
+        status: AgencyJobAssignmentDbStatusEnum.ACTIVE,
       };
     })
 
@@ -186,6 +189,40 @@ class AgencyJobAssignmentService {
     });
 
     return agencyJobAssignmentDaoObj.getBulkAgencyAssignment(companyId, agencyRegisteredEmail, jobIds);
+  }
+
+  async getAllAgencyJobAssignmentsByFilterOptions(filterOptions: AgencyJobAssignmentListingFilterOptions): Promise<GcpFirestoreRecordListingResponseDTO<(DbAgencyJobAssignmentDto & { jobDetails?: DbJobAwsOpensearchDto })[]>> {
+    global.logger.info(`Get All Agency Job Assignments By Filter Options [Service]`, {
+      methodName: this.getAllAgencyJobAssignmentsByFilterOptions.name,
+    });
+
+    const {includeJobDetails} = filterOptions;
+
+    if(!includeJobDetails) {
+      return agencyJobAssignmentDaoObj.getAllAgencyJobAssignmentsByFilterOptions(filterOptions);
+    }
+
+    // Attach job details to the response
+    const {data: agencyJobAssignment, pagination} = await agencyJobAssignmentDaoObj.getAllAgencyJobAssignmentsByFilterOptions(filterOptions);
+
+    const agencyJobAssignmentsWithEntityDetails: (DbAgencyJobAssignmentDto & {
+      jobDetails?: DbJobAwsOpensearchDto;
+    })[] =
+      await injectEntityDetailsGlobalIteratorHelper.injectEntityDetailsForAgencyJobAssignment(
+        agencyJobAssignment,
+        includeJobDetails
+      );
+
+    const finalResponse: GcpFirestoreRecordListingResponseDTO<
+      (DbAgencyJobAssignmentDto & {
+        jobDetails?: DbJobAwsOpensearchDto;
+      })[]
+    > = {
+      data: agencyJobAssignmentsWithEntityDetails,
+      pagination: pagination,
+    };
+
+    return finalResponse;
   }
 }
 

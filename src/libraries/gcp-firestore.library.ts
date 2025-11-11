@@ -12,6 +12,7 @@ class GcpFirestoreLibrary {
   initFirestoreArguments(databaseId: string): Settings {
     const settings: Settings = {
       databaseId: databaseId,
+      ignoreUndefinedProperties: true,
     };
 
     if (process.env.APP_GCP_PROJECT_ID) {
@@ -81,7 +82,7 @@ class GcpFirestoreLibrary {
     const batch: WriteBatch = db.batch();
 
     documents.forEach((doc: DbEntityDto) => {
-      const docRef: DocumentReference<DocumentData, DocumentData> = db.collection(commonDbDetails.collectionName).doc();
+      const docRef: DocumentReference<DocumentData, DocumentData> = db.collection(commonDbDetails.collectionName).doc(doc.id);
       batch.set(docRef, { ...doc });
     });
 

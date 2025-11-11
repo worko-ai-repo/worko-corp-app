@@ -2,17 +2,25 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { AgencyJobAssignmentBulkCreateApiDto } from "../dtos/AgencyJobAssignment.dto";
+import { AgencyJobAssignmentBulkCreateApiDto, AgencyJobAssignmentListingFilterOptions, AgencyJobAssignmentListingFilterRequestDTO } from "../dtos/AgencyJobAssignment.dto";
+import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
+
+// Import helpers
+import { GcpFirestoreRequestHelper } from "../helpers/request.gcp-firestore.helper";
+
+// Import models
+import { DbAgencyJobAssignmentDto } from "../db/gcp-firestore-models/AgencyJobAssignment.model";
+import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
 
 // Import services
 import { agencyJobAssignmentServiceObj } from "../services/AgencyJobAssignment.service";
 
 // Import schemas
-import { agencyJobAssignmentBulkCreateApiDtoValidation } from "../schemas/AgencyJobAssignment.schema";
+import { agencyJobAssignmentBulkCreateApiDtoValidation, agencyJobAssignmentFilterDtoValidation } from "../schemas/AgencyJobAssignment.schema";
 
 // import utils
 import HttpStatusCode from "../utils/http-codes.util";
-import { BaseError, RequestValidationError } from "../utils/errors.util";
+import { RequestValidationError } from "../utils/errors.util";
 
 class AgencyJobAssignmentController {
   createBulkAgencyJobAssignment = async (
@@ -41,6 +49,46 @@ class AgencyJobAssignmentController {
     } catch (error) {
       global.logger.error(`Create Bulk Agency Job Assignment [Controller]`, {
         methodName: this.createBulkAgencyJobAssignment.name,
+        error,
+      })
+
+      next(error);
+    }
+  };
+
+  getAllAgencyJobAssignmentByFilterOptions = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const agencyJobAssignmentListingFilterRequest: AgencyJobAssignmentListingFilterOptions =
+        GcpFirestoreRequestHelper.parseFilterOptions<
+          AgencyJobAssignmentListingFilterRequestDTO,
+          AgencyJobAssignmentListingFilterOptions
+        >(req.query as unknown as AgencyJobAssignmentListingFilterRequestDTO);
+
+      let { error, value: agencyJobAssignmentFilterOptions } = agencyJobAssignmentFilterDtoValidation.validate(
+        agencyJobAssignmentListingFilterRequest,
+        { abortEarly: false }
+      );
+      if (error) {
+        throw new RequestValidationError(error);
+      }
+
+      const jobDetails: GcpFirestoreRecordListingResponseDTO<
+        (DbAgencyJobAssignmentDto & {
+          jobDetails?: DbJobAwsOpensearchDto;
+        })[]
+      > =
+        await agencyJobAssignmentServiceObj.getAllAgencyJobAssignmentsByFilterOptions(
+          agencyJobAssignmentFilterOptions
+        );
+
+      res.status(HttpStatusCode.OK_200).json(jobDetails);
+    } catch (error) {
+      global.logger.error(`Get All Agency Job Assignment [Controller]`, {
+        methodName: this.getAllAgencyJobAssignmentByFilterOptions.name,
         error,
       })
 

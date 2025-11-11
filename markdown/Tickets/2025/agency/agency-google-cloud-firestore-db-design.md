@@ -48,11 +48,6 @@ interface AgencyUser {
   inviteIds: string[];
 }
 ```
-**Composite Indexes:**
-- `email` (single field index for direct lookup)
-- `cognitoUserId` (single field index)
-
-
 
 
 ### AgencyJobAssignments Collection
@@ -74,10 +69,7 @@ interface AgencyJobAssignment {
 }
 ```
 **Composite Indexes:**
-- `companyId` + `agencyRegisteredEmail` + `jobId`
-- `agencyRegisteredEmail` + `status`
-- `jobId` + `status`
-
+- `↓agencyRegisteredEmail` + `↓status` + `↓companyId`
 
 
 

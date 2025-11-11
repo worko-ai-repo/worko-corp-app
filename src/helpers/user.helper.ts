@@ -9,6 +9,7 @@ import { DbUserDetailDto } from "../db/aws-dynamodb-models/UserDetail.model";
 
 // Import services
 import UserDetailService from "../services/UserDetail.service";
+import UlidService from "../services/Ulid.service";
 
 // Import utils
 import { BaseError } from "../utils/errors.util";
@@ -58,6 +59,21 @@ export const getActionByUserId = (): {
   // Return the "actionByUserId" and "actionByCorporateUserId"
   return { actionByUserId, actionByCorporateUserId };
 };
+
+export const getActionByAgencyUserIds = (): {
+  agencyCognitoUserId: string;
+  convertedAgencyCognitoUserId: string;
+} => {
+  const agencyCognitoUserId: string = global.requestLocalContext.userId;
+
+  // Convert the CognitoId into ULID
+  const convertedAgencyCognitoUserId: string = UlidService.convertUuidToUlid(agencyCognitoUserId);
+
+  return {
+    agencyCognitoUserId,
+    convertedAgencyCognitoUserId,
+  }
+}
 
 /**
  * getEmailFromPK

@@ -3,7 +3,7 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { AgencyUserInviteCreateApiDto, AgencyUserInviteListingFilterOptions, AgencyUserInviteListingFilterRequestDTO, AgencyUserInviteUpdateApiDto } from "../dtos/AgencyUserInvite.dto";
+import { AgencyUserInviteCreateApiDto, AgencyUserInviteListingFilterOptions, AgencyUserInviteListingFilterRequestDTO, AgencyUserInviteCorpUpdateApiDto, AgencyUserInviteAgencyUpdateApiDto } from "../dtos/AgencyUserInvite.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import helpers
@@ -16,7 +16,7 @@ import { DbAgencyUserInviteDto } from "../db/gcp-firestore-models/AgencyUserInvi
 import { agencyUserInviteServiceObj } from "../services/AgencyUserInvite.service";
 
 // Import schemas
-import { agencyUserInviteCreateApiValidationDto, agencyUserInviteFilterDtoValidation, agencyUserInviteUpdateApiValidationDto } from "../schemas/AgencyUserInvite.schema";
+import { agencyUserInviteCreateApiValidationDto, agencyUserInviteFilterDtoValidation, agencyUserInviteCorpUpdateApiValidationDto, agencyUserInviteAgencyUpdateApiValidationDto } from "../schemas/AgencyUserInvite.schema";
 
 // import utils
 import HttpStatusCode from "../utils/http-codes.util";
@@ -81,7 +81,7 @@ class AgencyUserInviteController {
       }
 
       const jobDetails: GcpFirestoreRecordListingResponseDTO<DbAgencyUserInviteDto[]> =
-        await agencyUserInviteServiceObj.getAllAgencyUserInvitesByFilterOptions(
+        await agencyUserInviteServiceObj.performGetAllAgencyUserInviteActivities(
           agencyUserInviteFilterOptions
         );
 
@@ -96,33 +96,101 @@ class AgencyUserInviteController {
     }
   }
 
-  updateAgencyUserInvite = async (
+  getAgencyUserInviteById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      global.logger.info(`Get Agency User Invites By Id [Controller]`, {
+        methodName: this.getAgencyUserInviteById.name,
+      });
+
+      const { id } = req.params;
+
+      const agencyUserInviteDetails: DbAgencyUserInviteDto | undefined = await agencyUserInviteServiceObj.getAgencyUserInviteById(
+        id
+      );
+
+      if(!agencyUserInviteDetails) {
+        global.logger.error(`Agency User Invite not found [Controller]`, {
+          methodName: this.getAgencyUserInviteById.name,
+          invalidInviteId: id
+        });
+        throw new BaseError("Agency User Invite not found", HttpStatusCode.NOT_FOUND_404);
+      }
+
+      res.status(HttpStatusCode.OK_200).json(agencyUserInviteDetails);
+    } catch (error) {
+      global.logger.error(`Get Agency User Invite By Id [Controller]`, {
+        inviteId: req.params.id,
+        methodName: this.getAgencyUserInviteById.name,
+        error,
+      });
+      next(error);
+    }
+  };
+
+  updateAgencyUserInviteByCorpUser = async (
     req: Request,
     res: Response,
     next: NextFunction
   ) => {
     try {
       global.logger.info(`Update Agency User Invite [Controller]`, {
-        methodName: this.updateAgencyUserInvite.name,
+        methodName: this.updateAgencyUserInviteByCorpUser.name,
       });
 
-      const requestBody: AgencyUserInviteUpdateApiDto = req.body;
+      const requestBody: AgencyUserInviteCorpUpdateApiDto = req.body;
       const { error: reqBodyError, value: validatedRequestBody } =
-        agencyUserInviteUpdateApiValidationDto.validate(requestBody, {
+        agencyUserInviteCorpUpdateApiValidationDto.validate(requestBody, {
           abortEarly: false,
         });
       if (reqBodyError) {
         throw new RequestValidationError(reqBodyError);
       }
 
-      const agencyUserInviteDetails = await agencyUserInviteServiceObj.performUpdateAgencyUserInviteActivities(
+      const agencyUserInviteDetails: DbAgencyUserInviteDto = await agencyUserInviteServiceObj.performUpdateAgencyUserInviteActivitiesByCorpUser(
         validatedRequestBody
       );
 
       res.status(HttpStatusCode.OK_200).json(agencyUserInviteDetails);
     } catch (error) {
       global.logger.error(`Update Agency User Invite [Controller]`, {
-        methodName: this.updateAgencyUserInvite.name,
+        methodName: this.updateAgencyUserInviteByCorpUser.name,
+        error,
+      });
+      next(error);
+    }
+  };
+
+  updateAgencyUserInviteByAgencyUser = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      global.logger.info(`Agency User Invite Update By Agency User [Controller]`, {
+        methodName: this.updateAgencyUserInviteByAgencyUser.name,
+      });
+
+      const requestBody: AgencyUserInviteAgencyUpdateApiDto = req.body;
+      const { error: reqBodyError, value: validatedRequestBody } =
+        agencyUserInviteAgencyUpdateApiValidationDto.validate(requestBody, {
+          abortEarly: false,
+        });
+      if (reqBodyError) {
+        throw new RequestValidationError(reqBodyError);
+      }
+
+      const agencyUserInviteDetails: DbAgencyUserInviteDto = await agencyUserInviteServiceObj.performUpdateAgencyUserInviteActivitiesByAgencyUser(
+        validatedRequestBody
+      );
+
+      res.status(HttpStatusCode.OK_200).json(agencyUserInviteDetails);
+    } catch (error) {
+      global.logger.error(`Update Agency User Invite [Controller]`, {
+        methodName: this.updateAgencyUserInviteByAgencyUser.name,
         error,
       });
       next(error);

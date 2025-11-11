@@ -1,6 +1,6 @@
 
 // Import firestore package
-import { DocumentData, Firestore, Query, QuerySnapshot } from "@google-cloud/firestore";
+import { DocumentData, Filter, Firestore, Query, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import configs
 import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
@@ -9,7 +9,7 @@ import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
 import BaseDao from "./BaseGcpFirestore.dao";
 
 // Import dtos
-import { AgencyUserInviteCommonUpdateDto, AgencyUserInviteCreateDto, AgencyUserInviteListingFilterOptions } from "../dtos/AgencyUserInvite.dto";
+import { AgencyUserInviteCommonUpdateDto, AgencyUserInviteCreateApiDto, AgencyUserInviteCreateDto, AgencyUserInviteDbPhoneNumberDto, AgencyUserInviteListingFilterOptions } from "../dtos/AgencyUserInvite.dto";
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
@@ -50,14 +50,16 @@ class AgencyUserInviteDao implements BaseDao {
 
     const currentDate: string = dateHelperObj.getISODate();
 
+    const finalCreateData: DbAgencyUserInviteDto = {
+      id: UlidService.getUlidId(),
+      createdAt: currentDate,
+      updatedAt: currentDate,
+      ...createDto,
+    };
+
     return gcpFirestoreLibrary.createDocument<DbAgencyUserInviteDto>(
       this.getAgencyUserInviteModelDetails(),
-      {
-        id: UlidService.getUlidId(),
-        createdAt: currentDate,
-        updatedAt: currentDate,
-        ...createDto,
-      }
+      finalCreateData
     );
   }
 
@@ -93,28 +95,6 @@ class AgencyUserInviteDao implements BaseDao {
     >(db, this.collectionName, baseQuery, filterOptions);
   }
 
-  async getAgencyUserInviteByCompIdEmailAndInvitedByUserId(
-    companyId: string,
-    agencyInvitedEmail: string,
-    invitedByCorporateUserId: string
-  ): Promise<QuerySnapshot<DocumentData, DocumentData>> {
-    global.logger.info("Get Agency User Invite [DAO]", {
-      methodName: this.getAgencyUserInviteByCompIdEmailAndInvitedByUserId.name,
-      companyId,
-      agencyInvitedEmail,
-      invitedByCorporateUserId,
-    });
-
-    const db: Firestore = this.getAgencyUserInviteFirestoreDatabase();
-
-    return db
-      .collection(this.collectionName)
-      .where("companyId", "==", companyId)
-      .where("email", "==", agencyInvitedEmail)
-      .where("invitedByCorporateUserId", "==", invitedByCorporateUserId)
-      .get();
-  }
-
   async getAgencyUserInviteById(
     id: string
   ): Promise<DbAgencyUserInviteDto | undefined> {
@@ -127,6 +107,54 @@ class AgencyUserInviteDao implements BaseDao {
       this.getAgencyUserInviteModelDetails(),
       id
     );
+  }
+
+  /**
+   * @description This function is user before creating the Agency User Invite, so that we can check if
+   * an invite with few attributes already exists or not
+   * @reference 
+   *  1. "performCreateAgencyUserInviteActivities" method in "AgencyUserInvite.service.ts"
+   */
+  async getAgencyUserInviteDuplicateDataBeforeCreate(
+    data: AgencyUserInviteCreateApiDto
+  ): Promise<QuerySnapshot<DocumentData, DocumentData>> {
+    global.logger.info("Get Agency User Invite Duplicate Data Before Create [DAO]", {
+      methodName: this.getAgencyUserInviteDuplicateDataBeforeCreate.name,
+      data,
+    });
+
+    const {
+      companyId,
+      email: agencyInvitedEmail,
+      phoneNumberDetails,
+      agencyName,
+      GSTIN
+    } = data
+
+    const db: Firestore = this.getAgencyUserInviteFirestoreDatabase();
+
+    /**
+     * @see https://firebase.google.com/docs/firestore/query-data/queries#or_queries
+     */
+    const duplicateFilters: Filter[] = [
+      Filter.where("email", "==", agencyInvitedEmail),
+      Filter.where("companyEmailDomainName", "==", agencyInvitedEmail.split("@")[1]),
+      Filter.and(
+        Filter.where("phoneNumberDetails.number", "==", phoneNumberDetails.number),
+        Filter.where("phoneNumberDetails.countryCode", "==", phoneNumberDetails.countryCode)
+      ),
+      Filter.where("agencyName", "==", agencyName),
+    ];
+
+    if (GSTIN) {
+      duplicateFilters.push(Filter.where("GSTIN", "==", GSTIN));
+    }
+
+    return db
+      .collection(this.collectionName)
+      .where("companyId", "==", companyId) // duplicates should be detected within the same company.
+      .where(Filter.or(...duplicateFilters))
+      .get();
   }
 
   async updateAgencyUserInviteById(

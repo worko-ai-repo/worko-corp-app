@@ -20,14 +20,40 @@ interface DbAgencyUserInviteDto extends BaseFirestoreModel {
   updatedByCorporateUserId?: string;
 
   /**
+   * @reference "id" attribute of "AgencyUser.model.ts" from "GCP Firestore"
+   * @description
+   *  1. Whenever an agency registered, then we will update `inviteStatus` as `ACCEPTED` and this field will store the `id` of the agency registered
+   */
+  updatedByAgencyUserId?: string;
+
+  /**
    * @reference "id" attribute of "CompanyDetail.model.ts" from "AWS DynamoDB"
    */
   companyId: string;
 
   /**
+   * @reference "name" attribute of "CompanyDetail.model.ts" from "AWS DynamoDB"
+   */
+  companyName: string;
+
+  /**
+   * @description The name of the person who invited
+   * @reference
+   *  1. "firstName" + "lastName" attribute of "CorporateUser.model.ts" from "AWS DynamoDB"
+   */
+  inviterName: string;
+
+  /**
    * @description The name of the person who is being invited
    */
   name: string;
+
+  /**
+   * @description
+   *   1. Brand name of the agency
+   *   2. May be a company name related to the agency
+   */
+  agencyName: string;
 
   inviteStatus: AgencyUserInviteDbStatusEnum;
 
@@ -35,6 +61,18 @@ interface DbAgencyUserInviteDto extends BaseFirestoreModel {
    * @description The email of the person who is being invited
    */
   email: string;
+
+  /**
+   * @description The domain extracted from the "email" field 
+   * @example "swiggy.com" from "user@swiggy.com"
+   */
+  companyEmailDomainName?: string;
+
+  /**
+   * @description The domain extracted from the "email" field
+   * @example "yahoo.com" from "user@yahoo.com"
+   */
+  miscellaneousEmailDomainName?: string;
 
   /**
    * @description The phone number of the person who is being invited

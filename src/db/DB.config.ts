@@ -9,6 +9,8 @@ import { DB_CONSTANTS } from "./DB.constants";
 import { CompanyDetailModel } from "./aws-dynamodb-models/CompanyDetail.model";
 import { UserDetailModel } from "./aws-dynamodb-models/UserDetail.model";
 import { CorporateUserModel } from "./aws-dynamodb-models/CorporateUser.model";
+import { EmailTemplateModel } from "./aws-dynamodb-models/EmailTemplate.model";
+import { EmailLogModel } from "./aws-dynamodb-models/EmailLog.model";
 
 /**
  * DBConfig
@@ -95,7 +97,9 @@ class DBConfig {
       [
         CompanyDetailModel,
         UserDetailModel,
-        CorporateUserModel
+        CorporateUserModel,
+        EmailTemplateModel,
+        EmailLogModel,
       ]
     );
   }

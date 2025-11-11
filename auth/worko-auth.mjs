@@ -17,18 +17,27 @@ import UrlPattern from "url-pattern";
 // Verifier that expects valid access tokens:
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-verifying-a-jwt.html#amazon-cognito-user-pools-using-tokens-manually-inspect
+ *
+ * Multiple User Pools
+ * @see https://github.com/awslabs/aws-jwt-verify?tab=readme-ov-file#trusting-multiple-user-pools
  */
-const verifier = CognitoJwtVerifier.create({
-  userPoolId: process.env.USER_POOL,
-  tokenUse: "access",
-
-  /**
-   * @description
-   * 1. If we don't specify client id explicitly as null then it will throw below error:
-   *    "ParameterValidationError: clientId must be provided or set to null explicitly"
-   */
-  clientId: null, // Accept tokens from any client in this User Pool
-});
+const verifier = CognitoJwtVerifier.create([
+  {
+    userPoolId: process.env.WORKO_USER_POOL,
+    tokenUse: "access",
+    /**
+     * @description
+     * 1. If we don't specify client id explicitly as null then it will throw below error:
+     *    "ParameterValidationError: clientId must be provided or set to null explicitly"
+     */
+    clientId: null, // Accept tokens from any client in this User Pool
+  },
+  {
+    userPoolId: process.env.WORKO_AGENCY_USER_POOL,
+    tokenUse: "access",
+    clientId: process.env.WORKO_AGENCY_PASSWORD_LOGIN_CLIENT_ID,
+  },
+]);
 
 // Constants for HTTP methods
 var HttpMethodsConstants = {
@@ -78,75 +87,99 @@ export const handler = async function (event, context, callback) {
     const token = bearerToken.split(" ")[1];
 
     try {
-      // check if admin url
-      const isAnAdminUrl = isAdminUrl(
-        event.path,
-        event.requestContext.httpMethod
+      // Multi-pool verification - automatically detects user pool
+      let payload = await verifier.verify(token);
+
+      // Determine user type from verified payload
+      const isWorkoAgencyPoolUser = payload.iss.includes(
+        process.env.WORKO_AGENCY_USER_POOL
       );
 
-      // check if corporate admin url
-      const isACorporateAdminUrl = isCorporateAdminUrl(
-        event.path,
-        event.requestContext.httpMethod
+      const isWorkoPoolUser = payload.iss.includes(
+        process.env.WORKO_USER_POOL
       );
 
-      // check if corporate recruiter url
-      const isACorporateRecruiterUrl = isCorporateRecruiterUrl(
-        event.path,
-        event.requestContext.httpMethod
-      );
+      if (isWorkoAgencyPoolUser) {
+        console.log("Worko Agency user pool detected");
 
-      // check if evaluator url
-      const isAnEvaluatorUrl = isEvaluatorUrl(
-        event.path,
-        event.requestContext.httpMethod
-      );
+        // Agency user - check if accessing allowed URLs
+        const isAgencyAllowedUrl = isAgencyUrl(
+          event.path,
+          event.requestContext.httpMethod
+        );
 
-      let payload = {};
-      if (isAnEvaluatorUrl) {
-        // Verify the token with group admin
-        payload = await verifier.verify(token, {
-          /**
-           * groups (optional): verify that the JWT's cognito:groups claim matches your expectation.
-           * Provide a string, or an array of strings to allow multiple groups (i.e. one of these groups must match the JWT).
-           */
-          groups: [
-            "admin",
-            "corporate-admin",
-            "corporate-recruiter",
-            "evaluator",
-          ],
-        });
-      } else if (isACorporateRecruiterUrl) {
-        // Verify the token with group admin
-        payload = await verifier.verify(token, {
-          /**
-           * groups (optional): verify that the JWT's cognito:groups claim matches your expectation.
-           * Provide a string, or an array of strings to allow multiple groups (i.e. one of these groups must match the JWT).
-           */
-          groups: ["admin", "corporate-recruiter", "corporate-admin"],
-        });
-      } else if (isACorporateAdminUrl) {
-        // Verify the token with group admin
-        payload = await verifier.verify(token, {
-          /**
-           * groups (optional): verify that the JWT's cognito:groups claim matches your expectation.
-           * Provide a string, or an array of strings to allow multiple groups (i.e. one of these groups must match the JWT).
-           */
-          groups: ["admin", "corporate-admin"],
-        });
-      } else if (isAnAdminUrl) {
-        // Verify the token with group admin
-        payload = await verifier.verify(token, {
-          /**
-           * groups (optional): verify that the JWT's cognito:groups claim matches your expectation.
-           * Provide a string, or an array of strings to allow multiple groups (i.e. one of these groups must match the JWT).
-           */
-          groups: ["admin"],
-        });
+        if (!isAgencyAllowedUrl) {
+          console.log(
+            "Agency user trying to access restricted API:",
+            event.path
+          );
+          access = "deny";
+          throw new Error("Agency user not allowed to access this API");
+        }
+
+        console.log("Agency user verified successfully");
+      } else if(isWorkoPoolUser) {
+        console.log("Worko user pool detected");
+
+        // check if admin url
+        const isAnAdminUrl = isAdminUrl(
+          event.path,
+          event.requestContext.httpMethod
+        );
+
+        // check if corporate admin url
+        const isACorporateAdminUrl = isCorporateAdminUrl(
+          event.path,
+          event.requestContext.httpMethod
+        );
+
+        // check if corporate recruiter url
+        const isACorporateRecruiterUrl = isCorporateRecruiterUrl(
+          event.path,
+          event.requestContext.httpMethod
+        );
+
+        // check if evaluator url
+        const isAnEvaluatorUrl = isEvaluatorUrl(
+          event.path,
+          event.requestContext.httpMethod
+        );
+
+        /**
+         * groups (optional): verify that the JWT's cognito:groups claim matches your expectation.
+         * Provide a string, or an array of strings to allow multiple groups (i.e. one of these groups must match the JWT).
+         */
+        if (isAnEvaluatorUrl) {
+          // Re-verify with group constraints for corporate users
+          payload = await verifier.verify(token, {
+            groups: [
+              "admin",
+              "corporate-admin",
+              "corporate-recruiter",
+              "evaluator",
+            ],
+          });
+        } else if (isACorporateRecruiterUrl) {
+          payload = await verifier.verify(token, {
+            groups: ["admin", "corporate-recruiter", "corporate-admin"],
+          });
+        } else if (isACorporateAdminUrl) {
+          payload = await verifier.verify(token, {
+            groups: ["admin", "corporate-admin"],
+          });
+        } else if (isAnAdminUrl) {
+          payload = await verifier.verify(token, {
+            groups: ["admin"],
+          });
+        } else {
+          payload = await verifier.verify(token);
+        }
+
+        console.log("Worko user pool verified successfully");
       } else {
-        // Verify the token
-        payload = await verifier.verify(token);
+        console.log("Unknown user pool detected");
+        access = "deny";
+        throw new Error("Unknown user pool");
       }
 
       /*
@@ -180,15 +213,22 @@ export const handler = async function (event, context, callback) {
         client_id: '1lql4bdit9k1vrmdfms4cf2fmi',
       }
       */
-      console.log("payload:", {
-        payload,
-      });
+      console.log("payload: ", payload);
 
-      // get groups from token
-      groups = payload["cognito:groups"] || [];
+      /**
+       * @description As of now "Agency" user does not have any cognito user groups,
+       * if added in the future, this will need to be updated
+       */
+      groups = isWorkoAgencyPoolUser ? [] : payload["cognito:groups"] || [];
 
       username = payload.sub;
       email = payload?.email;
+
+      // Log user pool source
+      console.log(
+        "User pool source:",
+        isWorkoAgencyPoolUser ? "worko agency user pool" : "worko user pool"
+      );
 
       access = "allow";
     } catch (error) {
@@ -366,6 +406,9 @@ var checkWhitelistedUrl = function (url, httpMethod) {
     { path: "/job/:id", method: HttpMethodsConstants.GET },
     { path: "/job/", method: HttpMethodsConstants.GET },
     { path: "/job", method: HttpMethodsConstants.GET },
+
+    // Agency User Invite Routers
+    { path: "/agency-invite/:id", method: HttpMethodsConstants.GET },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
@@ -487,13 +530,20 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
     // Agency User Invite Routers
     { path: "/agency-invite/", method: HttpMethodsConstants.POST },
     { path: "/agency-invite*", method: HttpMethodsConstants.GET },
+    { path: "/agency-invite/corp-action", method: HttpMethodsConstants.PATCH },
 
     // Agency Job Assignment Routers
     { path: "/agency-job-assignment/bulk", method: HttpMethodsConstants.POST },
 
     // File routers
-    { path: "/file/gsu2u/AGENCY_INVITE_CONTRACT_COPY", method: HttpMethodsConstants.POST },
-    { path: "/file/gsu2v/AGENCY_INVITE_CONTRACT_COPY", method: HttpMethodsConstants.POST },
+    {
+      path: "/file/gsu2u/AGENCY_INVITE_CONTRACT_COPY",
+      method: HttpMethodsConstants.POST,
+    },
+    {
+      path: "/file/gsu2v/AGENCY_INVITE_CONTRACT_COPY",
+      method: HttpMethodsConstants.POST,
+    },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
@@ -586,17 +636,53 @@ var isCorporateAdminUrl = function (url, httpMethod) {
     // Agency User Invite Routers
     { path: "/agency-invite/", method: HttpMethodsConstants.POST },
     { path: "/agency-invite*", method: HttpMethodsConstants.GET },
+    { path: "/agency-invite/corp-action", method: HttpMethodsConstants.PATCH },
 
     // Agency Job Assignment Routers
     { path: "/agency-job-assignment/bulk", method: HttpMethodsConstants.POST },
 
     // File routers
-    { path: "/file/gsu2u/AGENCY_INVITE_CONTRACT_COPY", method: HttpMethodsConstants.POST },
-    { path: "/file/gsu2v/AGENCY_INVITE_CONTRACT_COPY", method: HttpMethodsConstants.POST },
+    {
+      path: "/file/gsu2u/AGENCY_INVITE_CONTRACT_COPY",
+      method: HttpMethodsConstants.POST,
+    },
+    {
+      path: "/file/gsu2v/AGENCY_INVITE_CONTRACT_COPY",
+      method: HttpMethodsConstants.POST,
+    },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
 
+  return result;
+};
+
+/**
+ * isAgencyUrl
+ *
+ * Checks if a given URL is allowed for Agency users and matches the given HTTP method.
+ *
+ * @param {string} url - The URL to check.
+ * @param {string} httpMethod - The HTTP method to check against.
+ * @returns {boolean} - True if the URL and HTTP method match any pattern in the
+ *                      Agency allowed URL list, otherwise false.
+ */
+var isAgencyUrl = function (url, httpMethod) {
+  const urlList = [
+    // Agency User Invite Routers
+    { path: "/agency-invite*", method: HttpMethodsConstants.GET },
+    { path: "/agency-invite/agency-action", method: HttpMethodsConstants.PATCH },
+
+    // Agency User Routers
+    { path: "/agency-user/", method: HttpMethodsConstants.POST },
+    { path: "/agency-user/:id", method: HttpMethodsConstants.GET },
+    { path: "/agency-user/:id/cognito", method: HttpMethodsConstants.GET },
+
+    // Agency Job Assignment Routers
+    { path: "/agency-job-assignment*", method: HttpMethodsConstants.GET },
+  ];
+
+  const result = checkMatchingPattern(url, urlList, httpMethod);
   return result;
 };
 

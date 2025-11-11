@@ -20,9 +20,21 @@ AgencyUserInviteRouter.post("/",agencyUserInviteController.createAgencyUserInvit
 AgencyUserInviteRouter.get("/",agencyUserInviteController.getAllAgencyUserInvitesByFilterOptions);
 
 /**
- * Send Agency User Invite
+ * Get Agency User Invite by id
+ * @authorisedRoles ["public"]
+ */
+AgencyUserInviteRouter.get("/:id",agencyUserInviteController.getAgencyUserInviteById);
+
+/**
+ * Agency User Invite Update by corp user
  * @authorisedRoles ["corporate-admin","corporate-recruiter"]
  */
-AgencyUserInviteRouter.patch("/",agencyUserInviteController.updateAgencyUserInvite);
+AgencyUserInviteRouter.patch("/corp-action",agencyUserInviteController.updateAgencyUserInviteByCorpUser);
+
+/**
+ * Agency User Invite Update by agency user
+ * @authorisedRoles ["agency"]
+ */
+AgencyUserInviteRouter.patch("/agency-action",agencyUserInviteController.updateAgencyUserInviteByAgencyUser);
 
 export default AgencyUserInviteRouter;

@@ -51,7 +51,7 @@ const serverlessConfiguration: AWS = {
       APP_AWS_SUBNET1: "${env:APP_AWS_SUBNET1}",
       APP_AWS_SUBNET2: "${env:APP_AWS_SUBNET2}",
       APP_SLS_REGION: "${env:APP_SLS_REGION}",
-      APP_OPENSEARCH_SERVICE: "${env:APP_OPENSEARCH_SERVICE}",
+      APP_AWS_AGENCY_COGNITO_USER_POOL_ID: "${env:APP_AWS_AGENCY_COGNITO_USER_POOL_ID}",
     },
   },
 
@@ -134,14 +134,18 @@ const serverlessConfiguration: AWS = {
 
       {
         Effect: "Allow",
-        Action: [
-          "es:ESHttpGet", // Required for search queries.
-          "es:ESHttpPut", //  Required for creating/updating documents.
-          "es:ESHttpPost", // Required for bulk operations and indexing.
-          "es:ESHttpDelete", // Required for deleting documents.
+        Action: ["lambda:InvokeFunction", "lambda:InvokeAsync"],
+        Resource: [
+          "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-job-app-${self:custom.app.STAGE}-app-opensearch-operations",
         ],
-        Resource:
-          "arn:aws:${self:custom.aws.APP_OPENSEARCH_SERVICE}:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:domain/worko",
+      },
+
+      {
+        Effect : "Allow",
+        "Action": [
+          "cognito-idp:AdminGetUser",
+        ],
+        "Resource":"arn:aws:cognito-idp:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:userpool/${self:custom.aws.APP_AWS_AGENCY_COGNITO_USER_POOL_ID}"
       },
     ],
   },

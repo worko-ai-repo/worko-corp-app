@@ -18,4 +18,10 @@ const AgencyJobAssignmentRouter = Router();
  */
 AgencyJobAssignmentRouter.post("/bulk", agencyJobAssignmentController.createBulkAgencyJobAssignment);
 
+/**
+ * Get All Agency Job Assignment
+ * @authorisedRoles ["agency"]
+ */
+AgencyJobAssignmentRouter.get("/", agencyJobAssignmentController.getAllAgencyJobAssignmentByFilterOptions);
+
 export default AgencyJobAssignmentRouter;

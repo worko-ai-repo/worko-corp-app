@@ -163,11 +163,6 @@
             7. `Invite` button:
                1. When `Invite` button is clicked below steps will happen:
                   1. Create agency invite api will be called by `FE` and below steps will be followed in the api:
-                     ```ts
-                     /**
-                      * @todo Need to add validations for email existence in "Aws cognito" by discussing with "CTO"
-                      */
-                     ```
                      1. Get company details by `companyId` api request body details 
                         1. If not found:
                            1. Throw an error by saying: `Company details not found`
@@ -249,9 +244,6 @@
 
 
 # Agency Dashboard
-## Notes:
-   1. same email id which has been used for agency cannot be used in any other dashboard
-   2.  there is mis information in figma while login we will not ask company name but while register we will ask its vice versa in figma
 ## Signup
    1. `Corporate` will send invite request to a person via email to signup and access `agency` dashboard 
       1. After person clicks the email he recieved below input form will be open
@@ -263,27 +255,46 @@
          6. Enter Otp
          7. Signup:
             1. When `Signup` button is clicked:
-               1. FE will try to store in `cognito`
-               2. FE will call `agency register` api and backend will follow below steps in api:
-                  1. Check whether the `cognitoUserId` present in `aws cognito user pool` or not
-                     1. If not found:
-                        1. Throw an error
-                     2. If found:
-                        1. Compare the api request body `email` and `cognitoEmail` is same or not
-                           1. If not same:
-                              1. Throw forbidden error
-                  2. Check whether the `invite` id is present or not
-                     1. If not present:
-                        1. Throw an error
-                     2. If present:
-                        1. Check whether the email in invite details and cognitoEmail is same or not
-                           1. If not same:
-                              1. Throw an error
-                        
+               1. FE will try to store `email` in `worko-agency` user pool of `aws cognito`
+                  1. If email already present:
+                     1. `FE` will show message: `you have already registerd popup and navigate to login page`
+                  2. If email not present then `email` will store in `cognito` with `unverified` email status and user will recieve an `otp`
+                     1. After user enters `otp` 
+                        1. If `otp` is correct
+                           1. FE will call `agency register` api and backend will follow below steps in api:
+                              1. Check whether the `cognitoUserId` present in `aws cognito user pool` or not
+                                 1. If not found:
+                                    1. Throw an error
+                                 2. If found:
+                                    1. Compare the api request body `email` and `cognitoEmail` is same or not
+                                       1. If not same:
+                                          1. Throw an error
+                                    2. Check whether email is verified in `cognito` or not
+                                       1. If not verified 
+                                          1. Throw an error
+                              2. Check whether the `invite` id is present or not
+                                 1. If not present:
+                                    1. Throw an error
+                                 2. If present:
+                                    1. Check whether the email in invite details and cognitoEmail is same or not
+                                       1. If not same:
+                                          1. Throw an error
+                              3. Check whether the agency registered details are already stored in db or not
+                                 1. If already present 
+                                    1. throw an error
+                                 2. If not present
+                                    1. Create agency register document
+                                       1. If created successfully
+                                          1. Update the respective invite status as `Accepted`
+                        2. If `otp` is wrong
+                           1. Throw an error by not calling `agency register api`                       
 ## Login
-   1. Email Id
-   2. Agency name
-   3. Password
+   1. Whenever `corporate` sends an invite and if `agency` is already registered then he recieves
+      agency dashboard Login url
+      1. Email Id
+      2. Agency name
+      3. Password
+
 ## Pages
    1. Invites
       1. List of invites recieved from different `companies` and different `corporates` with below column names:
@@ -291,6 +302,9 @@
          2. Sender name(HR)
          3. Date
          4. Action / Current status
+            1. `Accept` button:
+               1. 
+            2. `Reject` button:
    2. Jobs 
       1. List of different `Company Jobs` assigned by different `corporates` with below column names:
          1. Company name
@@ -372,23 +386,21 @@
 
 
 
+# User pool notes
+1. "worko" aws cognito user pool:
+   1. We are using "worko" user pool for below:
+      1.  `corporate` login  -> login with only company emails
+      2. `candidates` login -> with any valid emails
+   2. we have cognito user groups as 
+      1. "admin" -> only `candidate` emails are adding in this group manually from `aws cognito` by `CTO` for company usage purpose
+      2. "corporate-recruiter"
+      3. "corporate-admin"
+2. Now we have `agency` signups and logins, we are creating `worko-agency` user pool to store `email-passwords`
+   1. so that if `candidate` with `rohith123@gmail.com` already have `Cand@123` account and if agency with 
+   same `rohith123@gmail.com` try to signup with `Agency@123` then we will store this in `worko-agency`
+   and `rohith123@gmail.com`-`Cand@123` will already stored in `worko` user pool, so it will be seperate accounts
+3. Now we are using `worko-auth.mjs` as authorizer for `worko` user pool
+   and some apis are authorized in this for `corporate-recruiter`,`corporate-admin`,`admin`
+   so im thinking to use `worko-agency-auth.mjs` as authorier for `worko-agency` user pool, so which is better way, should i use same `worko-auth.mjs` for both user pools, the `dev-worko-corp` api gateway is used by both `corporate-admin`, `worko-admin`, `corporate-recruiter` and now `agency` in different user pool will also use it
 
 
-
-# Doubts
-1. Agency Signup use cases
-   1. let's say there is an employee account with `rohith123@gmail.com`
-      whenever a corporate invites an agency with `rohith123@gmail.com`  as invite email,
-      We need to throw an error by saying it already have an employee account so please use a different email
-   2. let's say there is an agency invite with `sarvesh345@gmail.com` but `sarvesh345@gmail.com` did not registered yet
-      1. whenever the same user `sarvesh345@gmail.com` tried to signup as candidate or employee  then
-      should we need to throw any error ?? 
-         1. if we allow `sarvesh345@gmail.com` to register to `candidate` or `employee` dashboard
-         then if he again come and try to signup with the `agency invite email` recieved to him then it will become a conflict
-   3. let's say there is an agency invite with `rohith@amazon.com` but `rohith@amazon.com` did not registered yet
-      1. whenever the same email `rohith@amazon.com` is used by a `corporate` to send a `corporate invite`, should we throw an error by saying `its already have an agenecy invite`
-         1. if we allow `rohith@amazon.com` to register to `corporate` dashboard
-         then if he again come and try to signup with the `agency invite email` recieved to him then it will become a conflict
-   4. Let's say sarvesh and ranganayaki are corporate recruiters in worko with byjus company
-      1. sarvesh invited an agency ashutosh and ashutosh successfully registered as an agency
-      2. ranganayaki tried to invite ashutosh again as an agency, so we should throw an error right ??

@@ -2,7 +2,7 @@
 import { BaseFirestoreModel } from "./Base.model";
 
 // Import enums
-import { AgencyJobAssignmentStatusEnum } from "../../enums/AgencyJobAssignment.enum";
+import { AgencyJobAssignmentDbStatusEnum } from "../../enums/AgencyJobAssignment.enum";
 
 interface DbAgencyJobAssignmentDto extends BaseFirestoreModel {
   /**
@@ -30,7 +30,7 @@ interface DbAgencyJobAssignmentDto extends BaseFirestoreModel {
    */
   agencyRegisteredEmail: string;
 
-  status: AgencyJobAssignmentStatusEnum;
+  status: AgencyJobAssignmentDbStatusEnum;
 }
 
 export { DbAgencyJobAssignmentDto };

@@ -1,5 +1,11 @@
 import Joi from "joi";
 
+// Import enums
+import { AgencyJobAssignmentDbStatusEnum } from "../enums/AgencyJobAssignment.enum";
+
+// Import schemas
+import { gcpFirestoreCommonSchema } from "./Common.gcp-firestore.schema";
+
 export const agencyJobAssignmentBulkCreateApiDtoValidation = Joi.object({
   companyId: Joi.string().required().messages({
     "string.empty": "Company id is required",
@@ -34,3 +40,28 @@ export const agencyJobAssignmentBulkCreateApiDtoValidation = Joi.object({
     "any.required": "Agency invite id is required",
   }),
 });
+
+export const agencyJobAssignmentFilterDtoValidation = gcpFirestoreCommonSchema.concat(
+  Joi.object({
+    status: Joi.string()
+      .valid(...Object.values(AgencyJobAssignmentDbStatusEnum))
+      .optional()
+      .uppercase()
+      .messages({
+        "string.empty": "Status should not be empty",
+        "any.only": `Invalid Status. Please provide a valid value from ${Object.values(
+          AgencyJobAssignmentDbStatusEnum
+        ).join(", ")}.`,
+      }),
+    agencyRegisteredEmail: Joi.string().email().optional().lowercase().messages({
+      "string.empty": "Agency registered email should not be empty",
+      "string.email": "Invalid email",
+    }),
+    includeJobDetails: Joi.boolean().optional().messages({
+      "boolean.base": "Include job details should be a boolean",
+    }),
+    companyId: Joi.string().optional().messages({
+      "string.empty": "Company id should not be empty",
+    }),
+  })
+);

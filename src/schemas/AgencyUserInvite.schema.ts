@@ -2,7 +2,7 @@
 import Joi from "joi";
 
 // Import enums
-import { AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
+import { AgencyUserInviteAllowedAgencyAllowedStatusEnum, AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
 
 // Import schemas
 import { gcpFirestoreCommonSchema } from "./Common.gcp-firestore.schema";
@@ -40,9 +40,13 @@ export const agencyUserInviteCreateApiValidationDto = Joi.object({
    contractCopyUserFileName: Joi.string().optional().messages({
       "string.empty": "Contract copy user file name should not be empty",
    }),
+   agencyName: Joi.string().required().uppercase().trim().messages({
+      "string.empty": "Agency name is required",
+      "any.required": "Agency name is required",
+   })
 });
 
-export const agencyUserInviteUpdateApiValidationDto = Joi.object({
+export const agencyUserInviteCorpUpdateApiValidationDto = Joi.object({
    agencyInviteId: Joi.string().required().messages({
       "string.empty": "Agency invite id is required",
       "any.required": "Agency invite id is required",
@@ -79,3 +83,19 @@ export const agencyUserInviteFilterDtoValidation = gcpFirestoreCommonSchema.conc
     }),
   })
 );
+
+export const agencyUserInviteAgencyUpdateApiValidationDto = Joi.object({
+  agencyInviteId: Joi.string().required().messages({
+    "string.empty": "Agency invite id is required",
+    "any.required": "Agency invite id is required",
+  }),
+  inviteStatus: Joi.string()
+    .valid(...Object.values(AgencyUserInviteAllowedAgencyAllowedStatusEnum))
+    .optional()
+    .messages({
+      "string.empty": "Invite status should not be empty",
+      "any.only": `Invalid invite status. Please provide a valid value from ${Object.values(
+        AgencyUserInviteAllowedAgencyAllowedStatusEnum
+      ).join(", ")}.`,
+    }),
+});

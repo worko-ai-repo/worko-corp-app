@@ -2,7 +2,6 @@
 import { Router } from "express";
 
 // Import the routes
-import TestRouter from "./routers/Test.router";
 import AgencyUserInviteRouter from "./routers/AgencyUserInvite.router";
 import AgencyJobAssignmentRouter from "./routers/AgencyJobAssignment.router";
 import AgencyUserSubmissionRouter from "./routers/AgencyUserSubmission.router";
@@ -20,23 +19,14 @@ const router = Router();
  * Custom Roles
  *    "public" - Any user can access these routes even if they are not logged in
  *    "loggedInUser" - Only logged in users can access these routes
+ *    "agency" - Whenever corporate-recruiter/admin invites an agency then if he signup then we store agency email in "worko-agency" user pool,
+ *               so we are storing only agencies in that user pool, so we call "agency" role to these users
  * 
  * Cognito User Groups
  *    "admin" - Only worko admin users can access these routes
  *    "corporate-recruiter" - Only corporate recruiters can access these routes
  *    "corporate-admin" - Only corporate admin users can access these routes
  */
-
-/**
- * TEST ROUTERS
- * 
- * Regitser the "TEST CRUD" routers
- * 
- * @todo: Need to remove this entire route related piece of code before pushing code to `dev` branch
- * 
- * @authorisedRoles ["public"]
- */
-router.use("/test", TestRouter);
 
 /**
  * Agency User Invite Routers

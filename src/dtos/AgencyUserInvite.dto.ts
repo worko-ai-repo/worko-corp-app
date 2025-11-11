@@ -4,37 +4,62 @@ import {
   GcpFirestoreRecordListingFilterOptions,
   GcpFirestoreRecordListingFilterRequestDTO,
 } from "./Common.gcp-firestore.dto";
+import { CommonPhoneNumberDto } from "./Common.dto";
 
 // Import enums
 import { AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
 
 export interface AgencyUserInviteCreateApiDto {
-   name: string;
-   email: string;
-   phoneNumberDetails: AgencyUserInviteDbPhoneNumberDto;
-   companyId: string;
-   GSTIN?: string;
-   contractCopyUserFileName?: string;
+  companyId: string;
+
+  /**
+   * @description name of the person who is being invited
+   */
+  name: string;
+  email: string;
+  phoneNumberDetails: AgencyUserInviteDbPhoneNumberDto;
+  
+  /**
+   * @description
+   *   1. Brand name of the agency
+   *   2. May be a company name related to the agency
+   */
+  agencyName: string;
+
+  GSTIN?: string;
+  contractCopyUserFileName?: string;
 }
 
 export interface AgencyUserInviteCreateDto extends AgencyUserInviteCreateApiDto {
   invitedByCorporateUserId: string;
   inviteStatus: AgencyUserInviteDbStatusEnum;
+
+  /**
+   * @reference "name" attribute of "CompanyDetail.model.ts" from "AWS DynamoDB"
+   */
+  companyName: string;
+
+  /**
+   * @description The name of the person who invited
+   */
+  inviterName: string;
+
+  /**
+   * @description The domain extracted from the "email" field (e.g., "swiggy.com" from "user@swiggy.com")
+   * @example "swiggy.com" from "user@swiggy.com"
+   */
+  companyEmailDomainName?: string;
+
+  /**
+   * @description The domain extracted from the "email" field
+   * @example "yahoo.com" from "user@yahoo.com"
+   */
+  miscellaneousEmailDomainName?: string;
 }
 
-export interface AgencyUserInviteDbPhoneNumberDto {
-   /**
-    * @example 9666308100
-    */
-   number: number;
+export interface AgencyUserInviteDbPhoneNumberDto extends CommonPhoneNumberDto {}
 
-   /**
-    * @example 91
-    */
-   countryCode: number;
-}
-
-export interface AgencyUserInviteUpdateApiDto {
+export interface AgencyUserInviteCorpUpdateApiDto {
   agencyInviteId: string;
 
   /**
@@ -53,6 +78,15 @@ export interface AgencyUserInviteCommonUpdateDto {
    * @reference "id" attribute of "CorporateUser.model.ts"
    */
   updatedByCorporateUserId: string;
+
+  inviteStatus: AgencyUserInviteDbStatusEnum;
+
+  /**
+   * @reference "id" attribute of "AgencyUser.model.ts" from "GCP Firestore"
+   * @description
+   *  1. Whenever an agency registered, then we will update `inviteStatus` as `ACCEPTED` and this field will store the `id` of the agency registered
+   */
+  updatedByAgencyUserId?: string;
 
   updatedAt: string;
 }
@@ -102,4 +136,9 @@ export interface AgencyUserInviteListingFilterRequestDTO extends GcpFirestoreRec
   includeCompanyDetails?: boolean;
 
   includeInvitedOwnerDetails?: boolean;
+}
+
+export interface AgencyUserInviteAgencyUpdateApiDto {
+  agencyInviteId: string,
+  inviteStatus: AgencyUserInviteDbStatusEnum
 }

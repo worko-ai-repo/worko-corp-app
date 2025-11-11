@@ -9,11 +9,17 @@ import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
 import BaseDao from "./BaseGcpFirestore.dao";
 
 // Import dtos
-import { AgencyUserCommonUpdateDto } from "../dtos/AgencyUser.dto";
+import { AgencyUserCommonUpdateDto, AgencyUserCreateDto } from "../dtos/AgencyUser.dto";
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
+
+// Import helpers
+import { dateHelperObj } from "../helpers/date.helper";
 
 // Import models
 import { DbAgencyUserDto } from "../db/gcp-firestore-models/AgencyUser.model";
+
+// Import services
+import UlidService from "../services/Ulid.service";
 
 class AgencyUserDao implements BaseDao {
   databaseName: string = `worko-corp-db-${process.env.APP_SLS_STAGE}`;
@@ -24,6 +30,28 @@ class AgencyUserDao implements BaseDao {
       databaseName: this.databaseName,
       collectionName: this.collectionName,
     };
+  }
+
+  async createAgencyUser(
+    createDto: AgencyUserCreateDto
+  ): Promise<DbAgencyUserDto | undefined> {
+    global.logger.info(`Create Agency User [Service]`, {
+      methodName: this.createAgencyUser.name,
+    });
+
+    const currentDate: string = dateHelperObj.getISODate();
+
+    const finalCreateData: DbAgencyUserDto = {
+      ...createDto,
+      id: UlidService.convertUuidToUlid(createDto.cognitoUserId),
+      createdAt: currentDate,
+      updatedAt: currentDate,
+    };
+
+    return gcpFirestoreLibrary.createDocument<DbAgencyUserDto>(
+      this.getAgencyUserModelDetails(),
+      finalCreateData
+    );
   }
 
   async getAgencyUserByRegisteredEmail(
@@ -46,6 +74,17 @@ class AgencyUserDao implements BaseDao {
       .collection(this.collectionName)
       .where("email", "==", registeredEmail)
       .get();
+  }
+
+  async getAgencyUserById(id: string): Promise<DbAgencyUserDto | undefined> {
+    global.logger.info(`Get Agency User By Id [Service]`, {
+      methodName: this.getAgencyUserById.name,
+      id,
+    });
+    return gcpFirestoreLibrary.getDocumentById<DbAgencyUserDto>(
+      this.getAgencyUserModelDetails(),
+      id
+    );
   }
 
   async updateAgencyUserById(id: string, data: Partial<AgencyUserCommonUpdateDto>): Promise<DbAgencyUserDto | undefined> {
