@@ -81,7 +81,7 @@ class AgencyJobAssignmentController {
           jobDetails?: DbJobAwsOpensearchDto;
         })[]
       > =
-        await agencyJobAssignmentServiceObj.getAllAgencyJobAssignmentsByFilterOptions(
+        await agencyJobAssignmentServiceObj.performGetAllAgencyJobAssignmentsActivities(
           agencyJobAssignmentFilterOptions
         );
 

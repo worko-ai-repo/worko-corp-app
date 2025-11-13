@@ -68,3 +68,17 @@ export interface AgencyUserInviteContractCopyPsuToViewApiDto {
 export interface PreSignedUrlToViewFileResponseDto {
   objectUrl: string;
 }
+
+export interface AgencyUserSubmissionCvPsuToUploadApiDto {
+  companyId: string;
+  jobId: string;
+  /**
+   * @example "raj_cv.pdf"
+   */
+  fileName: string;
+
+  /**
+   * @example "application/pdf"
+   */
+  fileMimeType: string;
+}

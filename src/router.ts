@@ -7,7 +7,7 @@ import AgencyJobAssignmentRouter from "./routers/AgencyJobAssignment.router";
 import AgencyUserSubmissionRouter from "./routers/AgencyUserSubmission.router";
 import AgencyUserRouter from "./routers/AgencyUser.router";
 import CandidateProfileRouter from "./routers/CandidateProfile.router";
-import CandidateCvParsedRouter from "./routers/CandidateCvParsed.router";
+import CandidateParsedCvRouter from "./routers/CandidateParsedCv.router";
 import FileRouter from "./routers/File.router";
 
 // Router that contains all the routes/endpoints in the application
@@ -54,9 +54,9 @@ router.use("/agency-user", AgencyUserRouter);
 router.use("/candidate-profile", CandidateProfileRouter);
 
 /**
- * Candidate CV Parsed Routers
+ * Candidate Parsed CV Routers
  */
-router.use("/candidate-cv-parsed", CandidateCvParsedRouter);
+router.use("/candidate-parsed-cv", CandidateParsedCvRouter);
 
 /**
  * File Routers

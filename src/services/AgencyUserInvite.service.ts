@@ -87,7 +87,7 @@ class AgencyUserInviteService {
       return this.getAllAgencyUserInvitesByFilterOptions(filterOptions);
     }
 
-    const {actionByCorporateUserId, actionByUserId} = getActionByUserId();
+    const {actionByCorporateUserId} = getActionByUserId();
 
     /**
      * If action by user is "corporate-admin/recruiter", then list invites which are sent by him and from his company

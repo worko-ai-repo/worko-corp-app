@@ -680,6 +680,16 @@ var isAgencyUrl = function (url, httpMethod) {
 
     // Agency Job Assignment Routers
     { path: "/agency-job-assignment*", method: HttpMethodsConstants.GET },
+
+    // File routers
+    {
+      path: "/file/gsu2u/AGENCY_SUBMIT_USER_CV",
+      method: HttpMethodsConstants.POST,
+    },
+
+    // Agency User Submission Routers
+    { path: "/agency-user-submission/candidate-parse-cv", method: HttpMethodsConstants.POST },
+    { path: "/agency-user-submission/", method: HttpMethodsConstants.POST },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);

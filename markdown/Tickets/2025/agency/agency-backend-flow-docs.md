@@ -322,17 +322,17 @@
                   1. Get agency registered details by `agency user id`(comes from "worko-auth" lambda) 
                      1. If not found:
                         1. Throw error
-                  2. Check whether company details are present or not using `companyId`
+                  2. Check whether company details are present by using `companyId`
                      1. If not found:
                         1. Throw error     
-                  3. Check whether job details are present or not using `jobId`
+                  3. Check whether job details are present by using `jobId`
                      1. If not found:
                         1. Throw error
                      2. If found:
                         1. Check whether the `companyId` in reqBody is same as `companyId` in `job details`
                            1. If not:
                               1. Throw error
-                  4. Check whether this `companyJob` is assigned to this `agency` or not by using `JOB#ASGN#` and `COMP#{companyId}#AGCY#{agencyRegisteredEmail}#JOB#{jobId}#` in `AgencyJobAssignment` model
+                  4. Check whether this `companyJob` is assigned to this `agency` or not by using `companyId` `agencyRegisteredEmail`,`jobId` in `AgencyJobAssignment` model
                      1. If not throw an error
                   5. store in to `s3 path` and return the `upload url`
             2. Parse cv by agency api will be called and below steps will happen in the api:

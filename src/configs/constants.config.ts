@@ -48,6 +48,7 @@ const APP_CONSTANTS = {
     USER_RESUME: "users/{userId}/resumes", // To upload the individual user's resume
     USER_PROFILE_PIC: "users/{userId}/profilePics", // To upload the individual user's profile pics
     AGENCY_INVITE_CONTRACT_COPY: `companies/{companyId}/agency-invites/{agencyInviteId}/contract-copies`,
+    AGENCY_SUBMIT_USER_CV: `agencies/{agencyUserId}/companies/{companyId}/jobs/{jobId}/user-profiles`,
   },
 
   /**
@@ -74,6 +75,11 @@ const APP_CONSTANTS = {
      * This is VPC attached lambda which is used to communicate with VPC-attached OpenSearch
      */
     WORKO_JOB_APP_OPENSEARCH_OPERATIONS: `worko-job-app-${process.env.APP_SLS_STAGE}-app-opensearch-operations`,
+
+    /**
+     * RESUME_EXTRACTION_LAMBDA_NAME
+     */
+    RESUME_EXTRACTION_LAMBDA_NAME: "resume-parser",
   },
 
   CASUAL_EMAIL_DOMAINS: [

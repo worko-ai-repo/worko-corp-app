@@ -11,6 +11,7 @@ import { UserDetailModel } from "./aws-dynamodb-models/UserDetail.model";
 import { CorporateUserModel } from "./aws-dynamodb-models/CorporateUser.model";
 import { EmailTemplateModel } from "./aws-dynamodb-models/EmailTemplate.model";
 import { EmailLogModel } from "./aws-dynamodb-models/EmailLog.model";
+import { CompanyJobModel } from "./aws-dynamodb-models/CompanyJob.model";
 
 /**
  * DBConfig
@@ -78,7 +79,9 @@ class DBConfig {
     );
     const workoJobAppTable = new dynamoose.Table(
       DB_CONSTANTS.WORKO_TABLE_NAMES.workoJobAppTableName,
-      []
+      [
+        CompanyJobModel
+      ]
     );
   } 
 
@@ -111,7 +114,7 @@ class DBConfig {
    */
   registerDynamooseModels() {
     this.registerDynamooseWorkoModels();
-    // this.registerDynamooseWorkoJobAppModels();
+    this.registerDynamooseWorkoJobAppModels();
   }
 }
 

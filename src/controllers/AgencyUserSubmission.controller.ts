@@ -1,22 +1,81 @@
 // Import express packages
 import { Request, Response, NextFunction } from "express";
 
+// Import dtos
+import { AgencyUserSubmissionCandidateParseCvApiDto, AgencyUserSubmissionCandidateParseCvResponseDto, AgencyUserSubmissionCreateApiDto } from "../dtos/AgencyUserSubmission.dto";
+
+// Import models
+import { DbAgencyUserSubmissionDto } from "../db/gcp-firestore-models/AgencyUserSubmission.model";
+
 // Import services
 import { agencyUserSubmissionServiceObj } from "../services/AgencyUserSubmission.service";
 
+// Import schemas
+import { agencyUserSubmissionCandidateParseCvApiValidationDto, agencyUserSubmissionCreateApiValidationDto } from "../schemas/AgencyUserSubmission.schema";
+
 // import utils
 import HttpStatusCode from "../utils/http-codes.util";
-import { BaseError, RequestValidationError } from "../utils/errors.util";
+import { RequestValidationError } from "../utils/errors.util";
 
 class AgencyUserSubmissionController {
+  parseAgencyUserSubmissionCandidateCv = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const reqBody: AgencyUserSubmissionCandidateParseCvApiDto = req.body;
+
+      const { error: reqBodyError, value: validatedReqBody } =
+        agencyUserSubmissionCandidateParseCvApiValidationDto.validate(reqBody, {
+          abortEarly: false,
+        });
+
+      if (reqBodyError) {
+        throw new RequestValidationError(reqBodyError);
+      }
+
+      const response: AgencyUserSubmissionCandidateParseCvResponseDto =
+        await agencyUserSubmissionServiceObj.parseAgencyUserSubmissionCandidateCv(
+          validatedReqBody
+        );
+      res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(`Parse Agency User Submission Candidate CV [Controller]`, {
+        methodName: this.parseAgencyUserSubmissionCandidateCv.name,
+        error,
+      })
+      next(error);
+    }
+  };
+
   createAgencyUserSubmission = async (
     req: Request,
     res: Response,
     next: NextFunction
   ) => {
     try {
-      res.status(HttpStatusCode.CREATED_201).json({});
+      const reqBody: AgencyUserSubmissionCreateApiDto = req.body;
+
+      const { error: reqBodyError, value: validatedReqBody } =
+        agencyUserSubmissionCreateApiValidationDto.validate(reqBody, {
+          abortEarly: false,
+        });
+
+      if (reqBodyError) {
+        throw new RequestValidationError(reqBodyError);
+      }
+      const response: DbAgencyUserSubmissionDto =
+        await agencyUserSubmissionServiceObj.performCreateAgencyUserSubmissionActivities(
+          validatedReqBody
+        );
+      
+      res.status(HttpStatusCode.CREATED_201).json(response);
     } catch (error) {
+      global.logger.error(`Create Agency User Submission [Controller]`, {
+        methodName: this.createAgencyUserSubmission.name,
+        error,
+      })
       next(error);
     }
   };

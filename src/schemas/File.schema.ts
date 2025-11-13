@@ -42,3 +42,17 @@ export const agencyUserInviteContractCopyPsuToViewApiDtoValidation = Joi.object(
     "any.required": "Contract copy aws s3 file name is required",
   }),
 })
+
+export const agencyUserSubmissionCvPsuToUploadApiDtoValidation =
+  filePsuToUploadDtoValidation.concat(
+    Joi.object({
+      companyId: Joi.string().required().messages({
+        "string.empty": "Company id is required",
+        "any.required": "Company id is required",
+      }),
+      jobId: Joi.string().required().messages({
+        "string.empty": "Job id is required",
+        "any.required": "Job id is required",
+      }),
+    })
+  );

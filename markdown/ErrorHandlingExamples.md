@@ -183,3 +183,21 @@ Request ID: fjj1thTsqdAIw1eTu5hXjsR-YSFiE02KYS29nAPuRTR3Cs4LxLRBkQ==
 
 </HTML>
 ```
+
+
+9. 
+```json
+{
+  "errorMessage": "An error occurred (ValidationException) when calling the Query operation: Invalid KeyConditionExpression: Incorrect operand type for operator or function; operator or function: begins_with, operand type: NULL",
+  "errorType": "ClientError",
+  "requestId": "266e3403-28c8-42ec-a617-0ecf63eba39d",
+  "stackTrace": [
+    "  File \"/var/task/lambda_function.py\", line 1478, in lambda_handler\n    item = query_dynamodb_item_with_sk_prefix(table_name, partition_key_value, sort_key_prefix)\n",
+    "  File \"/var/task/lambda_function.py\", line 89, in query_dynamodb_item_with_sk_prefix\n    response = table.query(\n",
+    "  File \"/opt/python/boto3/resources/factory.py\", line 581, in do_action\n    response = action(self, *args, **kwargs)\n",
+    "  File \"/opt/python/boto3/resources/action.py\", line 88, in __call__\n    response = getattr(parent.meta.client, operation_name)(*args, **params)\n",
+    "  File \"/opt/python/botocore/client.py\", line 553, in _api_call\n    return self._make_api_call(operation_name, kwargs)\n",
+    "  File \"/opt/python/botocore/client.py\", line 1009, in _make_api_call\n    raise error_class(parsed_response, operation_name)\n"
+  ]
+}
+```

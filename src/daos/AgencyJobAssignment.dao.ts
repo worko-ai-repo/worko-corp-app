@@ -98,6 +98,31 @@ class AgencyJobAssignmentDao implements BaseDao {
       DbAgencyJobAssignmentDto
     >(db, this.collectionName, baseQuery, filterOptions);
   }
+
+  async getAgencyJobAssignmentByCompIdJobIdAndEmail(
+    companyId: string,
+    jobId: string,
+    agencyRegisteredEmail: string
+  ): Promise<QuerySnapshot<DocumentData, DocumentData>> {
+    global.logger.info(
+      `Get Agency Job Assignment By Comp Id Job Id And Email [DAO]`,
+      {
+        methodName: this.getAgencyJobAssignmentByCompIdJobIdAndEmail.name,
+        companyId,
+        jobId,
+        agencyRegisteredEmail,
+      }
+    );
+
+    const db: Firestore = this.getAgencyJobAssignmentFirestoreDatabase();
+
+    return db
+      .collection(this.collectionName)
+      .where("companyId", "==", companyId)
+      .where("jobId", "==", jobId)
+      .where("agencyRegisteredEmail", "==", agencyRegisteredEmail)
+      .get();
+  }
 }
 
 const agencyJobAssignmentDaoObj = new AgencyJobAssignmentDao();

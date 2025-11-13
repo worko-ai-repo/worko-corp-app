@@ -2,13 +2,13 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
+import { AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
 
 // Import enums
 import { FileResourceKeyEnum } from "../enums/File.enum";
 
 // Import schemas
-import { agencyUserInviteContractCopyPsuToUploadApiDtoValidation, agencyUserInviteContractCopyPsuToViewApiDtoValidation } from "../schemas/File.schema";
+import { agencyUserInviteContractCopyPsuToUploadApiDtoValidation, agencyUserInviteContractCopyPsuToViewApiDtoValidation, agencyUserSubmissionCvPsuToUploadApiDtoValidation } from "../schemas/File.schema";
 
 // Import services
 import { fileServiceObj } from "../services/File.service";
@@ -94,6 +94,44 @@ class FileController {
     }
   };
 
+  generatePsuToUploadAgencyUserSubmissionCv = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      let requestBodyObject: AgencyUserSubmissionCvPsuToUploadApiDto =
+        req.body;
+
+      const { error } =
+        agencyUserSubmissionCvPsuToUploadApiDtoValidation.validate(
+          requestBodyObject,
+          {
+            abortEarly: false,
+          }
+        );
+      if (error) {
+        throw new RequestValidationError(error);
+      }
+
+      const response: PreSignedUrlToUploadFileResponseDto =
+        await fileServiceObj.generatePsuToUploadAgencyUserSubmissionCv(
+          requestBodyObject
+        );
+
+      return res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(
+        `Error at catch block in while generating pre-signed url for file upload. [File Controller]`,
+        {
+          error,
+          methodName: this.generatePsuToUploadAgencyUserSubmissionCv.name,
+        }
+      );
+      next(error);
+    }
+  };
+
   generatePreSignedUrlsToUpload = async (
     req: Request,
     res: Response,
@@ -117,6 +155,10 @@ class FileController {
             res,
             next
           );
+          break;
+
+        case FileResourceKeyEnum.AGENCY_SUBMIT_USER_CV:
+          await this.generatePsuToUploadAgencyUserSubmissionCv(req, res, next);
           break;
 
         default:

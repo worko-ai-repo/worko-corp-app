@@ -136,6 +136,7 @@ const serverlessConfiguration: AWS = {
         Effect: "Allow",
         Action: ["lambda:InvokeFunction", "lambda:InvokeAsync"],
         Resource: [
+          "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:resume-parser",
           "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-job-app-${self:custom.app.STAGE}-app-opensearch-operations",
         ],
       },

@@ -5,6 +5,9 @@ import { APIGatewayProxyResult } from "aws-lambda";
 import { awsClientLambdaLibrary } from "../configs/aws-sdk.config";
 import APP_CONSTANTS from "../configs/constants.config";
 
+// import dtos
+import { InvokeLambdParseAgencyUserSubmissionCandidateCvDto } from "../dtos/InvokeLambda.dto";
+
 class InvokeLambdaService {
   /**
    * triggerOpenSearchOperation
@@ -29,6 +32,23 @@ class InvokeLambdaService {
 
     return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType<OpensearchPayload>(
       APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.WORKO_JOB_APP_OPENSEARCH_OPERATIONS,
+      payload
+    );
+  }
+
+  async triggerParseAgencyUserSubmissionCandidateCv(
+    payload: InvokeLambdParseAgencyUserSubmissionCandidateCvDto
+  ): Promise<APIGatewayProxyResult> {
+    // log the info
+    global.logger.info(
+      "Parse Agency User Submission Candidate CV Lambda [service]",
+      {
+        methodName: this.triggerParseAgencyUserSubmissionCandidateCv.name,
+      }
+    );
+
+    return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType<InvokeLambdParseAgencyUserSubmissionCandidateCvDto>(
+      APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.RESUME_EXTRACTION_LAMBDA_NAME,
       payload
     );
   }
