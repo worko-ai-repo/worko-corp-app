@@ -36,6 +36,13 @@ class CandidateParsedCvDao implements BaseDao {
       createData
     );
   }
+
+  async getAllCandidateParsedCvsByIdsWithoutPagination(candidateParsedCvIds: string[]): Promise<DbCandidateParsedCvDto[]> {
+    return gcpFirestoreLibrary.getAllDocumentsByIdsWithoutPagination<DbCandidateParsedCvDto>(
+      this.getCandidateParsedCvModelDetails(),
+      candidateParsedCvIds
+    );
+  }
 }
 
 const candidateParsedCvDaoObj = new CandidateParsedCvDao();

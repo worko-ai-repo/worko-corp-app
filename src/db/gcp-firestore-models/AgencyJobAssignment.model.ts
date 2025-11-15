@@ -30,6 +30,11 @@ interface DbAgencyJobAssignmentDto extends BaseFirestoreModel {
    */
   agencyRegisteredEmail: string;
 
+  /**
+   * @reference "id" attribute of "AgencyUserInvite.model.ts" from "GCP Firestore""
+   */
+  agencyUserInviteId: string;
+
   status: AgencyJobAssignmentDbStatusEnum;
 }
 

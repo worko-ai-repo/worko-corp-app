@@ -19,4 +19,9 @@ AgencyUserSubmissionRouter.post("/candidate-parse-cv", agencyUserSubmissionContr
  */
 AgencyUserSubmissionRouter.post("/", agencyUserSubmissionController.createAgencyUserSubmission);
 
+/**
+ * @authorisedRoles ["agency", "corporate-admin", "corporate-recruiter", "admin"]
+ */
+AgencyUserSubmissionRouter.get("/", agencyUserSubmissionController.getAllAgencyUserSubmissionByFilterOptions);
+
 export default AgencyUserSubmissionRouter;

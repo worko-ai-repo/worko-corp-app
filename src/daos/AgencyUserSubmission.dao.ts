@@ -1,6 +1,6 @@
 
 // Import firestore package
-import { DocumentData, Firestore, QuerySnapshot } from "@google-cloud/firestore";
+import { DocumentData, Firestore, Query, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import configs
 import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
@@ -10,9 +10,14 @@ import BaseDao from "./BaseGcpFirestore.dao";
 
 // Import dtos
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
+import { AgencyUserSubmissionListingFilterOptions } from "../dtos/AgencyUserSubmission.dto";
+import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import models
 import { DbAgencyUserSubmissionDto } from "../db/gcp-firestore-models/AgencyUserSubmission.model";
+
+// Import utils
+import { gcpFirestoreUtilObj } from "../utils/gcp-firestore.util";
 
 class AgencyUserSubmissionDao implements BaseDao {
   databaseName: string = `worko-corp-db-${process.env.APP_SLS_STAGE}`;
@@ -40,6 +45,36 @@ class AgencyUserSubmissionDao implements BaseDao {
       this.getAgencyUserSubmissionModelDetails(),
       createData
     );
+  }
+
+  async getAllAgencyUserSubmissionByFilterOptions(filterOptions: AgencyUserSubmissionListingFilterOptions): Promise<GcpFirestoreRecordListingResponseDTO<DbAgencyUserSubmissionDto[]>> {
+    global.logger.info(`Get All Agency User Submission [DAO]`, {
+      methodName: this.getAllAgencyUserSubmissionByFilterOptions.name,
+    });
+
+    const { companyId, jobId, agencyRegisteredEmail, candidateEmail } =
+      filterOptions;
+
+    const db: Firestore = this.getAgencyUserSubmissionFirestoreDatabase();
+    let baseQuery: Query<DocumentData, DocumentData> = db.collection(
+      this.collectionName
+    );
+
+    if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
+    if (jobId)
+      baseQuery = baseQuery.where(
+        "jobId",
+        "==",
+        jobId
+      );
+    if (agencyRegisteredEmail)
+      baseQuery = baseQuery.where("agencyRegisteredEmail", "==", agencyRegisteredEmail);
+    if (candidateEmail) baseQuery = baseQuery.where("candidateEmail", "==", candidateEmail);
+
+    return gcpFirestoreUtilObj.paginateGcpFirestore<
+      AgencyUserSubmissionListingFilterOptions,
+      DbAgencyUserSubmissionDto
+    >(db, this.collectionName, baseQuery, filterOptions);
   }
 }
 

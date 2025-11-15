@@ -13,6 +13,18 @@ class CandidateParsedCvService {
 
     return candidateParsedCvDaoObj.createCandidateParsedCv(createData);
   }
+
+  async getAllCandidateParsedCvsByIdsWithoutPagination(candidateParsedCvIds: string[]): Promise<DbCandidateParsedCvDto[]> {
+    return candidateParsedCvDaoObj.getAllCandidateParsedCvsByIdsWithoutPagination(candidateParsedCvIds);
+  }
+
+  async getCandidateParsedCvDetailsMapByIds(candidateParsedCvIds: string[]): Promise<Map<string, DbCandidateParsedCvDto>> {
+    const retrievedCandidateParsedCvDetails: DbCandidateParsedCvDto[] = await this.getAllCandidateParsedCvsByIdsWithoutPagination(candidateParsedCvIds);
+
+    return new Map(
+      retrievedCandidateParsedCvDetails.map((candidateParsedCv: DbCandidateParsedCvDto) => [candidateParsedCv.id, candidateParsedCv])
+    );
+  }
 }
 
 const candidateParsedCvServiceObj = new CandidateParsedCvService();

@@ -1,5 +1,5 @@
 // Import firestore package
-import { Firestore, Settings, DocumentData, WriteResult, DocumentSnapshot, WriteBatch, DocumentReference } from "@google-cloud/firestore";
+import { Firestore, Settings, DocumentData, WriteResult, DocumentSnapshot, WriteBatch, DocumentReference, QuerySnapshot, QueryDocumentSnapshot } from "@google-cloud/firestore";
 
 // Import dtos
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
@@ -115,6 +115,25 @@ class GcpFirestoreLibrary {
     }
 
     return doc.data() as DbEntityDto;
+  }
+
+  async getAllDocumentsByIdsWithoutPagination<DbEntityDto>(
+    commonDbDetails: GcpFirestoreInteractionDto,
+    ids: string[]
+  ): Promise<DbEntityDto[]> {
+    const db: Firestore = this.getFirestoreDatabase(
+      commonDbDetails.databaseName
+    );
+    const querySnapshot: QuerySnapshot<DocumentData, DocumentData> = await db
+      .collection(commonDbDetails.collectionName)
+      .where("id", "in", ids)
+      .get();
+    
+    if(!querySnapshot) {
+      return [] as DbEntityDto[];
+    }
+
+    return querySnapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => doc.data() as DbEntityDto);
   }
 
   async updateDocumentById<UpdateEntityDto extends DocumentData, DbEntityDto>(

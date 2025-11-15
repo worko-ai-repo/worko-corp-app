@@ -1,5 +1,8 @@
 import Joi from "joi";
 
+// Import schemas
+import { gcpFirestoreCommonSchema } from "./Common.gcp-firestore.schema";
+
 export const agencyUserSubmissionCandidateParseCvApiValidationDto = Joi.object({
    companyId: Joi.string().required().messages({
       "string.empty": "Company id is required",
@@ -86,4 +89,43 @@ export const agencyUserSubmissionCreateApiValidationDto = Joi.object({
     "string.empty": "Job id is required",
     "any.required": "Job id is required",
   }),
+  agencyUserInviteId: Joi.string().required().messages({
+    "string.empty": "Agency user invite id is required",
+    "any.required": "Agency user invite id is required",
+  }),
+  agencyComments: Joi.string().required().messages({
+    "string.base": "Agency comments must be a string",
+    "string.empty": "Agency comments should not be empty",
+  })
 });
+
+export const agencyUserSubmissionFilterDtoValidation = gcpFirestoreCommonSchema.concat(
+  Joi.object({
+    companyId: Joi.string().optional().messages({
+      "string.empty": "Company id should not be empty",
+    }),
+    jobId: Joi.string().optional().messages({
+      "string.empty": "Job id should not be empty",
+    }),
+    candidateEmail: Joi.string().email().optional().lowercase().messages({
+      "string.empty": "Candidate Email should not be empty",
+      "string.email": "Invalid email",
+    }),
+    agencyRegisteredEmail: Joi.string().email().optional().lowercase().messages({
+      "string.empty": "Agency Registered Email should not be empty",
+      "string.email": "Invalid email",
+    }),
+    agencyJobAssignedByCorporateUserId: Joi.string().optional().messages({
+      "string.empty": "Agency job assigned by corporate user id should not be empty",
+    }),
+    agencyName: Joi.string().optional().uppercase().messages({
+      "string.empty": "Agency name should not be empty",
+    }),
+    includeJobDetails: Joi.boolean().optional().messages({
+      "boolean.base": "Include job details should be a boolean",
+    }),
+    includeCandidateParsedCvDetails: Joi.boolean().optional().messages({
+      "boolean.base": "Include candidate parsed cv details should be a boolean",
+    }),
+  })
+);

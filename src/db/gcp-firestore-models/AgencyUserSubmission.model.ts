@@ -31,6 +31,16 @@ interface DbAgencyUserSubmissionDto extends BaseFirestoreModel {
   agencyRegisteredEmail: string;
 
   /**
+   * @reference "id" field of "AgencyUserInvite.model.ts"
+   */
+  agencyUserInviteId: string;
+  
+  /**
+   * @reference "agencyName" field of "AgencyUserInvite.model.ts"
+   */
+  agencyName: string;
+
+  /**
    * @reference "id" field of "AgencyJobAssignment.model.ts"
    */
   agencyJobAssignmentId: string;

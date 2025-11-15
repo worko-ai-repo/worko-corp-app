@@ -2,6 +2,7 @@
 // Import dtos
 import { CandidateParsedCvDbPhoneNumberDto } from "./CandidateParsedCv.dto";
 import { CommonPhoneNumberDto } from "./Common.dto";
+import { GcpFirestoreRecordListingFilterOptions, GcpFirestoreRecordListingFilterRequestDTO } from "./Common.gcp-firestore.dto";
 
 export interface AgencyUserSubmissionCandidateParseCvApiDto {
   companyId: string;
@@ -48,4 +49,31 @@ export interface AgencyUserSubmissionCreateApiDto {
   jobId: string;
 
   agencyComments: string;
+
+  /**
+   * @reference "id" field of "AgencyUserInvite.model.ts" collection
+   */
+  agencyUserInviteId: string;
+}
+
+export interface AgencyUserSubmissionListingFilterOptions extends GcpFirestoreRecordListingFilterOptions {
+  agencyRegisteredEmail?: string;
+  companyId?: string;
+  jobId?: string;
+  candidateEmail?: string;
+  agencyJobAssignedByCorporateUserId?: string;
+  agencyName?: string;
+  includeJobDetails?: boolean;
+  includeCandidateParsedCvDetails?: boolean;
+}
+
+export interface AgencyUserSubmissionListingFilterRequestDTO extends GcpFirestoreRecordListingFilterRequestDTO {
+  agencyRegisteredEmail?: string;  
+  companyId?: string;
+  jobId?: string;
+  candidateEmail?: string;
+  agencyJobAssignedByCorporateUserId?: string;
+  agencyName?: string;
+  includeJobDetails?: boolean;
+  includeCandidateParsedCvDetails?: boolean;
 }

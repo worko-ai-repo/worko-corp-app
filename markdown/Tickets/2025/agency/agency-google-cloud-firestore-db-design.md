@@ -89,15 +89,32 @@ interface AgencyUserSubmission {
   agencyRegisteredEmail: string;
   agencyJobAssignmentId: string;
   agencyJobAssignedByCorporateUserId: string;
-  candidateCvParsedId: string;
+  candidateParsedCvId: string;
   candidateEmail: string;
+  agencyName: string;
+  agencyUserInviteId: string;
+  agencyComments: string;
+  agencyJobAssignedByUserId?: string;
+  userDetailId?: string;
 }
 ```
 **Composite Indexes:**
-- `companyId` + `agencyRegisteredEmail` + `jobId`
-- `candidateEmail` + `companyId` + `jobId`
-- `agencyRegisteredEmail` + `createdAt`
+// Agency Dashboard queries
+- `↓agencyRegisteredEmail` + `↓createdAt`
+- `↓agencyRegisteredEmail` + `↓companyId` + `↓createdAt`
+- `↓agencyRegisteredEmail` + `↓jobId` + `↓createdAt`
 
+// Corporate Dashboard queries  
+- `↓companyId` + `↓agencyJobAssignedByCorporateUserId` + `↓createdAt`
+- `↓companyId` + `↓agencyJobAssignedByCorporateUserId` + `↓candidateEmail` + `↓createdAt`
+- `↓companyId` + `↓agencyJobAssignedByCorporateUserId` + `↓jobId` + `↓createdAt`
+- `↓companyId` + `↓agencyJobAssignedByCorporateUserId` + `↓agencyName` + `↓createdAt`
+
+// Admin Dashboard queries
+- `↓jobId` + `↓createdAt`
+- `↓agencyName` + `↓createdAt`
+- `↓companyId` + `↓createdAt`
+- `↓candidateEmail` + `↓createdAt`
 
 
 
@@ -120,9 +137,6 @@ interface CandidateProfile {
 }
 ```
 **Composite Indexes:**
-- `candidateEmail` + `companyId`
-- `companyId` + `refereeType`
-- `refereeType` + `createdAt`
 
 
 

@@ -437,6 +437,12 @@ var isEvaluatorUrl = function (url, httpMethod) {
 
     // Evaluator detail routers
     { path: "/evaluator-detail*", method: HttpMethodsConstants.GET },
+
+    // User Interview Routers
+    {
+      path: "/user/interview/request",
+      method: HttpMethodsConstants.POST,
+    },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
@@ -542,6 +548,15 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
     },
     {
       path: "/file/gsu2v/AGENCY_INVITE_CONTRACT_COPY",
+      method: HttpMethodsConstants.POST,
+    },
+
+    // Agency User Submission Routers
+    { path: "/agency-user-submission*", method: HttpMethodsConstants.GET },
+
+    // User Interview Routers
+    {
+      path: "/user/interview/request",
       method: HttpMethodsConstants.POST,
     },
   ];
@@ -650,6 +665,15 @@ var isCorporateAdminUrl = function (url, httpMethod) {
       path: "/file/gsu2v/AGENCY_INVITE_CONTRACT_COPY",
       method: HttpMethodsConstants.POST,
     },
+
+    // User Interview Routers
+    {
+      path: "/user/interview/request",
+      method: HttpMethodsConstants.POST,
+    },
+
+    // Agency User Submission Routers
+    { path: "/agency-user-submission*", method: HttpMethodsConstants.GET },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
@@ -690,6 +714,7 @@ var isAgencyUrl = function (url, httpMethod) {
     // Agency User Submission Routers
     { path: "/agency-user-submission/candidate-parse-cv", method: HttpMethodsConstants.POST },
     { path: "/agency-user-submission/", method: HttpMethodsConstants.POST },
+    { path: "/agency-user-submission*", method: HttpMethodsConstants.GET },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
@@ -831,6 +856,15 @@ var isAdminUrl = function (url, httpMethod) {
 
     // Agency Job Assignment Routers
     { path: "/agency-job-assignment/bulk", method: HttpMethodsConstants.POST },
+
+    // Agency User Submission Routers
+    { path: "/agency-user-submission*", method: HttpMethodsConstants.GET },
+
+    // User Interview Routers
+    {
+      path: "/user/interview/request",
+      method: HttpMethodsConstants.POST,
+    },
   ];
 
   const result = checkMatchingPattern(url, adminUrlList, httpMethod);

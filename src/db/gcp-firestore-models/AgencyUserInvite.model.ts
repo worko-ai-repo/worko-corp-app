@@ -52,6 +52,7 @@ interface DbAgencyUserInviteDto extends BaseFirestoreModel {
    * @description
    *   1. Brand name of the agency
    *   2. May be a company name related to the agency
+   *   3. Must store in `uppercase` 
    */
   agencyName: string;
 

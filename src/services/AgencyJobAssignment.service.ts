@@ -22,7 +22,7 @@ import { AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
 // Import helpers
 import { getActionByAgencyUserIds, getActionByUserId } from "../helpers/user.helper";
 import { dateHelperObj } from "../helpers/date.helper";
-import { injectEntityDetailsGlobalIteratorHelper } from "../helpers/injectEntityDetailsGlobalIterator.helper";
+import { injectEntityDetailsHelperObj } from "../helpers/injectEntityDetails.helper";
 
 // Import models
 import { DbAgencyJobAssignmentDto } from "../db/gcp-firestore-models/AgencyJobAssignment.model";
@@ -205,6 +205,7 @@ class AgencyJobAssignmentService {
           id: UlidService.getUlidId(),
           assignedByCorporateUserId: actionByCorporateUserId,
           assignedByUserId: actionByUserId,
+          agencyUserInviteId: reqBodyAgencyInviteId,
           createdAt: currentDate,
           updatedAt: currentDate,
           status: AgencyJobAssignmentDbStatusEnum.ACTIVE,
@@ -275,7 +276,7 @@ class AgencyJobAssignmentService {
     if (agencyUserDetails) {
       if (!filterOptions.agencyRegisteredEmail) {
         global.logger.info(
-          `To list invites to particular agency, agency registeredEmail is required`,
+          `To list agency job assignments to particular agency, agency registeredEmail is required`,
           {
             methodName: this.performGetAllAgencyJobAssignmentsActivities.name,
             filterOptions,
@@ -289,7 +290,7 @@ class AgencyJobAssignmentService {
 
       if (filterOptions.agencyRegisteredEmail !== agencyUserDetails.email) {
         global.logger.info(
-          `To list invites to particular agency, agency registeredEmail should match`,
+          `To list agency job assignments to particular agency, agency registeredEmail should match`,
           {
             methodName: this.performGetAllAgencyJobAssignmentsActivities.name,
             filterOptions,
@@ -325,7 +326,7 @@ class AgencyJobAssignmentService {
     const agencyJobAssignmentsWithEntityDetails: (DbAgencyJobAssignmentDto & {
       jobDetails?: DbJobAwsOpensearchDto;
     })[] =
-      await injectEntityDetailsGlobalIteratorHelper.injectEntityDetailsForAgencyJobAssignment(
+      await injectEntityDetailsHelperObj.injectEntityDetailsForAgencyJobAssignment(
         agencyJobAssignments,
         includeJobDetails
       );
