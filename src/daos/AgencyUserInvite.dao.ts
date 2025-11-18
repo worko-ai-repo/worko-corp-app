@@ -78,16 +78,21 @@ class AgencyUserInviteDao implements BaseDao {
       this.collectionName
     );
 
-    if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
-    if (invitedByCorporateUserId)
-      baseQuery = baseQuery.where(
-        "invitedByCorporateUserId",
-        "==",
-        invitedByCorporateUserId
-      );
-    if (inviteStatus)
-      baseQuery = baseQuery.where("inviteStatus", "==", inviteStatus);
-    if (agencyEmail) baseQuery = baseQuery.where("email", "==", agencyEmail);
+    // If no filter options are provided, order by createdAt in specific order
+    if(!companyId && !invitedByCorporateUserId && !inviteStatus && !agencyEmail) {
+      baseQuery = baseQuery.orderBy("createdAt", filterOptions.sortOrder);
+    } else {
+      if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
+      if (invitedByCorporateUserId)
+        baseQuery = baseQuery.where(
+          "invitedByCorporateUserId",
+          "==",
+          invitedByCorporateUserId
+        );
+      if (inviteStatus)
+        baseQuery = baseQuery.where("inviteStatus", "==", inviteStatus);
+      if (agencyEmail) baseQuery = baseQuery.where("email", "==", agencyEmail);
+    }
 
     return gcpFirestoreUtilObj.paginateGcpFirestore<
       AgencyUserInviteListingFilterOptions,

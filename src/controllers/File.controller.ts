@@ -2,13 +2,13 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
+import { AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
 
 // Import enums
 import { FileResourceKeyEnum } from "../enums/File.enum";
 
 // Import schemas
-import { agencyUserInviteContractCopyPsuToUploadApiDtoValidation, agencyUserInviteContractCopyPsuToViewApiDtoValidation, agencyUserSubmissionCvPsuToUploadApiDtoValidation } from "../schemas/File.schema";
+import { agencyUserInviteContractCopyPsuToUploadApiDtoValidation, agencyUserInviteContractCopyPsuToViewApiDtoValidation, agencyUserSubmissionCvPsuToUploadApiDtoValidation, agencyUserSubmissionCvPsuToViewApiDtoValidation } from "../schemas/File.schema";
 
 // Import services
 import { fileServiceObj } from "../services/File.service";
@@ -50,6 +50,44 @@ class FileController {
         {
           error,
           methodName: this.generatePsuToViewAgencyUserInviteContractCopy.name,
+        }
+      );
+      next(error);
+    }
+  };
+
+  generatePsuToViewAgencyUserSubmissionCv = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      let requestBodyObject: AgencyUserSubmissionCvPsuToViewApiDto =
+        req.body;
+
+      const { error } =
+        agencyUserSubmissionCvPsuToViewApiDtoValidation.validate(
+          requestBodyObject,
+          {
+            abortEarly: false,
+          }
+        );
+      if (error) {
+        throw new RequestValidationError(error);
+      }
+
+      const response: PreSignedUrlToViewFileResponseDto =
+        await fileServiceObj.generatePsuToViewAgencyUserSubmissionCv(
+          requestBodyObject
+        );
+
+      return res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(
+        `Error at catch block in while generating pre-signed url to view file. [File Controller]`,
+        {
+          error,
+          methodName: this.generatePsuToViewAgencyUserSubmissionCv.name,
         }
       );
       next(error);
@@ -202,6 +240,10 @@ class FileController {
             res,
             next
           );
+          break;
+
+        case FileResourceKeyEnum.AGENCY_SUBMIT_USER_CV:
+          await this.generatePsuToViewAgencyUserSubmissionCv(req, res, next);
           break;
 
         default:

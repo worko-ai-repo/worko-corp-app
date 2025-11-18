@@ -20,6 +20,46 @@ interface DbCandidateParsedCvDto extends BaseFirestoreModel {
   readyToRelocate: boolean;
   cvAwsS3FileName: string;
   isNoticePeriodNegotiable: boolean;
+
+  /**
+   * @reference The "id" field of "AgencyUserSubmission.model.ts" collection
+   * @description Whenever "agency" uploads "candidate's cv" for particular "companyJob"
+   */
+  agencyUserSubmissionId?: string;
+
+  /**
+   * @reference "id" field of "AgencyUser.model.ts"
+   * @description 
+   *  1. The registered agency user who submitted the "candidate profile"
+   *  2. Whenever "agency" uploads "candidate's cv" for particular "companyJob"
+   */
+  agencyUserId?: string;
+
+  /**
+   * @reference "email" field of "AgencyUser.model.ts"
+   * @description 
+   *  1. The registered agency user who submitted the "candidate profile"
+   *  2. Whenever "agency" uploads "candidate's cv" for particular "companyJob"
+   */
+  agencyRegisteredEmail?: string;
+
+  /**
+   * @description
+   *  1. Whenever "agency" uploads "candidate's cv" for particular "companyJob"
+   */
+  companyId?: string;
+
+  /**
+   * @description
+   *  1. Whenever "agency" uploads "candidate's cv" for particular "companyJob"
+   */
+  jobId?: string;
+
+  /**
+   * @description 
+   *  1. If "candidate" is already registered then "userDetailId" will be the "id" field of "UserDetail.model.ts
+   */
+  userDetailId?: string;
 }
 
 export { DbCandidateParsedCvDto };

@@ -84,14 +84,18 @@ class AgencyJobAssignmentDao implements BaseDao {
       this.collectionName
     );
 
-    if (status) baseQuery = baseQuery.where("status", "==", status);
-    if (agencyRegisteredEmail)
-      baseQuery = baseQuery.where(
-        "agencyRegisteredEmail",
-        "==",
-        agencyRegisteredEmail
-      );
-    if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
+    if(!status && !agencyRegisteredEmail && !companyId) {
+      baseQuery = baseQuery.orderBy("createdAt", filterOptions.sortOrder);
+    } else {
+      if (status) baseQuery = baseQuery.where("status", "==", status);
+      if (agencyRegisteredEmail)
+        baseQuery = baseQuery.where(
+          "agencyRegisteredEmail",
+          "==",
+          agencyRegisteredEmail
+        );
+      if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
+    }
 
     return gcpFirestoreUtilObj.paginateGcpFirestore<
       AgencyJobAssignmentListingFilterOptions,

@@ -121,19 +121,29 @@ class GcpFirestoreLibrary {
     commonDbDetails: GcpFirestoreInteractionDto,
     ids: string[]
   ): Promise<DbEntityDto[]> {
-    const db: Firestore = this.getFirestoreDatabase(
-      commonDbDetails.databaseName
-    );
-    const querySnapshot: QuerySnapshot<DocumentData, DocumentData> = await db
-      .collection(commonDbDetails.collectionName)
-      .where("id", "in", ids)
-      .get();
+    if (!ids.length) return [];
     
-    if(!querySnapshot) {
-      return [] as DbEntityDto[];
+    const db: Firestore = this.getFirestoreDatabase(commonDbDetails.databaseName);
+    
+    // Chunk IDs into groups of 10 (Firestore 'in' limit)
+    const chunks: string[][] = [];
+    for (let i = 0; i < ids.length; i += 10) {
+      chunks.push(ids.slice(i, i + 10));
     }
-
-    return querySnapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => doc.data() as DbEntityDto);
+    
+    // Execute all queries in parallel
+    const queryPromises: Promise<QuerySnapshot<DocumentData, DocumentData>>[] = chunks.map(chunk => 
+      db.collection(commonDbDetails.collectionName)
+        .where("id", "in", chunk)
+        .get()
+    );
+    
+    const querySnapshots: QuerySnapshot<DocumentData, DocumentData>[] = await Promise.all(queryPromises);
+    
+    // Flatten results
+    return querySnapshots.flatMap((snapshot: QuerySnapshot<DocumentData, DocumentData>) => 
+      snapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => doc.data() as DbEntityDto)
+    );
   }
 
   async updateDocumentById<UpdateEntityDto extends DocumentData, DbEntityDto>(

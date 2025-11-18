@@ -3,10 +3,13 @@ import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
 import { DbAgencyJobAssignmentDto } from "../db/gcp-firestore-models/AgencyJobAssignment.model";
 import { DbAgencyUserSubmissionDto } from "../db/gcp-firestore-models/AgencyUserSubmission.model";
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
+import { DbCorporateCandidateProfileDto } from "../db/gcp-firestore-models/CorporateCandidateProfile.model";
+import { DbCentralCandidateProfileDto } from "../db/gcp-firestore-models/CentralCandidateProfile.model";
 
 // Import services
 import { jobServiceObj } from "../services/Job.service";
 import { candidateParsedCvServiceObj } from "../services/CandidateParsedCv.service";
+
 
 class InjectEntityDetailsHelper {
   async injectEntityDetailsForAgencyJobAssignment(
@@ -83,7 +86,7 @@ class InjectEntityDetailsHelper {
       candidateParsedCvDetails?: DbCandidateParsedCvDto;
     })[]
   > {
-    if(!agencyUserSubmissions || !agencyUserSubmissions.length) {
+    if (!agencyUserSubmissions || !agencyUserSubmissions.length) {
       global.logger.info(`No agency user submissions are found.`, {
         includeJobDetails,
         includeCandidateParsedCvDetails,
@@ -125,7 +128,8 @@ class InjectEntityDetailsHelper {
       jobDetailsMap = await jobServiceObj.getJobDetailsMapByIds(uniqueJobIds);
     }
 
-    let candidateParsedCvDetailsMap: Map<string, DbCandidateParsedCvDto> = new Map();
+    let candidateParsedCvDetailsMap: Map<string, DbCandidateParsedCvDto> =
+      new Map();
 
     // If includeCandidateParsedCvDetails is true, inject candidate parsed cv details
     if (includeCandidateParsedCvDetails) {
@@ -137,7 +141,10 @@ class InjectEntityDetailsHelper {
         )
       );
 
-      candidateParsedCvDetailsMap = await candidateParsedCvServiceObj.getCandidateParsedCvDetailsMapByIds(uniqueCandidateParsedCvIds);
+      candidateParsedCvDetailsMap =
+        await candidateParsedCvServiceObj.getCandidateParsedCvDetailsMapByIds(
+          uniqueCandidateParsedCvIds
+        );
     }
 
     const agencyUserSubmissionsWithEntityDetails: (DbAgencyUserSubmissionDto & {
@@ -158,7 +165,9 @@ class InjectEntityDetailsHelper {
 
           // If includeCandidateParsedCvDetails is true, inject candidate parsed cv details
           ...(includeCandidateParsedCvDetails && {
-            candidateParsedCvDetails: candidateParsedCvDetailsMap.get(eachAgencyUserSubmission.candidateParsedCvId),
+            candidateParsedCvDetails: candidateParsedCvDetailsMap.get(
+              eachAgencyUserSubmission.candidateParsedCvId
+            ),
           }),
         };
 
@@ -167,6 +176,185 @@ class InjectEntityDetailsHelper {
     );
 
     return agencyUserSubmissionsWithEntityDetails;
+  }
+
+  async injectEntityDetailsForCorporateCandidateProfiles(
+    corporateCandidateProfiles: DbCorporateCandidateProfileDto[],
+    includeCandidateParsedCvDetails?: boolean,
+    includeJobDetails?: boolean
+  ): Promise<
+    (DbCorporateCandidateProfileDto & {
+      candidateParsedCvDetails?: DbCandidateParsedCvDto;
+    })[]
+  > {
+    if (!corporateCandidateProfiles || !corporateCandidateProfiles.length) {
+      global.logger.info(`No corporate candidate profiles are found.`, {
+        includeCandidateParsedCvDetails,
+        methodName: this.injectEntityDetailsForCorporateCandidateProfiles.name,
+      });
+      return [] as (DbCorporateCandidateProfileDto & {
+        candidateParsedCvDetails?: DbCandidateParsedCvDto;
+      })[];
+    }
+
+    if (!includeCandidateParsedCvDetails) {
+      global.logger.info(
+        `No entity details are requested to be injected for corporate candidate profiles.`,
+        {
+          includeCandidateParsedCvDetails,
+          methodName:
+            this.injectEntityDetailsForCorporateCandidateProfiles.name,
+        }
+      );
+      return corporateCandidateProfiles as (DbCorporateCandidateProfileDto & {
+        candidateParsedCvDetails?: DbCandidateParsedCvDto;
+      })[];
+    }
+
+    let candidateParsedCvDetailsMap: Map<string, DbCandidateParsedCvDto> =
+      new Map();
+
+    // If includeCandidateParsedCvDetails is true, inject candidate parsed cv details
+    if (includeCandidateParsedCvDetails) {
+      const uniqueCandidateParsedCvIds: string[] = Array.from(
+        new Set(
+          corporateCandidateProfiles
+            .map(
+              (item: DbCorporateCandidateProfileDto) => item.candidateParsedCvId
+            )
+            .filter((id: string | undefined): id is string => id !== undefined)
+        )
+      );
+
+      candidateParsedCvDetailsMap =
+        await candidateParsedCvServiceObj.getCandidateParsedCvDetailsMapByIds(
+          uniqueCandidateParsedCvIds
+        );
+    }
+
+    // If includeJobDetails is true, inject job details
+
+    let jobDetailsMap: Map<string, DbJobAwsOpensearchDto> = new Map();
+
+    // If includeJobDetails is true, inject job details
+    if (includeJobDetails) {
+      const uniqueJobIds: string[] = Array.from(
+        new Set(
+          corporateCandidateProfiles.map(
+            (item: DbCorporateCandidateProfileDto) => item.jobId
+          ).filter((id: string | undefined): id is string => id !== undefined)
+        )
+      );
+
+      jobDetailsMap = await jobServiceObj.getJobDetailsMapByIds(uniqueJobIds);
+    }
+
+    const corporateCandidateProfilesWithEntityDetails: (DbCorporateCandidateProfileDto & {
+      candidateParsedCvDetails?: DbCandidateParsedCvDto;
+    })[] = corporateCandidateProfiles.map(
+      (eachCorporateCandidateProfile: DbCorporateCandidateProfileDto) => {
+        const eachCorporateCandidateProfileWithEntityDetails: DbCorporateCandidateProfileDto & {
+          candidateParsedCvDetails?: DbCandidateParsedCvDto;
+        } = {
+          ...eachCorporateCandidateProfile,
+
+          // If includeCandidateParsedCvDetails is true, inject candidate parsed cv details
+          ...(includeCandidateParsedCvDetails &&
+            eachCorporateCandidateProfile.candidateParsedCvId && {
+              candidateParsedCvDetails: candidateParsedCvDetailsMap.get(
+                eachCorporateCandidateProfile.candidateParsedCvId
+              ),
+            }),
+          
+          // If includeJobDetails is true, inject job details
+          ...(includeJobDetails &&
+            eachCorporateCandidateProfile.jobId && {
+              jobDetails: jobDetailsMap.get(eachCorporateCandidateProfile.jobId),
+            }),
+        };
+
+        return eachCorporateCandidateProfileWithEntityDetails;
+      }
+    );
+
+    return corporateCandidateProfilesWithEntityDetails;
+  }
+
+  async injectEntityDetailsForCentralCandidateProfiles(
+    centralCandidateProfiles: DbCentralCandidateProfileDto[],
+    includeCandidateParsedCvDetails?: boolean
+  ): Promise<
+    (DbCentralCandidateProfileDto & {
+      candidateParsedCvDetails?: DbCandidateParsedCvDto;
+    })[]
+  > {
+    if (!centralCandidateProfiles || !centralCandidateProfiles.length) {
+      global.logger.info(`No central candidate profiles are found.`, {
+        includeCandidateParsedCvDetails,
+        methodName: this.injectEntityDetailsForCentralCandidateProfiles.name,
+      });
+      return [] as (DbCentralCandidateProfileDto & {
+        candidateParsedCvDetails?: DbCandidateParsedCvDto;
+      })[];
+    }
+
+    if (!includeCandidateParsedCvDetails) {
+      global.logger.info(
+        `No entity details are requested to be injected for central candidate profiles.`,
+        {
+          includeCandidateParsedCvDetails,
+          methodName: this.injectEntityDetailsForCentralCandidateProfiles.name,
+        }
+      );
+      return centralCandidateProfiles as (DbCentralCandidateProfileDto & {
+        candidateParsedCvDetails?: DbCandidateParsedCvDto;
+      })[];
+    }
+
+    let candidateParsedCvDetailsMap: Map<string, DbCandidateParsedCvDto> =
+      new Map();
+
+    // If includeCandidateParsedCvDetails is true, inject candidate parsed cv details
+    if (includeCandidateParsedCvDetails) {
+      const uniqueCandidateParsedCvIds: string[] = Array.from(
+        new Set(
+          centralCandidateProfiles
+            .map(
+              (item: DbCentralCandidateProfileDto) => item.latestCandidateParsedCvId
+            )
+            .filter((id: string | undefined): id is string => id !== undefined)
+        )
+      );
+
+      candidateParsedCvDetailsMap =
+        await candidateParsedCvServiceObj.getCandidateParsedCvDetailsMapByIds(
+          uniqueCandidateParsedCvIds
+        );
+    }
+
+    const centralCandidateProfilesWithCandidateParsedCvDetails: (DbCentralCandidateProfileDto & {
+      candidateParsedCvDetails?: DbCandidateParsedCvDto;
+    })[] = centralCandidateProfiles.map(
+      (eachCentralCandidateProfile: DbCentralCandidateProfileDto) => {
+        const eachCentralCandidateProfileWithCandidateParsedCvDetails: DbCentralCandidateProfileDto & {
+          candidateParsedCvDetails?: DbCandidateParsedCvDto;
+        } = {
+          ...eachCentralCandidateProfile,
+
+          // If includeCandidateParsedCvDetails is true, inject candidate parsed cv details
+          ...(includeCandidateParsedCvDetails &&
+            eachCentralCandidateProfile.latestCandidateParsedCvId && {
+              candidateParsedCvDetails: candidateParsedCvDetailsMap.get(
+                eachCentralCandidateProfile.latestCandidateParsedCvId
+              ),
+            }),
+        };
+
+        return eachCentralCandidateProfileWithCandidateParsedCvDetails;
+      }
+    );
+
+    return centralCandidateProfilesWithCandidateParsedCvDetails;
   }
 }
 

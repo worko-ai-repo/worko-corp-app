@@ -7,7 +7,7 @@
 ## Internal
    1. Whenever a `corporate` or `worko-admin` uploads bulk cv's against particular `companyJob` for screening
    2. Whenever a `corporate` uploads bulk cv's against his particular `company` 
-   3. Whenever a `worko-admin` uploads bulk cv's against `WORKO` company
+   3. Whenever a `worko-admin` uploads bulk cv's 
 ## Agency 
    1. Whenever an `agency` upload `candidate's cv` for particular `companyJob`
 ## Worko
@@ -21,7 +21,7 @@
          2. Email id
          3. Contact no
          4. Current designation
-         5. In Database -> all the company names this user profile is present
+         5. Applied Companies -> all the company names this user profile is present example `Swiggy`, `Zomato`
          6. Current CTC
          7. Expected CTC
          8. Notice period
@@ -404,3 +404,18 @@
    so im thinking to use `worko-agency-auth.mjs` as authorier for `worko-agency` user pool, so which is better way, should i use same `worko-auth.mjs` for both user pools, the `dev-worko-corp` api gateway is used by both `corporate-admin`, `worko-admin`, `corporate-recruiter` and now `agency` in different user pool will also use it
 
 
+
+
+
+# Updates
+1. central candidate profile api flow
+2. agency submitted cv view file router api
+3. storing agency submitted data in `central db` also
+4. reviewed ashutosh's interview details pr in jobapplication feature
+5. Implemented api code for listing my database
+
+# Today's Plan
+1. fixed agency submitted cv view by corporate
+2. listing `My database` page in `admin` dashboard
+3. whenever user applies a job, we need to store in corporate and central database accordingly
+4. view contract copy api is failing in admin

@@ -82,3 +82,20 @@ export interface AgencyUserSubmissionCvPsuToUploadApiDto {
    */
   fileMimeType: string;
 }
+
+
+export interface AgencyUserSubmissionCvPsuToViewApiDto {
+  companyId: string;
+  jobId: string;
+
+  /**
+   * @reference "id" field of "AgencyUser.model.ts"
+   * @description The registered agency user who submitted the "candidate profile"
+   */
+  agencyUserId: string;
+
+  /**
+   * @example "{ulidId}.pdf"
+   */
+  candidateCvAwsS3FileName: string;
+}

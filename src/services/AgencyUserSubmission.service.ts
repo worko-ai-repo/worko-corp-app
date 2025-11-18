@@ -14,15 +14,15 @@ import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firesto
 
 // Import daos
 import { agencyUserSubmissionDaoObj } from "../daos/AgencyUserSubmission.dao";
-import { candidateParsedCvDaoObj } from "../daos/CandidateParsedCv.dao";
-import { candidateProfileDaoObj } from "../daos/CandidateProfile.dao";
 
 // Import enums
-import { CandidateProfileDbRefereeTypeEnum } from "../enums/CandidateProfile.enum";
+import { CorporateCandidateProfileDbRefereeTypeEnum } from "../enums/CorporateCandidateProfile.enum";
+import { CentralCandidateProfileDbRefereeTypeEnum } from "../enums/CentralCandidateProfile.enum";
 
 // Import helpers
 import { getActionByAgencyUserIds, getActionByUserId } from "../helpers/user.helper";
 import { dateHelperObj } from "../helpers/date.helper";
+import { injectEntityDetailsHelperObj } from "../helpers/injectEntityDetails.helper";
 
 // Import models
 import { DbAgencyUserDto } from "../db/gcp-firestore-models/AgencyUser.model";
@@ -30,11 +30,13 @@ import { DbCompanyDetailDto } from "../db/aws-dynamodb-models/CompanyDetail.mode
 import { DbCompanyJobDto } from "../db/aws-dynamodb-models/CompanyJob.model";
 import { DbAgencyUserSubmissionDto } from "../db/gcp-firestore-models/AgencyUserSubmission.model";
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
-import { DbCandidateProfileDto } from "../db/gcp-firestore-models/CandidateProfile.model";
+import { DbCorporateCandidateProfileDto } from "../db/gcp-firestore-models/CorporateCandidateProfile.model";
 import { DbAgencyJobAssignmentDto } from "../db/gcp-firestore-models/AgencyJobAssignment.model";
 import { DbUserDetailDto } from "../db/aws-dynamodb-models/UserDetail.model";
 import { DbCorporateUserDto } from "../db/aws-dynamodb-models/CorporateUser.model";
 import { DbAgencyUserInviteDto } from "../db/gcp-firestore-models/AgencyUserInvite.model";
+import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
+import { DbCentralCandidateProfileDto } from "../db/gcp-firestore-models/CentralCandidateProfile.model";
 
 // Import services
 import { agencyUserServiceObj } from "./AgencyUser.service";
@@ -44,15 +46,15 @@ import { agencyJobAssignmentServiceObj } from "./AgencyJobAssignment.service";
 import InvokeLambdaService from "./InvokeLambda.service";
 import UlidService from "./Ulid.service";
 import UserDetailService from "./UserDetail.service";
-import { candidateProfileServiceObj } from "./CandidateProfile.service";
+import { corporateCandidateProfileServiceObj } from "./CorporateCandidateProfile.service";
 import { corporateUserServiceObj } from "./CorporateUser.service";
 import { agencyUserInviteServiceObj } from "./AgencyUserInvite.service";
+import { centralCandidateProfileServiceObj } from "./CentralCandidateProfile.service";
+import { candidateParsedCvServiceObj } from "./CandidateParsedCv.service";
 
 // Import utils
 import HttpStatusCode from "../utils/http-codes.util";
 import { BaseError } from "../utils/errors.util";
-import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
-import { injectEntityDetailsHelperObj } from "../helpers/injectEntityDetails.helper";
 
 
 class AgencyUserSubmissionService {
@@ -192,13 +194,13 @@ class AgencyUserSubmissionService {
         parsedCvData,
       });
       throw new BaseError(
-        "Failed to parse CV.",
+        "Candidate email not found in CV.",
         HttpStatusCode.INTERNAL_SERVER_ERROR_500
       );
     }
 
     const existingCandidateProfile: QuerySnapshot<DocumentData, DocumentData> =
-      await candidateProfileServiceObj.getDuplicateCandidateProfile(
+      await corporateCandidateProfileServiceObj.getDuplicateCorporateCandidateProfile(
         reqBodyCompanyId,
         parsedCvData.email, // candidate email
         parsedCvData.phoneNumberDetails // candidate phone number details
@@ -250,11 +252,11 @@ class AgencyUserSubmissionService {
       reqBodyJobId
     );
 
-    const { agencyUserDetails, jobAssignedToAgency } =
+    const { agencyUserDetails, jobAssignedToAgency, reqBodyCompanyData } =
       validatedAgencyUserCompanyJobDetails;
 
     const existingCandidateProfile: QuerySnapshot<DocumentData, DocumentData> =
-      await candidateProfileServiceObj.getDuplicateCandidateProfile(
+      await corporateCandidateProfileServiceObj.getDuplicateCorporateCandidateProfile(
         reqBodyCompanyId,
         reqBodyParsedCvCandidateEmail,
         candidateParsedCvData.phoneNumberDetails
@@ -301,6 +303,13 @@ class AgencyUserSubmissionService {
 
     const currentDate: string = dateHelperObj.getISODate();
 
+    const candidateRegisteredDetails: QueryResponse<DbUserDetailDto> =
+      await UserDetailService.get(reqBodyParsedCvCandidateEmail);
+    let candidateDetails: DbUserDetailDto | undefined;
+    if(candidateRegisteredDetails.count) {
+      candidateDetails = candidateRegisteredDetails[0];
+    }
+
     /**
      * Prepare data to Store Candidate parsed details in "CandidateParsedCv" model
      */
@@ -309,6 +318,11 @@ class AgencyUserSubmissionService {
       id: UlidService.getUlidId(),
       createdAt: currentDate,
       updatedAt: currentDate,
+      agencyUserId: agencyUserDetails.id,
+      agencyRegisteredEmail: agencyUserDetails.email,
+      companyId: reqBodyCompanyId,
+      jobId: reqBodyJobId,
+      userDetailId: candidateDetails?.id
     };
 
     /**
@@ -331,49 +345,105 @@ class AgencyUserSubmissionService {
       agencyJobAssignedByCorporateUserId:
         jobAssignedToAgency.assignedByCorporateUserId,
       agencyJobAssignedByUserId: jobAssignedToAgency.assignedByUserId,
+      userDetailId: candidateDetails?.id
     };
+
+    candidateParsedCvCreateData.agencyUserSubmissionId = agencyUserSubmissionCreateData.id;
 
     /**
      * Prepare data to Store Agency User Submission details in "CandidateProfile" model
      */
-    const candidateProfileCreateData: DbCandidateProfileDto = {
+    const corporateCandidateProfileCreateData: DbCorporateCandidateProfileDto = {
       id: UlidService.getUlidId(),
       createdAt: currentDate,
       updatedAt: currentDate,
       companyId: reqBodyCompanyId,
       jobId: reqBodyJobId,
       candidateEmail: reqBodyParsedCvCandidateEmail,
-      refereeType: CandidateProfileDbRefereeTypeEnum.AGENCY,
+      refereeType: CorporateCandidateProfileDbRefereeTypeEnum.AGENCY,
       candidateParsedCvId: candidateParsedCvCreateData.id,
       agencyUserSubmissionId: agencyUserSubmissionCreateData.id,
+      agencyUserId: agencyUserDetails.id,
+      agencyRegisteredEmail: agencyUserDetails.email,
       phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
+      userDetailId: candidateDetails?.id
     };
 
-    const candidateRegisteredDetails: QueryResponse<DbUserDetailDto> =
-      await UserDetailService.get(reqBodyParsedCvCandidateEmail);
-    if (candidateRegisteredDetails.count) {
-      const userDetailData: DbUserDetailDto = candidateRegisteredDetails[0];
-      agencyUserSubmissionCreateData.userDetailId = userDetailData.id;
-      candidateProfileCreateData.userDetailId = userDetailData.id;
+    /**
+     * Prepare data to Create or Update Agency User Submission details in "CentralCandidateProfile" model
+     */
+    // Get existing candidate data from `CentralCandidateProfile` model
+    const existingCentralCandidateProfile: DbCentralCandidateProfileDto | undefined =
+      await centralCandidateProfileServiceObj.getCentralCandidateProfileById(
+        reqBodyParsedCvCandidateEmail
+      );
+
+    let createOrUpdateCentralCandidateProfile: Promise<DbCentralCandidateProfileDto | undefined>;
+
+    // If not found prepare data to create `CentralCandidateProfile`
+    if(existingCentralCandidateProfile) {
+      createOrUpdateCentralCandidateProfile = centralCandidateProfileServiceObj.updateCentralCandidateProfileById(
+        reqBodyParsedCvCandidateEmail,
+        {
+          candidateProfileInCompanies: [
+            ...(existingCentralCandidateProfile?.candidateProfileInCompanies ?? []),
+            {
+              companyId: reqBodyCompanyId,
+              companyName: reqBodyCompanyData.name,
+              jobIds: [reqBodyJobId]
+            }
+          ],
+          corporateCandidateProfileIds: [
+            ...(existingCentralCandidateProfile?.corporateCandidateProfileIds ?? []),
+            corporateCandidateProfileCreateData.id
+          ],
+          latestCandidateParsedCvId: candidateParsedCvCreateData.id,
+        }
+      )
+    } else {
+      // If found prepare data to update `CentralCandidateProfile`
+      let createCentralCandidateProfileData: DbCentralCandidateProfileDto = {
+        id: reqBodyParsedCvCandidateEmail,
+        createdAt: currentDate,
+        updatedAt: currentDate,
+        candidateEmail: reqBodyParsedCvCandidateEmail,
+        phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
+        refereeType: CentralCandidateProfileDbRefereeTypeEnum.AGENCY,
+        userDetailId: candidateDetails?.id,
+        candidateProfileInCompanies: [
+          {
+            companyId: reqBodyCompanyId,
+            companyName: reqBodyCompanyData.name,
+            jobIds: [reqBodyJobId],
+          },
+        ],
+        corporateCandidateProfileIds: [corporateCandidateProfileCreateData.id],
+        latestCandidateParsedCvId: candidateParsedCvCreateData.id,
+      };
+
+      createOrUpdateCentralCandidateProfile = centralCandidateProfileServiceObj.createCentralCandidateProfile(createCentralCandidateProfileData);
     }
 
     const createAgencyUserSubmissionResult: [
       DbCandidateParsedCvDto | undefined,
       DbAgencyUserSubmissionDto | undefined,
-      DbCandidateProfileDto | undefined
+      DbCorporateCandidateProfileDto | undefined,
+      DbCentralCandidateProfileDto | undefined
     ] = await Promise.all([
-      candidateParsedCvDaoObj.createCandidateParsedCv(
+      candidateParsedCvServiceObj.createCandidateParsedCv(
         candidateParsedCvCreateData
       ),
       this.createAgencyUserSubmission(agencyUserSubmissionCreateData),
-      candidateProfileDaoObj.createCandidateProfile(candidateProfileCreateData),
+      corporateCandidateProfileServiceObj.createCorporateCandidateProfile(corporateCandidateProfileCreateData),
+      createOrUpdateCentralCandidateProfile
     ]);
 
     // If any of the result is failed to create then throw error
     if (
       !createAgencyUserSubmissionResult[0] ||
       !createAgencyUserSubmissionResult[1] ||
-      !createAgencyUserSubmissionResult[2]
+      !createAgencyUserSubmissionResult[2] ||
+      !createAgencyUserSubmissionResult[3]
     ) {
       global.logger.error(`Failed to create Agency User Submission.`, {
         methodName: this.parseAgencyUserSubmissionCandidateCv.name,

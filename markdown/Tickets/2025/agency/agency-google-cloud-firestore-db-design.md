@@ -24,7 +24,7 @@ interface AgencyUserInvite {
 ```
 **Composite Indexes:**
 - `↓companyId` + `↓invitedByCorporateUserId` + `↓inviteStatus` 
-- `↓email` + `↓inviteStatus` + `↓companyId` 
+- `↓email` + `↓companyId` + `↓inviteStatus`  
 - `↓companyId` + `↓inviteStatus`
 
 
@@ -99,27 +99,12 @@ interface AgencyUserSubmission {
 }
 ```
 **Composite Indexes:**
-// Agency Dashboard queries
-- `↓agencyRegisteredEmail` + `↓createdAt`
-- `↓agencyRegisteredEmail` + `↓companyId` + `↓createdAt`
-- `↓agencyRegisteredEmail` + `↓jobId` + `↓createdAt`
 
-// Corporate Dashboard queries  
-- `↓companyId` + `↓agencyJobAssignedByCorporateUserId` + `↓createdAt`
-- `↓companyId` + `↓agencyJobAssignedByCorporateUserId` + `↓candidateEmail` + `↓createdAt`
-- `↓companyId` + `↓agencyJobAssignedByCorporateUserId` + `↓jobId` + `↓createdAt`
-- `↓companyId` + `↓agencyJobAssignedByCorporateUserId` + `↓agencyName` + `↓createdAt`
-
-// Admin Dashboard queries
-- `↓jobId` + `↓createdAt`
-- `↓agencyName` + `↓createdAt`
-- `↓companyId` + `↓createdAt`
-- `↓candidateEmail` + `↓createdAt`
 
 
 
 ### CandidateProfiles Collection
-**Collection Path:** `candidateProfiles`
+**Collection Path:** `corporateCandidateProfiles`
 ```ts
 interface CandidateProfile {
   // Document ID: auto-generated
@@ -138,6 +123,58 @@ interface CandidateProfile {
 ```
 **Composite Indexes:**
 
+
+
+
+### CentralCandidateProfiles Collection
+**Collection Path:** `centralCandidateProfiles`
+```ts
+interface CentralCandidateProfile {
+  // Document ID: candidate email (for direct lookup)
+  id: string; // candidateEmail
+  
+  // Core Attributes
+  candidateEmail: string;
+  phoneNumberDetails: {
+    number: number; // 9666308100
+    countryCode: number; // 91
+  };
+  
+  // Admin Dashboard Requirements
+  candidateProfileInCompanies: {
+    companyId: string;
+    jobIds?: string[];
+    companyName: string;
+  }[]; // Company names where profile exists, ex:- "Swiggy", "Zomato"
+
+  /**
+   * @todo: Ask `Product manager`
+   */
+  addedBy: string; 
+
+  /**
+   * @todo: Ask `Product manager`
+   */
+  addedFor: string; // Latest job/company it was added for
+
+  /**
+   * @todo: Need to ask detailed flow to `Product manager`
+   */
+  coolingPeriodCompanies: string[]; // Company names in cooling period
+
+  createdAt: string;
+  updatedAt: string;
+
+  userDetailId?: string;
+  
+  // CV references (latest 3)
+  candidateCvHistory: {
+    candidateCvParsedId: string;
+    cvAwsS3FileName: string;
+    uploadedAt: string;
+  }[]; // Max 3 entries, sorted by uploadedAt desc
+}
+```
 
 
 

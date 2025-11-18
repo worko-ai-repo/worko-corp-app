@@ -550,6 +550,10 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
       path: "/file/gsu2v/AGENCY_INVITE_CONTRACT_COPY",
       method: HttpMethodsConstants.POST,
     },
+    {
+      path: "/file/gsu2v/AGENCY_SUBMIT_USER_CV",
+      method: HttpMethodsConstants.POST,
+    },
 
     // Agency User Submission Routers
     { path: "/agency-user-submission*", method: HttpMethodsConstants.GET },
@@ -559,6 +563,9 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
       path: "/user/interview/request",
       method: HttpMethodsConstants.POST,
     },
+
+    // Corporate Candidate Profile Routers
+    { path: "/corporate-candidate-profile*", method: HttpMethodsConstants.GET },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
@@ -665,6 +672,10 @@ var isCorporateAdminUrl = function (url, httpMethod) {
       path: "/file/gsu2v/AGENCY_INVITE_CONTRACT_COPY",
       method: HttpMethodsConstants.POST,
     },
+    {
+      path: "/file/gsu2v/AGENCY_SUBMIT_USER_CV",
+      method: HttpMethodsConstants.POST,
+    },
 
     // User Interview Routers
     {
@@ -674,6 +685,9 @@ var isCorporateAdminUrl = function (url, httpMethod) {
 
     // Agency User Submission Routers
     { path: "/agency-user-submission*", method: HttpMethodsConstants.GET },
+
+    // Corporate Candidate Profile Routers
+    { path: "/corporate-candidate-profile*", method: HttpMethodsConstants.GET },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
@@ -708,6 +722,10 @@ var isAgencyUrl = function (url, httpMethod) {
     // File routers
     {
       path: "/file/gsu2u/AGENCY_SUBMIT_USER_CV",
+      method: HttpMethodsConstants.POST,
+    },
+    {
+      path: "/file/gsu2v/AGENCY_SUBMIT_USER_CV",
       method: HttpMethodsConstants.POST,
     },
 
@@ -807,6 +825,10 @@ var isAdminUrl = function (url, httpMethod) {
     // File routers
     { path: "/file/gsu2u/COMPANY_LOGO", method: HttpMethodsConstants.POST },
     { path: "/file/gsu2u/BLOG_COVER_IMAGE", method: HttpMethodsConstants.POST },
+    {
+      path: "/file/gsu2v/AGENCY_SUBMIT_USER_CV",
+      method: HttpMethodsConstants.POST,
+    },
 
     // Request evaluation routers
     { path: "/request-evaluation/", method: HttpMethodsConstants.POST },
@@ -864,6 +886,12 @@ var isAdminUrl = function (url, httpMethod) {
     {
       path: "/user/interview/request",
       method: HttpMethodsConstants.POST,
+    },
+
+    // Central Candidate Profile Routers
+    {
+      path: "/central-candidate-profile*",
+      method: HttpMethodsConstants.GET,
     },
   ];
 

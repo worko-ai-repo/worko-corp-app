@@ -60,16 +60,21 @@ class AgencyUserSubmissionDao implements BaseDao {
       this.collectionName
     );
 
-    if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
-    if (jobId)
-      baseQuery = baseQuery.where(
-        "jobId",
-        "==",
-        jobId
-      );
-    if (agencyRegisteredEmail)
-      baseQuery = baseQuery.where("agencyRegisteredEmail", "==", agencyRegisteredEmail);
-    if (candidateEmail) baseQuery = baseQuery.where("candidateEmail", "==", candidateEmail);
+    // If no filter options are provided, order by createdAt in specific order
+    if(!companyId && !jobId && !agencyRegisteredEmail && !candidateEmail) {
+      baseQuery = baseQuery.orderBy("createdAt", filterOptions.sortOrder);
+    } else {
+      if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
+      if (jobId)
+        baseQuery = baseQuery.where(
+          "jobId",
+          "==",
+          jobId
+        );
+      if (agencyRegisteredEmail)
+        baseQuery = baseQuery.where("agencyRegisteredEmail", "==", agencyRegisteredEmail);
+      if (candidateEmail) baseQuery = baseQuery.where("candidateEmail", "==", candidateEmail);
+    }
 
     return gcpFirestoreUtilObj.paginateGcpFirestore<
       AgencyUserSubmissionListingFilterOptions,

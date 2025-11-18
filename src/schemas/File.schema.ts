@@ -43,6 +43,29 @@ export const agencyUserInviteContractCopyPsuToViewApiDtoValidation = Joi.object(
   }),
 })
 
+export const agencyUserSubmissionCvPsuToViewApiDtoValidation = Joi.object({
+  companyId: Joi.string().required().messages({
+    "string.empty": "Company id is required",
+    "any.required": "Company id is required",
+  }),
+  jobId: Joi.string().required().messages({
+    "string.empty": "Job id is required",
+    "any.required": "Job id is required",
+  }),
+  /**
+   * @reference "id" field of "AgencyUser.model.ts"
+   * @description The registered agency user who submitted the "candidate profile"
+   */
+  agencyUserId: Joi.string().required().messages({
+    "string.empty": "Agency user id is required",
+    "any.required": "Agency user id is required",
+  }),
+  candidateCvAwsS3FileName: Joi.string().required().messages({
+    "string.empty": "Candidate cv aws s3 file name is required",
+    "any.required": "Candidate cv aws s3 file name is required",
+  }),
+});
+
 export const agencyUserSubmissionCvPsuToUploadApiDtoValidation =
   filePsuToUploadDtoValidation.concat(
     Joi.object({

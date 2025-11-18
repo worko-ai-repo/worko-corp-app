@@ -109,8 +109,12 @@ const APP_CONSTANTS = {
   },
 
   FRONTEND_URLS: {
-    WORKO_AGENCY_LOGIN_URL: `${process.env.APP_WORKO_FRONTEND_BASE_URL}`,
-    WORKO_AGENCY_SIGNUP_URL: `${process.env.APP_WORKO_FRONTEND_BASE_URL}?agencyUserInviteId={agencyUserInviteId}`,
+    WORKO_AGENCY_LOGIN_URL: `${process.env.APP_WORKO_AGENCY_FRONTEND_BASE_URL}`,
+
+    /**
+     * @example "https://agency.worko.work/auth/agency/signup/01KA0Z4YZF598N7WA3ETMEWAV6"
+     */
+    WORKO_AGENCY_SIGNUP_URL: `${process.env.APP_WORKO_AGENCY_FRONTEND_BASE_URL}/auth/agency/signup/{agencyUserInviteId}`,
   },
 
   SOURCE_EMAIL_ADDRESS: {

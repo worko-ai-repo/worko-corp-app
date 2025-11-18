@@ -9,7 +9,7 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsS3ClientLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
+import { AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
 
 // Import helpers
 import { getActionByAgencyUserIds, getActionByUserId } from "../helpers/user.helper";
@@ -40,7 +40,8 @@ class FileService {
   private async validatePsuToUploadOrViewAgencyUserInviteContractCopy(
     requestBodyObject:
       | AgencyUserInviteContractCopyPsuToUploadApiDto
-      | AgencyUserInviteContractCopyPsuToViewApiDto
+      | AgencyUserInviteContractCopyPsuToViewApiDto,
+    toView?: boolean
   ) {
     global.logger.info(
       `Validating agency user invite contract copy before uploading or viewing. [File Service]`,
@@ -95,52 +96,63 @@ class FileService {
       );
     }
 
-    const { actionByCorporateUserId } = getActionByUserId();
+    const { actionByCorporateUserId, actionByUserId } = getActionByUserId();
 
-    if (!actionByCorporateUserId) {
-      throw new BaseError(`Unauthorized.`, HttpStatusCode.UNAUTHORIZED_401);
-    }
+    if (actionByCorporateUserId) {
+      const actionByCorporateUserDetails: DbCorporateUserDto =
+        await corporateUserServiceObj.getCorpUserByIdWithParsing(
+          actionByCorporateUserId
+        );
 
-    const actionByCorporateUserDetails: DbCorporateUserDto =
-      await corporateUserServiceObj.getCorpUserByIdWithParsing(
-        actionByCorporateUserId
-      );
+      if (actionByCorporateUserDetails.companyId !== requestBodyCompanyData.id) {
+        global.logger.error(
+          `User does not belong to the company. [File Service]`,
+          {
+            requestBodyObject,
+            requestBodyCompanyData,
+            actionByCorporateUserDetails,
+            methodName:
+              this.validatePsuToUploadOrViewAgencyUserInviteContractCopy.name,
+          }
+        );
 
-    if (actionByCorporateUserDetails.companyId !== requestBodyCompanyData.id) {
+        throw new BaseError(
+          `You are not allowed to access this resource.`,
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
+
+      if (
+        actionByCorporateUserDetails.id !==
+        requestBodyAgencyInviteDetails.invitedByCorporateUserId
+      ) {
+        global.logger.error(
+          `You didn't invite this agency user. [File Service]`,
+          {
+            requestBodyObject,
+            requestBodyAgencyInviteDetails,
+            actionByCorporateUserDetails,
+            methodName:
+              this.validatePsuToUploadOrViewAgencyUserInviteContractCopy.name,
+          }
+        );
+        throw new BaseError(
+          `You are not allowed to access this resource.`,
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
+    } else if(!actionByUserId || !toView) {
       global.logger.error(
-        `User does not belong to the company. [File Service]`,
+        `Worko admin can only have view access. [File Service]`,
         {
           requestBodyObject,
-          requestBodyCompanyData,
-          actionByCorporateUserDetails,
           methodName:
             this.validatePsuToUploadOrViewAgencyUserInviteContractCopy.name,
         }
       );
-
       throw new BaseError(
-        `You are not allowed to access this resource.`,
-        HttpStatusCode.FORBIDDEN_403
-      );
-    }
-
-    if (
-      actionByCorporateUserDetails.id !==
-      requestBodyAgencyInviteDetails.invitedByCorporateUserId
-    ) {
-      global.logger.error(
-        `You didn't invite this agency user. [File Service]`,
-        {
-          requestBodyObject,
-          requestBodyAgencyInviteDetails,
-          actionByCorporateUserDetails,
-          methodName:
-            this.validatePsuToUploadOrViewAgencyUserInviteContractCopy.name,
-        }
-      );
-      throw new BaseError(
-        `You are not allowed to access this resource.`,
-        HttpStatusCode.FORBIDDEN_403
+        `Unauthorized.`,
+        HttpStatusCode.UNAUTHORIZED_401
       );
     }
   }
@@ -264,6 +276,98 @@ class FileService {
     }
   }
 
+  private async validatePsuToViewAgencyUserSubmissionCv(
+    requestBodyObject: AgencyUserSubmissionCvPsuToViewApiDto
+  ) {
+    const { actionByUserId, actionByCorporateUserId } = getActionByUserId();
+    if(actionByCorporateUserId) {
+      const corporateUserDetails: QueryResponse<DbCorporateUserDto> =
+        await corporateUserServiceObj.getCorpUserById(actionByCorporateUserId);
+      if (!corporateUserDetails.count) {
+        throw new BaseError(
+          `Corporate user details not found.`,
+          HttpStatusCode.NOT_FOUND_404
+        );
+      }
+    } else if(actionByUserId) {
+      global.logger.info(`User might be a "worko-admin" or "agency"`, {
+        methodName: this.validatePsuToViewAgencyUserSubmissionCv.name
+      })
+
+      const cognitoUserGroups: string[] = global.requestLocalContext.cognitoUserGroups;
+      if(!cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)) {
+        global.logger.info(`Check whether user is "agency" or normal user`, {
+          methodName: this.validatePsuToViewAgencyUserSubmissionCv.name
+        })
+        const {convertedAgencyCognitoUserId} = getActionByAgencyUserIds();
+        const agencyUserDetails: DbAgencyUserDto | undefined = await agencyUserServiceObj.getAgencyUserById(convertedAgencyCognitoUserId);
+        if (!agencyUserDetails) {
+          global.logger.error(`Agency user details not found, so request came from normal user [File Service]`, {
+            methodName: this.validatePsuToViewAgencyUserSubmissionCv.name,
+            convertedAgencyCognitoUserId
+          })
+          throw new BaseError(`Unauthorized.`, HttpStatusCode.UNAUTHORIZED_401);
+        }
+      }
+    } else {
+      throw new BaseError(`Unauthorized.`, HttpStatusCode.UNAUTHORIZED_401);
+    }
+
+    const { agencyUserId, companyId, jobId } = requestBodyObject;
+
+    const reqBodyCompanyDetails: QueryResponse<DbCompanyDetailDto> =
+      await companyDetailServiceObj.getCompanyDetailById(companyId);
+    if (!reqBodyCompanyDetails.count) {
+      throw new BaseError(
+        `Company details not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+    const reqBodyCompanyData: DbCompanyDetailDto = reqBodyCompanyDetails[0];
+
+    const reqBodyJobDetails: QueryResponse<DbCompanyJobDto> =
+      await companyJobServiceObj.getJobById(jobId);
+    if (!reqBodyJobDetails.count) {
+      throw new BaseError(
+        `Job details not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+    const reqBodyJobData: DbCompanyJobDto = reqBodyJobDetails[0];
+
+    if (reqBodyCompanyData.id !== reqBodyJobData.companyId) {
+      throw new BaseError(
+        `Job does not belong to the company.`,
+        HttpStatusCode.CONFLICT_409
+      );
+    }
+
+    const agencyUserDetails: DbAgencyUserDto | undefined =
+      await agencyUserServiceObj.getAgencyUserById(
+        agencyUserId
+      );
+    if (!agencyUserDetails) {
+      throw new BaseError(
+        `Agency user details not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+
+    // Check whether this `companyJob` is assigned to this `agency` or not by using `companyId` `agencyRegisteredEmail`,`jobId`
+    const reqBodyAgencyJobAssignmentDetails: QuerySnapshot<DocumentData, DocumentData> =
+      await agencyJobAssignmentServiceObj.getAgencyJobAssignmentByCompIdJobIdAndEmail(
+        reqBodyCompanyData.id,
+        jobId,
+        agencyUserDetails.email
+      );
+    if (reqBodyAgencyJobAssignmentDetails.empty) {
+      throw new BaseError(
+        `You are not allowed to perform action on this resource.`,
+        HttpStatusCode.FORBIDDEN_403
+      );
+    }
+  }
+
   async generatePsuToUploadAgencyUserSubmissionCv(
     requestBodyObject: AgencyUserSubmissionCvPsuToUploadApiDto
   ): Promise<PreSignedUrlToUploadFileResponseDto> {
@@ -338,7 +442,8 @@ class FileService {
     );
 
     await this.validatePsuToUploadOrViewAgencyUserInviteContractCopy(
-      requestBodyObject
+      requestBodyObject,
+      true
     );
 
     const { companyId, agencyInviteId, contractCopyAwsS3FileName } =
@@ -367,6 +472,49 @@ class FileService {
     const objectUrl: string = await awsS3ClientLibrary.generateObjectUrl(
       bucketName,
       `${filePath}/${contractCopyAwsS3FileName}`
+    );
+
+    return {
+      objectUrl: objectUrl,
+    };
+  }
+
+  async generatePsuToViewAgencyUserSubmissionCv(requestBodyObject: AgencyUserSubmissionCvPsuToViewApiDto) {
+    global.logger.info(
+      `Generating pre-signed url to view agency user submission cv. [File Service]`,
+      {
+        methodName: this.generatePsuToViewAgencyUserSubmissionCv.name,
+      }
+    );
+
+    await this.validatePsuToViewAgencyUserSubmissionCv(requestBodyObject);
+
+    const { agencyUserId, companyId, jobId, candidateCvAwsS3FileName } = requestBodyObject;
+
+    const filePath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.AGENCY_SUBMIT_USER_CV.strtr({
+        "{agencyUserId}": agencyUserId,
+        "{companyId}": companyId,
+        "{jobId}": jobId,
+      });
+
+    const bucketName: string | undefined =
+      process.env.APP_AWS_S3_BUCKET_WORKO_APP;
+    if (!bucketName) {
+      global.logger.error(`AWS S3 bucket name not found. [File Service]`, {
+        bucketName,
+        methodName: this.generatePsuToViewAgencyUserSubmissionCv.name,
+      });
+
+      throw new BaseError(
+        `Internal server error.`,
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const objectUrl: string = await awsS3ClientLibrary.generateObjectUrl(
+      bucketName,
+      `${filePath}/${candidateCvAwsS3FileName}`
     );
 
     return {

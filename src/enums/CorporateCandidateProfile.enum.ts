@@ -1,6 +1,4 @@
-
-
-export enum CandidateProfileDbRefereeTypeEnum {
+export enum CorporateCandidateProfileDbRefereeTypeEnum {
   /**
    * @description
    *  1. We will give example email: `retrieveuserprofiles@worko.ai` to a company(ex: `amazon`), if anyone sends candidate's
