@@ -22,3 +22,10 @@ export interface CorporateCandidateProfileListingFilterRequestDTO extends GcpFir
  includeCandidateParsedCvDetails?: boolean;
  includeJobDetails?: boolean;
 }
+
+export interface CorporateCandidateProfileDuplicationRequestDTO {
+   companyId: string,
+   candidateEmailId: string,
+   phoneNumber: number, // 9666308100
+   phoneCountryCode: number // 91
+}

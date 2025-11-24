@@ -12,6 +12,7 @@
    1. Whenever an `agency` upload `candidate's cv` for particular `companyJob`
 ## Worko
    1. Whenever a `registered candidate` apply `companyJob` at `worko` job portal
+   2. Whenever a user signups as a `candidate`
 
 # Admin Dashboard
 ## Pages
@@ -404,18 +405,177 @@
    so im thinking to use `worko-agency-auth.mjs` as authorier for `worko-agency` user pool, so which is better way, should i use same `worko-auth.mjs` for both user pools, the `dev-worko-corp` api gateway is used by both `corporate-admin`, `worko-admin`, `corporate-recruiter` and now `agency` in different user pool will also use it
 
 
+1. 
+   ```sh
+   worko-search-candidates-dev
+   worko-search-candidates-prod
+   ```
+   ```json
+   // Request payload
+   {
+      "searchByPrompt": "give me cand with 7 years experience",
+      "searchByJobDescription":"..."
+   }
+   ```
+   ```ts
+   // Response Object
+   {
+      currentCompany?: string; // give in uppercase
+      currentDesignation?: string; // give in lowercase
+      totalYOE?: number;
+      relevantYOE?: number;
+      currentCTC?: number;
+      expectedCTC?: number;
+      noticePeriod?: number;
+      location?: string; // give in lowercase
+      readyToRelocate?: boolean;
+      isNoticePeriodNegotiable?: boolean;
+      coreSkills?: string[]; // ["python","java"]
+      technicalSkills?: string[];
+      department?: string;
+      industry?: string;
+   }
+   ```
+
 
 
 
 # Updates
-1. central candidate profile api flow
-2. agency submitted cv view file router api
-3. storing agency submitted data in `central db` also
-4. reviewed ashutosh's interview details pr in jobapplication feature
-5. Implemented api code for listing my database
 
 # Today's Plan
-1. fixed agency submitted cv view by corporate
-2. listing `My database` page in `admin` dashboard
-3. whenever user applies a job, we need to store in corporate and central database accordingly
-4. view contract copy api is failing in admin
+
+
+# Total Pending From Backend Apis
+## UI Integration
+### Agency Dashboard
+#### Jobs Page
+1. `Search Company`
+   1. `Companies` which recieves invites to agency only should be shown.
+2. Pending Column names in `Jobs` Page
+   1. Candidates uploaded -> `implement immediately`
+   2. Candidates rejected -> `check candidate counts specific and attach to it`
+   3. Candidates in-process -> `check candidate counts specific and attach to it`
+#### Applicants Page
+1. `Search Company`
+   1. `Companies` which recieves invites to agency only should be shown.
+2. `Current status` column name in `Applicants` Page
+   1. Current job application status of candidate, we can use `refer and earn` implementation flow
+#### Bulk cv check Page
+1. It was only accessed by `corporates` and `worko-admin`, so need to check in `worko-api` project that how to use in `agency dashboard`
+#### Recharge Page
+1. Second release
+
+
+### Corporate Dashboard
+#### Agency Page
+1. `Select agency` -> `thinking to do free text search because we are not dedicatedly storing "agency details"`
+2. Accept & move to application button -> `bulk select candidates`
+3. Reject button -> `bulk select candidates`
+4. Accept & Send for evaluation button -> `bulk select candidates`
+5. Find matching score button -> `bulk select candidates`
+6. Pending Column names in `Agency Page`:
+   1. `Worko score` Column:
+      1. Find matching score button
+   2. `Action` column:
+      1. Accept & move to application button
+      2. Reject button
+      3. Accept & Send for evaluation button
+   3. `Current status` column
+#### Agency List Page
+1. Pending Column names in `Agency List Page`:
+   1. `Assigned jobs` Column -> `implement immediately`
+   2. `Total candidate submitted` Column -> `implement immediately`
+   3. `Total rejected`
+   4. `Total hired`
+   5. Action:
+      1. Remove jobs button
+      2. Edit button -> `implement immediately`
+      3. Pause button
+      4. Delete button
+#### My database Page
+1. Seach by `candidate name`
+2. `Bulk upload cv`
+3. `Filter by status`-> ["Blacklisted", "Under cooling period", "Under processing", "All"]
+4. `Edit` button -> `bulk candidate selection`
+5. `Disable` button -> `bulk candidate selection`
+6. `Delete` button -> `bulk candidate selection`
+7. `Forward` button -> `bulk candidate selection`
+   1. `Move to applicants` -> `bulk candidate selection`
+   2. `Move for bulk matching` -> `bulk candidate selection`
+8. `Download` button -> `bulk candidate selection`
+9. Pending Column names in `My database Page`:
+   1. `Referred by` column name
+   2. `Remark` column name
+   3. `CV` column because the cv file name path will be different for every source
+   4. `Action` column:
+      1. `Edit` button
+10. Pending sub column names:
+   1. last rejection date
+   2. Rejected by
+   3. Cooling period
+   4. Rejected reason
+#### Search in database Page -> `Not initiated`
+
+
+### Admin Dashboard
+#### Agency Page
+1. `Select agency` -> `thinking to do free text search because we are not dedicatedly storing "agency details"`
+2. Accept & move to application button -> `bulk select candidates`
+3. Reject button -> `bulk select candidates`
+4. Accept & Send for evaluation button -> `bulk select candidates`
+5. Find matching score button -> `bulk select candidates`
+6. Pending Column names in `Agency Page`:
+   1. `Worko score` Column:
+      1. Find matching score button
+   2. `Action` column: -> `should admin able to perform these actions ??`
+      1. Accept & move to application button
+      2. Reject button
+      3. Accept & Send for evaluation button
+   3. `Current status` column
+#### Agency List Page
+1. Pending Column names in `Agency List Page`:
+   1. `Assigned jobs` Column -> `implement immediately`
+   2. `Total candidate submitted` Column -> `implement immediately`
+   3. `Total rejected`
+   4. `Total hired`
+   5. Action:
+      1. Remove jobs button
+      2. Edit button -> `implement immediately`
+      3. Pause button
+      4. Delete button
+#### My database Page
+1. Seach by `candidate name`
+2. `Bulk upload cv`
+3. `Filter by status`-> ["Blacklisted", "Under cooling period", "Under processing", "All"]
+4. `Edit` button -> `bulk candidate selection`
+5. `Disable` button -> `bulk candidate selection`
+6. `Delete` button -> `bulk candidate selection`
+7. `Forward` button -> `bulk candidate selection`
+   1. `Move to applicants` -> `bulk candidate selection`
+   2. `Move for bulk matching` -> `bulk candidate selection`
+8. `Download` button -> `bulk candidate selection`
+9. Pending Column names in `My database Page`
+   1. `Added for` column -> `added for is for which company it was added in last 3 months, so the name of companies.`
+   2. `Cooling period companies`
+   3. `CV` column because the cv file name path will be different for every source
+   4. `Action` column:
+      1. `Edit` button
+#### Search in database Page -> `Not initiated`
+
+
+# Total R&D Pending from Backend
+1. gcp environment variables are not populating to `job-app` api lamba when `worko-job-app` repo is deployed
+2. for below payload the error message is blank for duplicacy:
+```json
+{
+  "agencyName": "chipu",
+  "email": "erikwhite85+001@gmail.com",
+  "phoneNumberDetails": { "number": 7846587436, "countryCode": 91 },
+  "name": "chipmonk",
+  "GSTIN": "29AAACC1206D2ZB",
+  "contractCopyUserFileName": "pankaj backend engineer.pdf",
+  "companyId": "01JWAQF1G96E0SE9XHXSFGHNWW"
+}
+```
+3. `Composite indexes` best design which satifies `createdAt` sort order even any filter is applied
+ 

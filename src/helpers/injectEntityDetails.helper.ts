@@ -222,7 +222,6 @@ class InjectEntityDetailsHelper {
             .map(
               (item: DbCorporateCandidateProfileDto) => item.candidateParsedCvId
             )
-            .filter((id: string | undefined): id is string => id !== undefined)
         )
       );
 
@@ -322,7 +321,6 @@ class InjectEntityDetailsHelper {
             .map(
               (item: DbCentralCandidateProfileDto) => item.latestCandidateParsedCvId
             )
-            .filter((id: string | undefined): id is string => id !== undefined)
         )
       );
 

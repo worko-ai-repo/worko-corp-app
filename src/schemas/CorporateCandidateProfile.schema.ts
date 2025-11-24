@@ -32,3 +32,22 @@ export const corporateCandidateProfileFilterDtoValidation = gcpFirestoreCommonSc
     }),
   })
 );
+
+export const corporateCandidateProfileDuplicationRequestDtoValidation = Joi.object({
+  companyId: Joi.string().required().messages({
+    "string.empty": "Company id is required",
+    "any.required": "Company id is required",
+  }),
+  candidateEmailId: Joi.string().required().lowercase().messages({
+    "string.empty": "Candidate email id is required",
+    "any.required": "Candidate email id is required",
+  }),
+  phoneNumber: Joi.number().required().messages({
+    "number.base": "Phone number should be a number",
+    "any.required": "Phone number is required",
+  }),
+  phoneCountryCode: Joi.number().required().messages({
+    "number.base": "Phone country code should be a number",
+    "any.required": "Phone country code is required",
+  }),
+});

@@ -345,7 +345,6 @@ class AgencyUserSubmissionService {
       agencyJobAssignedByCorporateUserId:
         jobAssignedToAgency.assignedByCorporateUserId,
       agencyJobAssignedByUserId: jobAssignedToAgency.assignedByUserId,
-      userDetailId: candidateDetails?.id
     };
 
     candidateParsedCvCreateData.agencyUserSubmissionId = agencyUserSubmissionCreateData.id;
@@ -369,6 +368,8 @@ class AgencyUserSubmissionService {
       userDetailId: candidateDetails?.id
     };
 
+    candidateParsedCvCreateData.corporateCandidateProfileId = corporateCandidateProfileCreateData.id;
+
     /**
      * Prepare data to Create or Update Agency User Submission details in "CentralCandidateProfile" model
      */
@@ -380,11 +381,11 @@ class AgencyUserSubmissionService {
 
     let createOrUpdateCentralCandidateProfile: Promise<DbCentralCandidateProfileDto | undefined>;
 
-    // If not found prepare data to create `CentralCandidateProfile`
     if(existingCentralCandidateProfile) {
       createOrUpdateCentralCandidateProfile = centralCandidateProfileServiceObj.updateCentralCandidateProfileById(
         reqBodyParsedCvCandidateEmail,
         {
+          updatedAt: currentDate,
           candidateProfileInCompanies: [
             ...(existingCentralCandidateProfile?.candidateProfileInCompanies ?? []),
             {
@@ -397,11 +398,14 @@ class AgencyUserSubmissionService {
             ...(existingCentralCandidateProfile?.corporateCandidateProfileIds ?? []),
             corporateCandidateProfileCreateData.id
           ],
+          candidateParsedCvIds: [
+            ...(existingCentralCandidateProfile?.candidateParsedCvIds ?? []),
+            candidateParsedCvCreateData.id
+          ],
           latestCandidateParsedCvId: candidateParsedCvCreateData.id,
         }
       )
     } else {
-      // If found prepare data to update `CentralCandidateProfile`
       let createCentralCandidateProfileData: DbCentralCandidateProfileDto = {
         id: reqBodyParsedCvCandidateEmail,
         createdAt: currentDate,
@@ -418,6 +422,7 @@ class AgencyUserSubmissionService {
           },
         ],
         corporateCandidateProfileIds: [corporateCandidateProfileCreateData.id],
+        candidateParsedCvIds: [candidateParsedCvCreateData.id],
         latestCandidateParsedCvId: candidateParsedCvCreateData.id,
       };
 

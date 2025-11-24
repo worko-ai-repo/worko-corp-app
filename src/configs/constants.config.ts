@@ -97,10 +97,14 @@ const APP_CONSTANTS = {
   ],
 
   FRONTEND_ORIGINS: {
-    PROD: ["https://worko.ai"],
+    PROD: [
+      "https://worko.ai",
+      "https://agency.worko.ai",
+    ],
     DEV: [
       "https://dev-ui.worko.work",
       "https://dev.worko.work",
+      "https://agency.worko.work",
       "http://localhost:4200",
       "http://localhost:8080",
       "http://localhost:3001",

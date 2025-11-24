@@ -566,6 +566,9 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
 
     // Corporate Candidate Profile Routers
     { path: "/corporate-candidate-profile*", method: HttpMethodsConstants.GET },
+
+    // Candidate Parsed Cv Routers
+    { path: "/candidate-parsed-cv/corp-action*", method: HttpMethodsConstants.GET },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
@@ -688,6 +691,9 @@ var isCorporateAdminUrl = function (url, httpMethod) {
 
     // Corporate Candidate Profile Routers
     { path: "/corporate-candidate-profile*", method: HttpMethodsConstants.GET },
+
+    // Candidate Parsed Cv Routers
+    { path: "/candidate-parsed-cv/corp-action*", method: HttpMethodsConstants.GET },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
@@ -733,6 +739,18 @@ var isAgencyUrl = function (url, httpMethod) {
     { path: "/agency-user-submission/candidate-parse-cv", method: HttpMethodsConstants.POST },
     { path: "/agency-user-submission/", method: HttpMethodsConstants.POST },
     { path: "/agency-user-submission*", method: HttpMethodsConstants.GET },
+
+    // Job routers
+    { path: "/job/parsejd", method: HttpMethodsConstants.POST },
+
+    // corporate bulk jd routes
+    { path: "/corporate-bulk-jd/*", method: HttpMethodsConstants.ANY },
+
+    // corporate bulk jd resume routes
+    { path: "/corporate-bulk-jd-resume/*", method: HttpMethodsConstants.ANY },
+
+    // Corporate Candidate Profile Routers
+    { path: "/corporate-candidate-profile/duplicate", method: HttpMethodsConstants.GET },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);

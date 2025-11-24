@@ -56,13 +56,6 @@ interface DbAgencyUserSubmissionDto extends BaseFirestoreModel {
    * @reference "assignedByUserId" field of "AgencyJobAssignment.model.ts"
    */
   agencyJobAssignedByUserId?: string;
-
-  /**
-   * @reference "id" attribute of "UserDetail.model.ts" from "AWS Dynamodb"
-   * @description 
-   *  1. If the candidate is registered in "worko" job portal then "userDetailId" will be available
-   */
-  userDetailId?: string;
 }
 
 export { DbAgencyUserSubmissionDto };

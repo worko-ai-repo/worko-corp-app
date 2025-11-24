@@ -7,4 +7,9 @@ const candidateParsedCvController = new CandidateParsedCvController();
 
 const CandidateParsedCvRouter = Router();
 
+/**
+ * @authorisedRoles ["corporate-admin", "corporate-recruiter"]
+ */
+CandidateParsedCvRouter.get("/corp-action", candidateParsedCvController.getAllCandidateParsedCvByCorporateFilterOptions);
+
 export default CandidateParsedCvRouter;

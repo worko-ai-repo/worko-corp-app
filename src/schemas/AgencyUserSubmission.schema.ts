@@ -19,11 +19,11 @@ export const agencyUserSubmissionCandidateParseCvApiValidationDto = Joi.object({
 });
 
 export const agencyUserSubmissionCreateApiValidationDto = Joi.object({
-  name: Joi.string().required().messages({
+  name: Joi.string().required().lowercase().messages({
     "string.empty": "Candidate Name is required",
     "any.required": "Candidate Name is required",
   }),
-  email: Joi.string().required().messages({
+  email: Joi.string().required().lowercase().messages({
     "string.empty": "Candidate Email is required",
     "any.required": "Candidate Email is required",
   }),
@@ -37,11 +37,11 @@ export const agencyUserSubmissionCreateApiValidationDto = Joi.object({
       "any.required": "Country code is required",
     }),
   }),
-  currentCompany: Joi.string().required().messages({
+  currentCompany: Joi.string().required().uppercase().messages({
     "string.empty": "Current Company is required",
     "any.required": "Current Company is required",
   }),
-  currentDesignation: Joi.string().required().messages({
+  currentDesignation: Joi.string().required().lowercase().messages({
     "string.empty": "Current Designation is required",
     "any.required": "Current Designation is required",
   }),
@@ -69,7 +69,7 @@ export const agencyUserSubmissionCreateApiValidationDto = Joi.object({
     "boolean.base": "Is Notice Period Negotiable is required",
     "any.required": "Is Notice Period Negotiable is required",
   }),
-  location: Joi.string().required().messages({
+  location: Joi.string().required().lowercase().messages({
     "string.empty": "Location is required",
     "any.required": "Location is required",
   }),
@@ -93,7 +93,7 @@ export const agencyUserSubmissionCreateApiValidationDto = Joi.object({
     "string.empty": "Agency user invite id is required",
     "any.required": "Agency user invite id is required",
   }),
-  agencyComments: Joi.string().required().messages({
+  agencyComments: Joi.string().required().lowercase().messages({
     "string.base": "Agency comments must be a string",
     "string.empty": "Agency comments should not be empty",
   })

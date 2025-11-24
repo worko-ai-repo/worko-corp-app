@@ -74,6 +74,7 @@ class AgencyUserSubmissionDao implements BaseDao {
       if (agencyRegisteredEmail)
         baseQuery = baseQuery.where("agencyRegisteredEmail", "==", agencyRegisteredEmail);
       if (candidateEmail) baseQuery = baseQuery.where("candidateEmail", "==", candidateEmail);
+      if (filterOptions.agencyName) baseQuery = baseQuery.where("agencyName", "==", filterOptions.agencyName);
     }
 
     return gcpFirestoreUtilObj.paginateGcpFirestore<

@@ -33,7 +33,7 @@ interface DbCorporateCandidateProfileDto extends BaseFirestoreModel {
   /**
    * @reference "id" field of "CandidateParsedCv.model.ts"
    */
-  candidateParsedCvId?: string;
+  candidateParsedCvId: string;
 
   /**
    * @description

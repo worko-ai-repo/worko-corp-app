@@ -35,7 +35,12 @@ interface DbCentralCandidateProfileDto extends BaseFirestoreModel {
   /**
    * @reference "id" field of "CandidateParsedCv.model.ts"
    */
-  latestCandidateParsedCvId?: string;
+  candidateParsedCvIds: string[];
+
+  /**
+   * @reference "id" field of "CandidateParsedCv.model.ts"
+   */
+  latestCandidateParsedCvId: string;
 }
 
 export { DbCentralCandidateProfileDto };

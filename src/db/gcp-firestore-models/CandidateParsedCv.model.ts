@@ -1,4 +1,3 @@
-
 // Import dtos
 import { CandidateParsedCvDbPhoneNumberDto } from "../../dtos/CandidateParsedCv.dto";
 
@@ -9,17 +8,23 @@ interface DbCandidateParsedCvDto extends BaseFirestoreModel {
   name: string;
   email: string;
   phoneNumberDetails: CandidateParsedCvDbPhoneNumberDto;
-  currentCompany: string;
-  currentDesignation: string;
-  totalYOE: number;
-  relevantYOE: number;
-  currentCTC: number;
-  expectedCTC: number;
-  noticePeriod: number;
-  location: string;
-  readyToRelocate: boolean;
-  cvAwsS3FileName: string;
-  isNoticePeriodNegotiable: boolean;
+  currentCompany?: string;
+  currentDesignation?: string;
+  totalYOE?: number;
+  relevantYOE?: number;
+  currentCTC?: number;
+  expectedCTC?: number;
+  noticePeriod?: number;
+  location?: string;
+  readyToRelocate?: boolean;
+  cvAwsS3FileName?: string;
+  isNoticePeriodNegotiable?: boolean;
+  coreSkills?: string[];
+  technicalSkills?: string[];
+  userPreferredDepartments?: string[];
+  userPreferredIndustries?: string[];
+  userPreferredlocations?: string[];
+  userPreferredRoles?: string[];
 
   /**
    * @reference The "id" field of "AgencyUserSubmission.model.ts" collection
@@ -29,7 +34,7 @@ interface DbCandidateParsedCvDto extends BaseFirestoreModel {
 
   /**
    * @reference "id" field of "AgencyUser.model.ts"
-   * @description 
+   * @description
    *  1. The registered agency user who submitted the "candidate profile"
    *  2. Whenever "agency" uploads "candidate's cv" for particular "companyJob"
    */
@@ -37,7 +42,7 @@ interface DbCandidateParsedCvDto extends BaseFirestoreModel {
 
   /**
    * @reference "email" field of "AgencyUser.model.ts"
-   * @description 
+   * @description
    *  1. The registered agency user who submitted the "candidate profile"
    *  2. Whenever "agency" uploads "candidate's cv" for particular "companyJob"
    */
@@ -51,12 +56,18 @@ interface DbCandidateParsedCvDto extends BaseFirestoreModel {
 
   /**
    * @description
+   *  1. If "candidate" comes from a specific "company" then "corporateCandidateProfileId" will be the "id" field of "CorporateCandidateProfile.model.ts"
+   */
+  corporateCandidateProfileId?: string;
+
+  /**
+   * @description
    *  1. Whenever "agency" uploads "candidate's cv" for particular "companyJob"
    */
   jobId?: string;
 
   /**
-   * @description 
+   * @description
    *  1. If "candidate" is already registered then "userDetailId" will be the "id" field of "UserDetail.model.ts
    */
   userDetailId?: string;
