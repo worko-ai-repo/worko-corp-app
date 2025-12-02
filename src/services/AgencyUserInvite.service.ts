@@ -13,7 +13,7 @@ import { agencyUserInviteDaoObj } from "../daos/AgencyUserInvite.dao";
 import { agencyUserDaoObj } from "../daos/AgencyUser.dao";
 
 // Import dtos
-import { AgencyUserInviteCommonUpdateDto, AgencyUserInviteCreateApiDto, AgencyUserInviteCreateDto, AgencyUserInviteDbPhoneNumberDto, AgencyUserInviteListingFilterOptions, AgencyUserInviteCorpUpdateApiDto, AgencyUserInviteAgencyUpdateApiDto } from "../dtos/AgencyUserInvite.dto";
+import {  AgencyUserInviteCreateApiDto, AgencyUserInviteCreateDto, AgencyUserInviteDbPhoneNumberDto, AgencyUserInviteListingFilterOptions, AgencyUserInviteCorpUpdateApiDto, AgencyUserInviteAgencyUpdateApiDto } from "../dtos/AgencyUserInvite.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 import { EmailTemplatePlaceholderAGENCY_INVITE_FOR_REGISTERED, EmailTemplatePlaceholderAGENCY_INVITE_FOR_UNREGISTERED } from "../dtos/EmailTemplatePlaceholder.dto";
 
@@ -40,11 +40,13 @@ import { DbAgencyUserInviteDto } from "../db/gcp-firestore-models/AgencyUserInvi
 // Import services
 import { companyDetailServiceObj } from "./CompanyDetail.service";
 import { corporateUserServiceObj } from "./CorporateUser.service";
+import { agencyUserServiceObj } from "./AgencyUser.service";
+import { agencyUserSubmissionServiceObj } from "./AgencyUserSubmission.service";
 
 // Import utils
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
-import { agencyUserServiceObj } from "./AgencyUser.service";
+
 
 class AgencyUserInviteService {
   async createAgencyUserInvite(
@@ -166,7 +168,7 @@ class AgencyUserInviteService {
 
   async updateAgencyUserInviteById(
     id: string,
-    data: Partial<AgencyUserInviteCommonUpdateDto>
+    data: Partial<DbAgencyUserInviteDto>
   ): Promise<DbAgencyUserInviteDto | undefined> {
     global.logger.info("Update Agency User Invite By Id [Service]");
 
@@ -477,10 +479,14 @@ class AgencyUserInviteService {
       throw new BaseError(`Unauthorized.`, HttpStatusCode.UNAUTHORIZED_401);
     }
 
+    if(existingInviteDetails.agencyName === validatedRequestBody.agencyName) {
+      throw new BaseError("Agency name is already same.", HttpStatusCode.BAD_REQUEST_400);
+    }
+
     const { agencyInviteId, ...remainingValidatedData } = validatedRequestBody;
 
     // Prepare update data
-    const updateData: Partial<AgencyUserInviteCommonUpdateDto> = {
+    const updateData: Partial<DbAgencyUserInviteDto> = {
       ...remainingValidatedData,
       updatedByCorporateUserId: actionByCorporateUserId,
       updatedAt: dateHelperObj.getISODate(),
@@ -501,6 +507,15 @@ class AgencyUserInviteService {
         `Failed to Update Agency User Invite.`,
         HttpStatusCode.INTERNAL_SERVER_ERROR_500
       );
+    }
+
+    if(validatedRequestBody.agencyName) {
+      if(updatedInviteDetails.agencyUserSubmissionIds && updatedInviteDetails.agencyUserSubmissionIds.length > 0) {
+        await agencyUserSubmissionServiceObj.updateBulkAgencyUserSubmissionByIds(
+          updatedInviteDetails.agencyUserSubmissionIds,
+          { agencyName: validatedRequestBody.agencyName }
+        );
+      }
     }
 
     return updatedInviteDetails;
@@ -570,7 +585,7 @@ class AgencyUserInviteService {
     const { agencyInviteId, ...remainingValidatedData } = validatedRequestBody;
 
     // Prepare update data
-    const updateData: Partial<AgencyUserInviteCommonUpdateDto> = {
+    const updateData: Partial<DbAgencyUserInviteDto> = {
       ...remainingValidatedData,
       updatedByAgencyUserId: convertedAgencyCognitoUserId,
       updatedAt: dateHelperObj.getISODate(),

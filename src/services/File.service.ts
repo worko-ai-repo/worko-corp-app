@@ -290,12 +290,17 @@ class FileService {
         );
       }
     } else if(actionByUserId) {
-      global.logger.info(`User might be a "worko-admin" or "agency"`, {
+      global.logger.info(`User might be a "worko-admin" or "agency" or "evaluator"`, {
         methodName: this.validatePsuToViewAgencyUserSubmissionCv.name
       })
 
       const cognitoUserGroups: string[] = global.requestLocalContext.cognitoUserGroups;
-      if(!cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)) {
+
+      // If user is "worko-admin" or "evaluator" then no need to check whether user is "agency" or not
+      if(
+        !cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)
+        && !cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.EVALUATOR)
+      ) {
         global.logger.info(`Check whether user is "agency" or normal user`, {
           methodName: this.validatePsuToViewAgencyUserSubmissionCv.name
         })

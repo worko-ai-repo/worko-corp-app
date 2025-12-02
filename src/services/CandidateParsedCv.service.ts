@@ -58,6 +58,10 @@ class CandidateParsedCvService {
       filterOptions
     );
   }
+
+  async getCandidateParsedCvById(id: string): Promise<DbCandidateParsedCvDto | undefined> {
+    return candidateParsedCvDaoObj.getCandidateParsedCvById(id);
+  }
 }
 
 const candidateParsedCvServiceObj = new CandidateParsedCvService();

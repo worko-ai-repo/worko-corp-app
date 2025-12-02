@@ -77,14 +77,14 @@ class AgencyJobAssignmentDao implements BaseDao {
       }
     );
 
-    const { status, agencyRegisteredEmail, companyId } = filterOptions;
+    const { status, agencyRegisteredEmail, companyId, searchText } = filterOptions;
 
     const db: Firestore = this.getAgencyJobAssignmentFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db.collection(
       this.collectionName
     );
 
-    if(!status && !agencyRegisteredEmail && !companyId) {
+    if(!status && !agencyRegisteredEmail && !companyId && !searchText) {
       baseQuery = baseQuery.orderBy("createdAt", filterOptions.sortOrder);
     } else {
       if (status) baseQuery = baseQuery.where("status", "==", status);
@@ -95,6 +95,7 @@ class AgencyJobAssignmentDao implements BaseDao {
           agencyRegisteredEmail
         );
       if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
+      if (searchText) baseQuery = baseQuery.where("jobTitle", "==", searchText.toLowerCase());
     }
 
     return gcpFirestoreUtilObj.paginateGcpFirestore<
@@ -126,6 +127,28 @@ class AgencyJobAssignmentDao implements BaseDao {
       .where("jobId", "==", jobId)
       .where("agencyRegisteredEmail", "==", agencyRegisteredEmail)
       .get();
+  }
+
+  async updateAgencyJobAssignmentById(
+    id: string,
+    updateData: Partial<DbAgencyJobAssignmentDto>
+  ): Promise<DbAgencyJobAssignmentDto | undefined> {
+    return gcpFirestoreLibrary.updateDocumentById<Partial<DbAgencyJobAssignmentDto>, DbAgencyJobAssignmentDto>(
+      this.getAgencyJobAssignmentModelDetails(),
+      id,
+      updateData
+    );
+  }
+
+  async updateBulkAgencyJobAssignmentByIds(
+    ids: string[],
+    updateData: Partial<DbAgencyJobAssignmentDto>
+  ): Promise<boolean> {
+    return gcpFirestoreLibrary.bulkUpdateDocumentByIds<Partial<DbAgencyJobAssignmentDto>>(
+      this.getAgencyJobAssignmentModelDetails(),
+      ids,
+      updateData
+    );
   }
 }
 

@@ -8,6 +8,11 @@ const candidateParsedCvController = new CandidateParsedCvController();
 const CandidateParsedCvRouter = Router();
 
 /**
+ * @authorisedRoles ["evaluator"]
+ */
+CandidateParsedCvRouter.get("/:id", candidateParsedCvController.getCandidateParsedCvById);
+
+/**
  * @authorisedRoles ["corporate-admin", "corporate-recruiter"]
  */
 CandidateParsedCvRouter.get("/corp-action", candidateParsedCvController.getAllCandidateParsedCvByCorporateFilterOptions);

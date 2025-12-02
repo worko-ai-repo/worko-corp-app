@@ -65,30 +65,16 @@ export interface AgencyUserInviteCorpUpdateApiDto {
   /**
    * @example "01K8X5828XCC0E5QKTJ1ED91KJ.pdf"
    */
-  contractCopyAwsS3FileName: string;
-}
+  contractCopyAwsS3FileName?: string;
 
-export interface AgencyUserInviteCommonUpdateDto {
-  /**
-   * @example "01K8X5828XCC0E5QKTJ1ED91KJ.pdf"
-   */
-  contractCopyAwsS3FileName: string;
+  phoneNumberDetails?: AgencyUserInviteDbPhoneNumberDto;
 
   /**
-   * @reference "id" attribute of "CorporateUser.model.ts"
-   */
-  updatedByCorporateUserId: string;
-
-  inviteStatus: AgencyUserInviteDbStatusEnum;
-
-  /**
-   * @reference "id" attribute of "AgencyUser.model.ts" from "GCP Firestore"
    * @description
-   *  1. Whenever an agency registered, then we will update `inviteStatus` as `ACCEPTED` and this field will store the `id` of the agency registered
+   *   1. Brand name of the agency
+   *   2. May be a company name related to the agency
    */
-  updatedByAgencyUserId?: string;
-
-  updatedAt: string;
+  agencyName?: string;
 }
 
 export interface AgencyUserInviteListingFilterOptions extends GcpFirestoreRecordListingFilterOptions {

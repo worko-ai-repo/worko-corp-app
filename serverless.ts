@@ -138,6 +138,8 @@ const serverlessConfiguration: AWS = {
         Resource: [
           "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:resume-parser",
           "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-job-app-${self:custom.app.STAGE}-app-opensearch-operations",
+          "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-sourcetype-jd-resume-matching-${self:custom.app.STAGE}",
+          "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-corp-${self:custom.app.STAGE}-app-sourcetype-bulk-find-jd-cv-match-score",
         ],
       },
 
@@ -190,6 +192,20 @@ const serverlessConfiguration: AWS = {
           },
         },
       ],
+    },
+
+    /**
+     * app-sourcetype-bulk-find-jd-cv-match-score
+     * 
+     * AWS Lambda Function Format:- {service}-{enviroment}-{functionName}
+     * Ex:
+     *  1. `worko-corp-local-app-sourcetype-bulk-find-jd-cv-match-score`
+     *  2. `worko-corp-dev-app-sourcetype-bulk-find-jd-cv-match-score`
+     *  3. `worko-corp-prod-app-sourcetype-bulk-find-jd-cv-match-score`
+     */
+    "app-sourcetype-bulk-find-jd-cv-match-score": {
+      handler: "dist/src/app-sourcetype-bulk-find-jd-cv-match-score.handler",
+      timeout: 900, // Set timeout to 900 seconds (15 minutes)
     },
   },
 };

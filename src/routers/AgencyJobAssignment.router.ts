@@ -19,6 +19,12 @@ const AgencyJobAssignmentRouter = Router();
 AgencyJobAssignmentRouter.post("/bulk", agencyJobAssignmentController.createBulkAgencyJobAssignment);
 
 /**
+ * Get Agency Job Assignment by id
+ * @authorisedRoles ["corporate-admin","corporate-recruiter"]
+ */
+AgencyJobAssignmentRouter.patch("/bulk/remove-jobs", agencyJobAssignmentController.removeBulkAgencyJobAssignment);
+
+/**
  * Get All Agency Job Assignment
  * @authorisedRoles ["agency"]
  */

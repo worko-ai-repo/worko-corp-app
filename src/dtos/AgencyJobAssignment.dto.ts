@@ -15,7 +15,10 @@ export interface AgencyJobAssignmentBulkCreateApiDto {
    * @reference "id" of "OpenSearchJob.model.ts"
    * @description list of job ids
    */
-  jobsToAssign: string[];
+  jobsToAssign: { 
+    jobId: string;
+    jobTitle: string;
+  }[];
 
   agencyEmail: string;
 
@@ -25,6 +28,19 @@ export interface AgencyJobAssignmentBulkCreateApiDto {
   agencyInviteId: string;
 }
 
+export interface AgencyJobAssignmentBulkRemoveJobsUpdateApiDto {
+  /**
+   * @reference "id" attribute of "AgencyJobAssignment.model.ts"
+   */
+  agencyJobAssignmentIdsToRemove: string[];
+
+  /**
+   * @reference "id" attribute of "AgencyUserInvite.model.ts" from "GCP Firestore""
+   */
+  agencyUserInviteId: string;
+
+  reasonForRemoval: string;
+}
 
 export interface AgencyJobAssignmentListingFilterOptions extends GcpFirestoreRecordListingFilterOptions {
   status?: AgencyJobAssignmentDbStatusEnum;

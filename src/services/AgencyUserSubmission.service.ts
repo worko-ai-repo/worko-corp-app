@@ -8,8 +8,11 @@ import { QueryResponse } from "dynamoose/dist/ItemRetriever";
 // Import google cloud firestore
 import { DocumentData, QuerySnapshot } from "@google-cloud/firestore";
 
+// Import configs
+import APP_CONSTANTS from "../configs/constants.config";
+
 // Import dtos
-import { AgencyUserSubmissionCandidateParseCvApiDto, AgencyUserSubmissionCandidateParseCvResponseDto, AgencyUserSubmissionCreateApiDto, AgencyUserSubmissionListingFilterOptions } from "../dtos/AgencyUserSubmission.dto";
+import { AgencyUserSubmissionBulkFindMatchingScoreInternalDto, AgencyUserSubmissionCandidateParseCvApiDto, AgencyUserSubmissionCandidateParseCvResponseDto, AgencyUserSubmissionCreateApiDto, AgencyUserSubmissionFindMatchingScoreApiDto, AgencyUserSubmissionInvokedMatchingScoreResponseDto, AgencyUserSubmissionListingFilterOptions, AgencyUserSubmissionMoveToApplicantCreateApiDTO, AgencyUserSubmissionRejectApplicantCreateApiDTO, AgencyUserSubmissionSendForEvaluationCreateApiDTO } from "../dtos/AgencyUserSubmission.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import daos
@@ -18,6 +21,10 @@ import { agencyUserSubmissionDaoObj } from "../daos/AgencyUserSubmission.dao";
 // Import enums
 import { CorporateCandidateProfileDbRefereeTypeEnum } from "../enums/CorporateCandidateProfile.enum";
 import { CentralCandidateProfileDbRefereeTypeEnum } from "../enums/CentralCandidateProfile.enum";
+import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
+import { JobApplicationStatus } from "../enums/UserJobApplication.enum";
+import { AgencyUserSubmissionDbJobApplicationStatusEnum } from "../enums/AgencyUserSubmission.enum";
+import { AgencyJobAssignmentDbStatusEnum } from "../enums/AgencyJobAssignment.enum";
 
 // Import helpers
 import { getActionByAgencyUserIds, getActionByUserId } from "../helpers/user.helper";
@@ -37,6 +44,7 @@ import { DbCorporateUserDto } from "../db/aws-dynamodb-models/CorporateUser.mode
 import { DbAgencyUserInviteDto } from "../db/gcp-firestore-models/AgencyUserInvite.model";
 import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
 import { DbCentralCandidateProfileDto } from "../db/gcp-firestore-models/CentralCandidateProfile.model";
+import { DbUserJobApplicationDto } from "../db/aws-dynamodb-models/UserJobApplication.model";
 
 // Import services
 import { agencyUserServiceObj } from "./AgencyUser.service";
@@ -51,11 +59,11 @@ import { corporateUserServiceObj } from "./CorporateUser.service";
 import { agencyUserInviteServiceObj } from "./AgencyUserInvite.service";
 import { centralCandidateProfileServiceObj } from "./CentralCandidateProfile.service";
 import { candidateParsedCvServiceObj } from "./CandidateParsedCv.service";
+import { userJobApplicationServiceObj } from "./UserJobApplication.service";
 
 // Import utils
 import HttpStatusCode from "../utils/http-codes.util";
 import { BaseError } from "../utils/errors.util";
-
 
 class AgencyUserSubmissionService {
   private async validateAgencyUserSubmissionCompanyJobPermissions(
@@ -137,12 +145,27 @@ class AgencyUserSubmissionService {
       );
     }
 
+    const jobAssignedToAgencyData = jobAssignedToAgency.docs[0].data() as DbAgencyJobAssignmentDto;
+
+    if(jobAssignedToAgencyData.status !== AgencyJobAssignmentDbStatusEnum.ACTIVE) {
+      global.logger.error(`Job is not active.`, {
+        methodName: this.parseAgencyUserSubmissionCandidateCv.name,
+        reqBodyCompanyId,
+        reqBodyJobId,
+        reqBodyCompanyData,
+        reqBodyJobData,
+      });
+      throw new BaseError(
+        `You are not allowed to perform this action.`,
+        HttpStatusCode.FORBIDDEN_403
+      );
+    }
+
     return {
       agencyUserDetails,
       reqBodyCompanyData,
       reqBodyJobData,
-      jobAssignedToAgency:
-        jobAssignedToAgency.docs[0].data() as DbAgencyJobAssignmentDto,
+      jobAssignedToAgency: jobAssignedToAgencyData,
     };
   }
 
@@ -310,6 +333,20 @@ class AgencyUserSubmissionService {
       candidateDetails = candidateRegisteredDetails[0];
     }
 
+    const bucketName: string | undefined =
+      process.env.APP_AWS_S3_BUCKET_WORKO_APP;
+    if (!bucketName) {
+      global.logger.error(`AWS S3 bucket name not found. [File Service]`, {
+        bucketName,
+        methodName: this.performCreateAgencyUserSubmissionActivities.name,
+      });
+
+      throw new BaseError(
+        `Internal server error.`,
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
     /**
      * Prepare data to Store Candidate parsed details in "CandidateParsedCv" model
      */
@@ -322,7 +359,27 @@ class AgencyUserSubmissionService {
       agencyRegisteredEmail: agencyUserDetails.email,
       companyId: reqBodyCompanyId,
       jobId: reqBodyJobId,
-      userDetailId: candidateDetails?.id
+      userDetailId: candidateDetails?.id,
+      cvAwsS3ResourceType: CandidateParsedCvAwsS3ResourceTypeEnum.AGENCY_SUBMIT_USER_CV,
+      cvAwsS3BucketName: bucketName,
+      cvAwsS3FilePath: APP_CONSTANTS.AWS_S3_DIR_PATHS.AGENCY_SUBMIT_USER_CV.strtr({
+        "{agencyUserId}": agencyUserDetails.id,
+        "{companyId}": reqBodyCompanyId,
+        "{jobId}": reqBodyJobId,
+      }),
+      cvAwsS3FileTracker: [
+        {
+          actionDate: currentDate,
+          resourceType: CandidateParsedCvAwsS3ResourceTypeEnum.AGENCY_SUBMIT_USER_CV,
+          bucketName: bucketName,
+          filePath: APP_CONSTANTS.AWS_S3_DIR_PATHS.AGENCY_SUBMIT_USER_CV.strtr({
+            "{agencyUserId}": agencyUserDetails.id,
+            "{companyId}": reqBodyCompanyId,
+            "{jobId}": reqBodyJobId,
+          }),
+          fileName: candidateParsedCvData.cvAwsS3FileName,
+        }
+      ]
     };
 
     /**
@@ -430,17 +487,45 @@ class AgencyUserSubmissionService {
     }
 
     const createAgencyUserSubmissionResult: [
-      DbCandidateParsedCvDto | undefined,
-      DbAgencyUserSubmissionDto | undefined,
-      DbCorporateCandidateProfileDto | undefined,
-      DbCentralCandidateProfileDto | undefined
+      DbCandidateParsedCvDto | undefined, 
+      DbAgencyUserSubmissionDto | undefined, 
+      DbCorporateCandidateProfileDto | undefined, 
+      DbCentralCandidateProfileDto | undefined, 
+      DbAgencyJobAssignmentDto | undefined, 
+      DbAgencyUserInviteDto | undefined
     ] = await Promise.all([
       candidateParsedCvServiceObj.createCandidateParsedCv(
         candidateParsedCvCreateData
       ),
       this.createAgencyUserSubmission(agencyUserSubmissionCreateData),
       corporateCandidateProfileServiceObj.createCorporateCandidateProfile(corporateCandidateProfileCreateData),
-      createOrUpdateCentralCandidateProfile
+      createOrUpdateCentralCandidateProfile,
+
+      // Update agency job assignment collection with count of total candidate profiles/cvs which is uploaded by agency
+      agencyJobAssignmentServiceObj.updateAgencyJobAssignmentById(
+        jobAssignedToAgency.id,
+        {
+          updatedAt: currentDate,
+          totalCandidatesUploaded: (jobAssignedToAgency.totalCandidatesUploaded ?? 0) + 1,
+          agencyUserSubmissionIds: [
+            ...(jobAssignedToAgency.agencyUserSubmissionIds ?? []),
+            agencyUserSubmissionCreateData.id
+          ]
+        }
+      ),
+
+      // Update agency user invite collection with count of total candidate profiles/cvs which is submitted by agency
+      agencyUserInviteServiceObj.updateAgencyUserInviteById(
+        agencyUserInviteId,
+        {
+          updatedAt: currentDate,
+          totalCandidatesSubmitted: (reqBodyAgencyInviteDetails.totalCandidatesSubmitted ?? 0) + 1,
+          agencyUserSubmissionIds: [
+            ...(reqBodyAgencyInviteDetails.agencyUserSubmissionIds ?? []),
+            agencyUserSubmissionCreateData.id
+          ]
+        }
+      )
     ]);
 
     // If any of the result is failed to create then throw error
@@ -448,7 +533,9 @@ class AgencyUserSubmissionService {
       !createAgencyUserSubmissionResult[0] ||
       !createAgencyUserSubmissionResult[1] ||
       !createAgencyUserSubmissionResult[2] ||
-      !createAgencyUserSubmissionResult[3]
+      !createAgencyUserSubmissionResult[3] ||
+      !createAgencyUserSubmissionResult[4] ||
+      !createAgencyUserSubmissionResult[5]
     ) {
       global.logger.error(`Failed to create Agency User Submission.`, {
         methodName: this.parseAgencyUserSubmissionCandidateCv.name,
@@ -534,6 +621,21 @@ class AgencyUserSubmissionService {
      * If action by user is "corporate-admin/recruiter", then list invites which are sent by him and from his company
      */
     if (actionByCorporateUserId) {
+      if(actionByCorporateUserId !== filterOptions.agencyJobAssignedByCorporateUserId) {
+        global.logger.info(
+          `To list user submissions for particular corporate user, agencyJobAssignedByCorporateUserId should match`,
+          {
+            methodName: this.performGetAllAgencyUserSubmissionActivities.name,
+            filterOptions,
+            actionByCorporateUserId,
+          }
+        );
+        throw new BaseError(
+          "You are not allowed to access this resource",
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
+
       if (!filterOptions.companyId) {
         global.logger.info(
           `To list user submissions for particular corporate user, companyId is required`,
@@ -616,6 +718,227 @@ class AgencyUserSubmissionService {
     return finalResponse;
   }
 
+  async moveToApplicantAgencyUserSubmission(
+    validatedRequestBody: AgencyUserSubmissionMoveToApplicantCreateApiDTO,
+    cognitoUserGroups: string[],
+    actionByUserId?: string,
+    actionByCorporateUserId?: string
+  ) {
+    const existingAgencyUserSubmissionDetails: DbAgencyUserSubmissionDto | undefined = await this.getAgencyUserSubmissionById(validatedRequestBody.agencyUserSubmissionId);
+    if(!existingAgencyUserSubmissionDetails) {
+      global.logger.error(`Failed to move to applicant, Agency User Submission not found`, { methodName: this.moveToApplicantAgencyUserSubmission.name, validatedRequestBody });
+      throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    } 
+
+    if(actionByCorporateUserId !== existingAgencyUserSubmissionDetails.agencyJobAssignedByCorporateUserId) {
+      if(!actionByUserId || !cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)) {
+        global.logger.error(`Only corporate or worko admin can move to applicant.`, { 
+          methodName: this.moveToApplicantAgencyUserSubmission.name, 
+          validatedRequestBody,
+          existingAgencyUserSubmissionDetails,
+          actionByUserId,
+          cognitoUserGroups,
+        });
+        throw new BaseError("You are not allowed to access this resource.", HttpStatusCode.FORBIDDEN_403);
+      }
+    }
+
+    if(existingAgencyUserSubmissionDetails.jobApplicationStatus) {
+      global.logger.error(`Failed to move to applicant, Agency User Submission already moved to applicant`, { 
+        methodName: this.moveToApplicantAgencyUserSubmission.name, 
+        validatedRequestBody,
+        existingAgencyUserSubmissionDetails
+      });
+      throw new BaseError("Candidate already moved to applicant.", HttpStatusCode.CONFLICT_409);
+    }
+
+    const moveToApplicantDetails: DbUserJobApplicationDto =
+      await userJobApplicationServiceObj.createJobApplicationMoveToApplicant(
+      {
+        ...validatedRequestBody,
+        applicantEmail: existingAgencyUserSubmissionDetails.candidateEmail,
+        matchingScoreDetails: existingAgencyUserSubmissionDetails?.matchingScoreDetails
+      },
+      cognitoUserGroups,
+      actionByUserId,
+      actionByCorporateUserId
+    );
+    if(moveToApplicantDetails.status !== JobApplicationStatus.ACCEPTED) {
+      global.logger.error(`Failed to move to applicant`, { methodName: this.moveToApplicantAgencyUserSubmission.name, moveToApplicantDetails });
+      throw new BaseError("Failed to move to applicant", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const updateAgencyUserSubmission: DbAgencyUserSubmissionDto | undefined = await this.updateAgencyUserSubmissionById(
+      validatedRequestBody.agencyUserSubmissionId,
+      {
+        updatedAt: dateHelperObj.getISODate(),
+        userJobApplicationId: moveToApplicantDetails.id,
+        jobApplicationStatus: AgencyUserSubmissionDbJobApplicationStatusEnum.ACCEPTED,
+        moveToApplicantByCorporateUserId: actionByCorporateUserId,
+        moveToApplicantByUserId: actionByUserId,
+        updatedByCorporateUserId: actionByCorporateUserId,
+        updatedByUserId: actionByUserId
+      }
+    );
+
+    if(!updateAgencyUserSubmission) {
+      global.logger.error(`Failed to move to applicant, Failed to update Agency User Submission`, { 
+        methodName: this.moveToApplicantAgencyUserSubmission.name, 
+        validatedRequestBody,
+        updateAgencyUserSubmission
+      });
+      throw new BaseError("Failed to move to applicant", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    return updateAgencyUserSubmission;
+  }
+
+  async sendForEvaluationAgencyUserSubmission(
+    validatedReqBody: AgencyUserSubmissionSendForEvaluationCreateApiDTO,
+    cognitoUserGroups: string[],
+    actionByUserId?: string,
+    actionByCorporateUserId?: string
+  ) {
+    const existingAgencyUserSubmissionDetails: DbAgencyUserSubmissionDto | undefined = await this.getAgencyUserSubmissionById(validatedReqBody.agencyUserSubmissionId);
+    if(!existingAgencyUserSubmissionDetails) {
+      global.logger.error(`Failed to send for evaluation, Agency User Submission not found`, { methodName: this.moveToApplicantAgencyUserSubmission.name, validatedReqBody });
+      throw new BaseError("Failed to send for evaluation.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    } 
+
+    if(actionByCorporateUserId !== existingAgencyUserSubmissionDetails.agencyJobAssignedByCorporateUserId) {
+      if(!actionByUserId || !cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)) {
+        global.logger.error(`Only corporate or worko admin can send for evaluation.`, { 
+          methodName: this.moveToApplicantAgencyUserSubmission.name, 
+          validatedReqBody,
+          existingAgencyUserSubmissionDetails,
+          actionByUserId,
+          cognitoUserGroups,
+        });
+        throw new BaseError("You are not allowed to access this resource.", HttpStatusCode.FORBIDDEN_403);
+      }
+    }
+
+    if(existingAgencyUserSubmissionDetails.jobApplicationStatus) {
+      global.logger.error(`Failed to send for evaluation, Job Application status already exists.`, { 
+        methodName: this.moveToApplicantAgencyUserSubmission.name, 
+        validatedReqBody,
+        existingAgencyUserSubmissionDetails
+      });
+      if(existingAgencyUserSubmissionDetails.jobApplicationStatus === AgencyUserSubmissionDbJobApplicationStatusEnum.UNDER_EVALUATION) {
+        throw new BaseError("Candidate already sent for evaluation.", HttpStatusCode.CONFLICT_409);
+      } else if(existingAgencyUserSubmissionDetails.jobApplicationStatus === AgencyUserSubmissionDbJobApplicationStatusEnum.REJECTED) {
+        throw new BaseError("Candidate already rejected.", HttpStatusCode.CONFLICT_409);
+      } else {
+        throw new BaseError("Candidate already moved to applicant.", HttpStatusCode.CONFLICT_409);
+      }
+    }
+
+    const sendForEvaluationDetails: DbUserJobApplicationDto =
+      await userJobApplicationServiceObj.createJobApplicationSendForEvaluation(
+        {
+          ...validatedReqBody,
+          applicantEmail: existingAgencyUserSubmissionDetails.candidateEmail,
+          matchingScoreDetails: existingAgencyUserSubmissionDetails?.matchingScoreDetails
+        },
+        cognitoUserGroups,
+        actionByUserId,
+        actionByCorporateUserId
+      );
+    if(sendForEvaluationDetails.status !== JobApplicationStatus.UNDER_EVALUATION) {
+      global.logger.error(`Failed to send for evaluation`, { methodName: this.moveToApplicantAgencyUserSubmission.name, sendForEvaluationDetails });
+      throw new BaseError("Failed to send for evaluation", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const updateAgencyUserSubmissionSendForEvaluation: DbAgencyUserSubmissionDto | undefined = await this.updateAgencyUserSubmissionById(
+      validatedReqBody.agencyUserSubmissionId,
+      {
+        updatedAt: dateHelperObj.getISODate(),
+        userJobApplicationId: sendForEvaluationDetails.id,
+        jobApplicationStatus: AgencyUserSubmissionDbJobApplicationStatusEnum.UNDER_EVALUATION,
+        sendForEvaluationByCorporateUserId: actionByCorporateUserId,
+        sendForEvaluationByUserId: actionByUserId,
+        updatedByCorporateUserId: actionByCorporateUserId,
+        updatedByUserId: actionByUserId
+      }
+    );
+
+    if(!updateAgencyUserSubmissionSendForEvaluation) {
+      global.logger.error(`Failed to send for evaluation, Failed to update Agency User Submission`, { 
+        methodName: this.moveToApplicantAgencyUserSubmission.name, 
+        validatedReqBody,
+        updateAgencyUserSubmissionSendForEvaluation
+      });
+      throw new BaseError("Failed to send for evaluation", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    return updateAgencyUserSubmissionSendForEvaluation;
+  }
+
+  async rejectApplicantAgencyUserSubmission(
+    validatedReqBody: AgencyUserSubmissionRejectApplicantCreateApiDTO,
+    cognitoUserGroups: string[],
+    actionByUserId?: string,
+    actionByCorporateUserId?: string
+  ) {
+    const existingAgencyUserSubmissionDetails: DbAgencyUserSubmissionDto | undefined = await this.getAgencyUserSubmissionById(validatedReqBody.agencyUserSubmissionId);
+    if(!existingAgencyUserSubmissionDetails) {
+      global.logger.error(`Failed to reject applicant, Agency User Submission not found`, { methodName: this.moveToApplicantAgencyUserSubmission.name, validatedReqBody });
+      throw new BaseError("Failed to reject applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    } 
+
+    if(actionByCorporateUserId !== existingAgencyUserSubmissionDetails.agencyJobAssignedByCorporateUserId) {
+      if(!actionByUserId || !cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)) {
+        global.logger.error(`Only corporate or worko admin can reject applicant.`, { 
+          methodName: this.moveToApplicantAgencyUserSubmission.name, 
+          validatedReqBody,
+          existingAgencyUserSubmissionDetails,
+          actionByUserId,
+          cognitoUserGroups,
+        });
+        throw new BaseError("You are not allowed to access this resource.", HttpStatusCode.FORBIDDEN_403);
+      }
+    }
+
+    if(existingAgencyUserSubmissionDetails.jobApplicationStatus) {
+      global.logger.error(`Failed to reject applicant, Agency User Submission already moved to applicant`, { 
+        methodName: this.moveToApplicantAgencyUserSubmission.name, 
+        validatedReqBody,
+        existingAgencyUserSubmissionDetails
+      });
+      if(existingAgencyUserSubmissionDetails.jobApplicationStatus === AgencyUserSubmissionDbJobApplicationStatusEnum.REJECTED) {
+        throw new BaseError("Candidate submission already rejected, so you can't reject again.", HttpStatusCode.CONFLICT_409);
+      }
+      throw new BaseError("Candidate already moved to applicant, so you can't reject it.", HttpStatusCode.CONFLICT_409);
+    }
+
+    const updateAgencyUserSubmission: DbAgencyUserSubmissionDto | undefined = await this.updateAgencyUserSubmissionById(
+      validatedReqBody.agencyUserSubmissionId,
+      {
+        updatedAt: dateHelperObj.getISODate(),
+        jobApplicationStatus: AgencyUserSubmissionDbJobApplicationStatusEnum.REJECTED,
+        rejectApplicantDetails: {
+          reason: validatedReqBody.rejectApplicantReason,
+          detailedReason: validatedReqBody.rejectApplicantDetailedReason,
+          actionByCorporateUserId,
+          actionByUserId,
+        },
+        updatedByCorporateUserId: actionByCorporateUserId,
+        updatedByUserId: actionByUserId
+      }
+    );
+
+    if(!updateAgencyUserSubmission) {
+      global.logger.error(`Failed to reject applicant, Failed to update Agency User Submission`, { 
+        methodName: this.moveToApplicantAgencyUserSubmission.name, 
+        validatedReqBody,
+        updateAgencyUserSubmission
+      });
+      throw new BaseError("Failed to reject applicant", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    return updateAgencyUserSubmission;
+  }
+
   async getAllAgencyUserSubmissionByFilterOptions(
     filterOptions: AgencyUserSubmissionListingFilterOptions
   ): Promise<
@@ -624,6 +947,251 @@ class AgencyUserSubmissionService {
     return agencyUserSubmissionDaoObj.getAllAgencyUserSubmissionByFilterOptions(
       filterOptions
     );
+  }
+
+  async getAgencyUserSubmissionById(id: string): Promise<DbAgencyUserSubmissionDto | undefined> {
+    return agencyUserSubmissionDaoObj.getAgencyUserSubmissionById(id);
+  }
+
+  async updateAgencyUserSubmissionById(
+    id: string,
+    updateData: Partial<DbAgencyUserSubmissionDto>
+  ): Promise<DbAgencyUserSubmissionDto | undefined> {
+    return agencyUserSubmissionDaoObj.updateAgencyUserSubmissionById(
+      id,
+      updateData
+    );
+  }
+
+  async updateBulkAgencyUserSubmissionByIds(ids: string[], updateData: Partial<DbAgencyUserSubmissionDto>): Promise<boolean> {
+    return agencyUserSubmissionDaoObj.updateBulkAgencyUserSubmissionByIds(ids, updateData);
+  }
+
+  async findMatchingScoreAgencyUserSubmission(validatedReqBody: AgencyUserSubmissionFindMatchingScoreApiDto) {
+    const {
+      actionByUserId,
+      actionByCorporateUserId,
+    } = getActionByUserId();
+    const cognitoUserGroups: string[] = global.requestLocalContext.cognitoUserGroups;
+
+    const existingAgencyUserSubmission: DbAgencyUserSubmissionDto | undefined =
+      await this.getAgencyUserSubmissionById(validatedReqBody.agencyUserSubmissionId);
+    if(!existingAgencyUserSubmission) {
+      global.logger.error(`Agency user submission not found.`, {
+        methodName: this.findMatchingScoreAgencyUserSubmission.name,
+        validatedReqBody,
+        existingAgencyUserSubmission
+      });
+      throw new BaseError("Failed to find matching score.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    if(existingAgencyUserSubmission.agencyJobAssignedByCorporateUserId !== actionByCorporateUserId) {
+      if(!actionByUserId || !cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)) {
+        global.logger.error(`Only corporate or worko admin can find matching score.`, {
+          methodName: this.findMatchingScoreAgencyUserSubmission.name,
+          validatedReqBody,
+          existingAgencyUserSubmission,
+          actionByUserId,
+          cognitoUserGroups,
+        });
+        throw new BaseError("You are not allowed to access this resource.", HttpStatusCode.FORBIDDEN_403);
+      }
+    }
+
+    if(existingAgencyUserSubmission.jobApplicationStatus) {
+      global.logger.error(`Failed to find matching score, Agency User Submission already moved to applicant`, { 
+        methodName: this.findMatchingScoreAgencyUserSubmission.name, 
+        validatedReqBody,
+        existingAgencyUserSubmission
+      });
+      if(existingAgencyUserSubmission.jobApplicationStatus === AgencyUserSubmissionDbJobApplicationStatusEnum.REJECTED) {
+        throw new BaseError("Candidate Submission already rejected, so you cannot find matching score.", HttpStatusCode.CONFLICT_409);
+      }
+      throw new BaseError("Candidate already moved to applicant, so you cannot find matching score.", HttpStatusCode.CONFLICT_409);
+    }
+
+    if(existingAgencyUserSubmission.matchingScoreDetails) {
+      global.logger.error(`Matching score already calculated.`, {
+        methodName: this.findMatchingScoreAgencyUserSubmission.name,
+        validatedReqBody,
+        agencyUserSubmissionId: validatedReqBody.agencyUserSubmissionId,
+        existingAgencyUserSubmissionMatchingScoreDetails: existingAgencyUserSubmission.matchingScoreDetails,
+      });
+      throw new BaseError("Matching score already calculated.", HttpStatusCode.CONFLICT_409);
+    }
+
+    const existingCandidateParsedCv: DbCandidateParsedCvDto | undefined = await candidateParsedCvServiceObj.getCandidateParsedCvById(existingAgencyUserSubmission.candidateParsedCvId);
+    if(!existingCandidateParsedCv) {
+      global.logger.error(`Candidate parsed cv not found.`, {
+        methodName: this.findMatchingScoreAgencyUserSubmission.name,
+        validatedReqBody,
+        existingCandidateParsedCv
+      });
+      throw new BaseError("Failed to find matching score.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const {
+      cvAwsS3BucketName,
+      cvAwsS3FilePath,
+      cvAwsS3FileName,
+      jobId
+    } = existingCandidateParsedCv;
+
+    if(!jobId) {
+      global.logger.error(`Job id not found in candidate parsed cv to find jd-resume matching score.`, {
+        methodName: this.findMatchingScoreAgencyUserSubmission.name,
+        validatedReqBody,
+        jobId
+      });
+      throw new BaseError("Failed to find matching score.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const matchingScoreDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeJdResumeMatchingScore(
+      {
+        jobId, 
+        cvAwsS3BucketName,
+        cvAwsS3FilePath,
+        cvAwsS3FileName,
+        USER_PK: existingCandidateParsedCv.userDetailId ? `USR#EML#${existingCandidateParsedCv.email}`: undefined
+      }
+    );
+    if(matchingScoreDetails.statusCode !== HttpStatusCode.OK_200) {
+      global.logger.error(`Failed to find matching score`, {
+        methodName: this.findMatchingScoreAgencyUserSubmission.name,
+        matchingScoreDetails,
+      });
+      throw new BaseError("Failed to find matching score", matchingScoreDetails.statusCode);
+    }
+
+    const parsedMatchingScoreDetails: AgencyUserSubmissionInvokedMatchingScoreResponseDto = JSON.parse(matchingScoreDetails.body);
+
+    const updateAgencyUserSubmission: DbAgencyUserSubmissionDto | undefined = await this.updateAgencyUserSubmissionById(
+      validatedReqBody.agencyUserSubmissionId,
+      {
+        updatedAt: dateHelperObj.getISODate(),
+        updatedByCorporateUserId: actionByCorporateUserId,
+        updatedByUserId: actionByUserId,
+        matchingScoreDetails: {
+          ...parsedMatchingScoreDetails
+        }
+      }
+    );
+    if(!updateAgencyUserSubmission) {
+      global.logger.error(`Failed to update matching score`, {
+        methodName: this.findMatchingScoreAgencyUserSubmission.name,
+        updateAgencyUserSubmission,
+      });
+      throw new BaseError("Failed to find matching score", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    return updateAgencyUserSubmission;
+  }
+
+  async bulkFindMatchingScoreAgencyUserSubmission(data: AgencyUserSubmissionBulkFindMatchingScoreInternalDto): Promise<boolean> {
+    global.logger.info("Bulk Find Matching Score Agency User Submission [service]", { 
+      methodName: this.bulkFindMatchingScoreAgencyUserSubmission.name,
+      data
+    });
+    const {
+      actionByCorporateUserId,
+      actionByUserId,
+      cognitoUserGroups,
+      agencyUserSubmissionIds
+    } = data;
+
+    // Process each submission asynchronously
+    await Promise.all(
+      agencyUserSubmissionIds.map(async (agencyUserSubmissionId: string) => {
+        try {
+          const existingAgencyUserSubmission: DbAgencyUserSubmissionDto | undefined =
+            await this.getAgencyUserSubmissionById(agencyUserSubmissionId);
+          
+          if (!existingAgencyUserSubmission) {
+            global.logger.error(`Agency user submission not found for bulk processing, so we skipping this submission for find matching score.`, {
+              methodName: this.bulkFindMatchingScoreAgencyUserSubmission.name,
+              agencyUserSubmissionId,
+            });
+            return;
+          }
+
+          if (existingAgencyUserSubmission.agencyJobAssignedByCorporateUserId !== actionByCorporateUserId) {
+            if (!actionByUserId || !cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)) {
+              global.logger.error(`Unauthorized access for bulk matching score.`, {
+                methodName: this.bulkFindMatchingScoreAgencyUserSubmission.name,
+                agencyUserSubmissionId,
+              });
+              return;
+            }
+          }
+
+          if (existingAgencyUserSubmission.jobApplicationStatus) {
+            global.logger.info(`Candidate already moved to applicant, so we skipping this submission for find matching score.`, {
+              methodName: this.bulkFindMatchingScoreAgencyUserSubmission.name,
+              agencyUserSubmissionId,
+            });
+            return;
+          }
+
+          if (existingAgencyUserSubmission.matchingScoreDetails) {
+            global.logger.info(`Matching score already exists, skipping.`, {
+              methodName: this.bulkFindMatchingScoreAgencyUserSubmission.name,
+              agencyUserSubmissionId,
+            });
+            return;
+          }
+
+          const existingCandidateParsedCv: DbCandidateParsedCvDto | undefined = 
+            await candidateParsedCvServiceObj.getCandidateParsedCvById(existingAgencyUserSubmission.candidateParsedCvId);
+          
+          if (!existingCandidateParsedCv?.jobId) {
+            global.logger.error(`Invalid candidate parsed cv for bulk processing.`, {
+              methodName: this.bulkFindMatchingScoreAgencyUserSubmission.name,
+              agencyUserSubmissionId,
+            });
+            return;
+          }
+
+          const matchingScoreDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeJdResumeMatchingScore({
+            jobId: existingCandidateParsedCv.jobId,
+            cvAwsS3BucketName: existingCandidateParsedCv.cvAwsS3BucketName,
+            cvAwsS3FilePath: existingCandidateParsedCv.cvAwsS3FilePath,
+            cvAwsS3FileName: existingCandidateParsedCv.cvAwsS3FileName,
+            USER_PK: existingCandidateParsedCv.userDetailId ? `USR#EML#${existingCandidateParsedCv.email}`: undefined
+          });
+
+          if (matchingScoreDetails.statusCode === HttpStatusCode.OK_200) {
+            const parsedMatchingScoreDetails: AgencyUserSubmissionInvokedMatchingScoreResponseDto = JSON.parse(matchingScoreDetails.body);
+            
+            await this.updateAgencyUserSubmissionById(agencyUserSubmissionId, {
+              updatedAt: dateHelperObj.getISODate(),
+              updatedByCorporateUserId: actionByCorporateUserId,
+              updatedByUserId: actionByUserId,
+              matchingScoreDetails: parsedMatchingScoreDetails
+            });
+
+            global.logger.info(`Bulk matching score completed for submission.`, {
+              methodName: this.bulkFindMatchingScoreAgencyUserSubmission.name,
+              agencyUserSubmissionId,
+            });
+          } else {
+            global.logger.error(`Failed to calculate matching score for bulk processing.`, {
+              methodName: this.bulkFindMatchingScoreAgencyUserSubmission.name,
+              agencyUserSubmissionId,
+              statusCode: matchingScoreDetails.statusCode,
+              matchingScoreDetails
+            });
+          }
+        } catch (error) {
+          global.logger.error(`Error in bulk matching score processing.`, {
+            methodName: this.bulkFindMatchingScoreAgencyUserSubmission.name,
+            agencyUserSubmissionId,
+            error,
+          });
+        }
+      })
+    );
+
+    return true;
   }
 }
 

@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { AgencyJobAssignmentBulkCreateApiDto, AgencyJobAssignmentListingFilterOptions, AgencyJobAssignmentListingFilterRequestDTO } from "../dtos/AgencyJobAssignment.dto";
+import { AgencyJobAssignmentBulkCreateApiDto, AgencyJobAssignmentBulkRemoveJobsUpdateApiDto, AgencyJobAssignmentListingFilterOptions, AgencyJobAssignmentListingFilterRequestDTO } from "../dtos/AgencyJobAssignment.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import helpers
@@ -16,7 +16,7 @@ import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
 import { agencyJobAssignmentServiceObj } from "../services/AgencyJobAssignment.service";
 
 // Import schemas
-import { agencyJobAssignmentBulkCreateApiDtoValidation, agencyJobAssignmentFilterDtoValidation } from "../schemas/AgencyJobAssignment.schema";
+import { agencyJobAssignmentBulkCreateApiDtoValidation, agencyJobAssignmentBulkRemoveJobsUpdateApiDtoValidation, agencyJobAssignmentFilterDtoValidation } from "../schemas/AgencyJobAssignment.schema";
 
 // import utils
 import HttpStatusCode from "../utils/http-codes.util";
@@ -51,6 +51,36 @@ class AgencyJobAssignmentController {
         methodName: this.createBulkAgencyJobAssignment.name,
         error,
       })
+
+      next(error);
+    }
+  };
+
+  removeBulkAgencyJobAssignment = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const requestBody: AgencyJobAssignmentBulkRemoveJobsUpdateApiDto = req.body;
+
+      let { error, value: validatedRequestBody } = agencyJobAssignmentBulkRemoveJobsUpdateApiDtoValidation.validate(
+        requestBody,
+        { abortEarly: false }
+      );
+      if (error) {
+        throw new RequestValidationError(error);
+      }
+
+      const agencyJobAssignmentDetails: boolean = await agencyJobAssignmentServiceObj.removeBulkAgencyJobAssignment(
+        validatedRequestBody
+      );
+
+      res.status(HttpStatusCode.OK_200).json({
+        isSuccess: agencyJobAssignmentDetails,
+      });
+
+    } catch (error) {
+      global.logger.error(`Remove Bulk Agency Job Assignment [Controller]`, {
+        methodName: this.removeBulkAgencyJobAssignment.name,
+        error,
+      });
 
       next(error);
     }

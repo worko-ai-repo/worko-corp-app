@@ -18,6 +18,40 @@ import { invokeVpcLambdaOpenSearchUtilObj } from "../utils/invoke-vpc-lambda-ope
 class JobDao {
   IndexName = "worko-jobs";
 
+  /**
+   * getJobById
+   *
+   * Retrieves a job by its ID.
+   *
+   * This method fetches a job document from the AWS OpenSearch index
+   * with the given job ID. It logs the operation and returns a promise that
+   * resolves to the job details, or an empty object if the job does not exist.
+   *
+   * @param id - The ID of the job to retrieve.
+   * @returns {Promise<DbJobAwsOpensearchDto | undefined>} - The job details from the OpenSearch client.
+   */
+  async getJobById(id: string): Promise<DbJobAwsOpensearchDto | undefined> {
+    // Logger
+    global.logger.info(`Get Job By Id From aws opensearch [Dao]`, {
+      methodName: this.getJobById.name,
+    });
+
+    return invokeVpcLambdaOpenSearchUtilObj.executeOperation<
+      {
+        documentId: string;
+      },
+      DbJobAwsOpensearchDto | undefined
+    >(
+      this.IndexName,
+      {
+        documentId: id,
+      },
+      OpenSearchOperationsEnum.GET_DOCUMENT_BY_ID,
+      "get job by id",
+      this.getJobById.name
+    );
+  }
+
   async getAllJobsByJobIdsWithouPagination(
     jobIds: string[]
   ): Promise<DbJobAwsOpensearchDto[]> {
@@ -44,13 +78,13 @@ class JobDao {
 
     return invokeVpcLambdaOpenSearchUtilObj.executeOperation<
       {
-        awsOpensearchQuery: Search_RequestBody
+        awsOpensearchQuery: Search_RequestBody;
       },
       DbJobAwsOpensearchDto[]
     >(
       this.IndexName,
       {
-        awsOpensearchQuery
+        awsOpensearchQuery,
       },
       OpenSearchOperationsEnum.GET_ALL_DOCUMENTS_WITHOUT_PAGINATION,
       "Get list jobs by given job ids without pagination.",

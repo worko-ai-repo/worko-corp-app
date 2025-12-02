@@ -9,7 +9,7 @@ import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
 import BaseDao from "./BaseGcpFirestore.dao";
 
 // Import dtos
-import { AgencyUserInviteCommonUpdateDto, AgencyUserInviteCreateApiDto, AgencyUserInviteCreateDto, AgencyUserInviteDbPhoneNumberDto, AgencyUserInviteListingFilterOptions } from "../dtos/AgencyUserInvite.dto";
+import {  AgencyUserInviteCreateApiDto, AgencyUserInviteCreateDto, AgencyUserInviteDbPhoneNumberDto, AgencyUserInviteListingFilterOptions } from "../dtos/AgencyUserInvite.dto";
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
@@ -164,7 +164,7 @@ class AgencyUserInviteDao implements BaseDao {
 
   async updateAgencyUserInviteById(
     id: string,
-    data: Partial<AgencyUserInviteCommonUpdateDto>
+    data: Partial<DbAgencyUserInviteDto>
   ): Promise<DbAgencyUserInviteDto | undefined> {
     global.logger.info("Update Agency User Invite By Id [DAO]", {
       methodName: this.updateAgencyUserInviteById.name,
@@ -173,7 +173,7 @@ class AgencyUserInviteDao implements BaseDao {
     });
 
     return gcpFirestoreLibrary.updateDocumentById<
-      Partial<AgencyUserInviteCommonUpdateDto>,
+      Partial<DbAgencyUserInviteDto>,
       DbAgencyUserInviteDto
     >(this.getAgencyUserInviteModelDetails(), id, data);
   }

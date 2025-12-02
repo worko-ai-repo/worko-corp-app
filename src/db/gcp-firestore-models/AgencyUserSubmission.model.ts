@@ -1,4 +1,11 @@
+// Import models
 import { BaseFirestoreModel } from "./Base.model";
+
+// Import dtos
+import { AgencyUserSubmissionDbMatchingScoreDetailDto } from "../../dtos/AgencyUserSubmission.dto";
+
+// Import enums
+import { AgencyUserSubmissionDbJobApplicationStatusEnum } from "../../enums/AgencyUserSubmission.enum";
 
 interface DbAgencyUserSubmissionDto extends BaseFirestoreModel {
   /**
@@ -34,7 +41,7 @@ interface DbAgencyUserSubmissionDto extends BaseFirestoreModel {
    * @reference "id" field of "AgencyUserInvite.model.ts"
    */
   agencyUserInviteId: string;
-  
+
   /**
    * @reference "agencyName" field of "AgencyUserInvite.model.ts"
    */
@@ -45,7 +52,7 @@ interface DbAgencyUserSubmissionDto extends BaseFirestoreModel {
    */
   agencyJobAssignmentId: string;
 
-  agencyComments: string;
+  agencyComments?: string;
 
   /**
    * @referenc "assignedByCorporateUserId" field of "AgencyJobAssignment.model.ts"
@@ -56,6 +63,55 @@ interface DbAgencyUserSubmissionDto extends BaseFirestoreModel {
    * @reference "assignedByUserId" field of "AgencyJobAssignment.model.ts"
    */
   agencyJobAssignedByUserId?: string;
+
+  matchingScoreDetails?: AgencyUserSubmissionDbMatchingScoreDetailDto;
+
+  updatedByCorporateUserId?: string;
+
+  /**
+   * @description when "worko" admin updates the document
+   */
+  updatedByUserId?: string;
+
+  updatedByAgencyUserId?: string;
+
+  /**
+   * @referenc "id" attribute of "UserJobApplication.model.ts" from AWS DynamoDB
+   */
+  userJobApplicationId?: string;
+
+  jobApplicationStatus?: AgencyUserSubmissionDbJobApplicationStatusEnum;
+
+  rejectApplicantDetails?: {
+    reason: string;
+    detailedReason?: string;
+    actionByUserId?: string;
+    actionByCorporateUserId?: string;
+  };
+
+  /**
+   * @reference "id" attribute of "UserDetail.model.ts"
+   * @description Only the user id of "admin"
+   */
+  moveToApplicantByUserId?: string;
+
+  /***
+   * @reference "id" attribute of "CorporateUser.model.ts"
+   * @description Only the user id of "corporate-admin/recruiter"
+   */
+  moveToApplicantByCorporateUserId?: string;
+
+  /**
+   * @reference "id" attribute of "UserDetail.model.ts"
+   * @description Only the user id of "admin"
+   */
+  sendForEvaluationByUserId?: string;
+
+  /**
+   * @reference "id" attribute of "CorporateUser.model.ts"
+   * @description Only the user id of "corporate-admin/recruiter"
+   */
+  sendForEvaluationByCorporateUserId?: string;
 }
 
 export { DbAgencyUserSubmissionDto };

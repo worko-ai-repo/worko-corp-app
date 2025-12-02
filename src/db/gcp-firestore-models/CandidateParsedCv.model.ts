@@ -1,5 +1,11 @@
 // Import dtos
-import { CandidateParsedCvDbPhoneNumberDto } from "../../dtos/CandidateParsedCv.dto";
+import {
+  CandidateParsedCvAwsS3FileTrackerDto,
+  CandidateParsedCvDbPhoneNumberDto,
+} from "../../dtos/CandidateParsedCv.dto";
+
+// Import enums
+import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../../enums/CandidateParsedCv.enum";
 
 // Import models
 import { BaseFirestoreModel } from "./Base.model";
@@ -17,10 +23,51 @@ interface DbCandidateParsedCvDto extends BaseFirestoreModel {
   noticePeriod?: number;
   location?: string;
   readyToRelocate?: boolean;
+
+  cvAwsS3ResourceType: CandidateParsedCvAwsS3ResourceTypeEnum;
+
+  /**
+   * @example
+   *  1. "worko-app-dev"
+   *  2. "worko-corporate-dev"
+   */
+  cvAwsS3BucketName: string;
+
+  /**
+   * @example
+   *  1. "/agencies/{agencyUserId}/companies/{companyId}/jobs/{jobId}/user-profiles"
+   *  2. "/users/{userId}/resumes"
+   *  3. "/companies/{companyId}/bulk-cvs/{corporateBulkJdId}"
+   */
+  cvAwsS3FilePath: string;
+
+  /**
+   * @description
+   *  1. Name of the aws s3 file
+   *
+   * @example "01K8TPT1PT2W5DTRSFPWTB92GH.pdf"
+   */
   cvAwsS3FileName?: string;
+
+  cvAwsS3FileTracker: CandidateParsedCvAwsS3FileTrackerDto[];
+
   isNoticePeriodNegotiable?: boolean;
-  coreSkills?: string[];
-  technicalSkills?: string[];
+  coreSkills?: {
+    skillName: string;
+    years: number;
+    timestamps?: {
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
+  technicalSkills?: {
+    skillName: string;
+    years: number;
+    timestamps?: {
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
   userPreferredDepartments?: string[];
   userPreferredIndustries?: string[];
   userPreferredlocations?: string[];
@@ -71,6 +118,12 @@ interface DbCandidateParsedCvDto extends BaseFirestoreModel {
    *  1. If "candidate" is already registered then "userDetailId" will be the "id" field of "UserDetail.model.ts
    */
   userDetailId?: string;
+
+  /**
+   * @reference
+   *  1. "id" attribute of "CorporateBulkJd.model.ts" model from "Aws DynamoDB" in "worko-api" repository
+   */
+  corporateBulkJdId?: string;
 }
 
 export { DbCandidateParsedCvDto };

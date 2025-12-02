@@ -51,10 +51,24 @@ export const agencyUserInviteCorpUpdateApiValidationDto = Joi.object({
       "string.empty": "Agency invite id is required",
       "any.required": "Agency invite id is required",
    }),
-   contractCopyAwsS3FileName: Joi.string().required().messages({
-      "string.empty": "Contract copy aws s3 file name is required",
-      "any.required": "Contract copy aws s3 file name is required",
+   contractCopyAwsS3FileName: Joi.string().optional().messages({
+      "string.base": "Contract copy aws s3 file name should be a string",
    }),
+   phoneNumberDetails: Joi.object({
+      number: Joi.number().required().messages({
+         "number.base": "Phone number is required",
+         "any.required": "Phone number is required",
+      }),
+      countryCode: Joi.number().required().messages({
+         "number.base": "Country code is required",
+         "any.required": "Country code is required",
+      }),
+   }).optional().messages({
+      "object.base": "Phone number details should be an object",
+   }),
+   agencyName: Joi.string().optional().uppercase().trim().messages({
+      "string.base": "Agency name should be a string",
+   })
 });
 
 export const agencyUserInviteFilterDtoValidation = gcpFirestoreCommonSchema.concat(

@@ -82,6 +82,18 @@ class AgencyUserSubmissionDao implements BaseDao {
       DbAgencyUserSubmissionDto
     >(db, this.collectionName, baseQuery, filterOptions);
   }
+
+  async getAgencyUserSubmissionById(id: string): Promise<DbAgencyUserSubmissionDto | undefined> {
+    return gcpFirestoreLibrary.getDocumentById<DbAgencyUserSubmissionDto>(this.getAgencyUserSubmissionModelDetails(), id);
+  }
+
+  async updateAgencyUserSubmissionById(id: string, updateData: Partial<DbAgencyUserSubmissionDto>): Promise<DbAgencyUserSubmissionDto | undefined> {
+    return gcpFirestoreLibrary.updateDocumentById<Partial<DbAgencyUserSubmissionDto>,DbAgencyUserSubmissionDto>(this.getAgencyUserSubmissionModelDetails(), id, updateData);
+  }
+
+  async updateBulkAgencyUserSubmissionByIds(ids: string[], updateData: Partial<DbAgencyUserSubmissionDto>): Promise<boolean> {
+    return gcpFirestoreLibrary.bulkUpdateDocumentByIds<Partial<DbAgencyUserSubmissionDto>>(this.getAgencyUserSubmissionModelDetails(), ids, updateData);
+  }
 }
 
 const agencyUserSubmissionDaoObj = new AgencyUserSubmissionDao();

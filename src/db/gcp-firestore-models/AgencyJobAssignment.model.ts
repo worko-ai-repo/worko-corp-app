@@ -16,14 +16,10 @@ interface DbAgencyJobAssignmentDto extends BaseFirestoreModel {
   jobId: string;
 
   /**
-   * @reference "id" attribute of "CorporateUser.model.ts" from "AWS DynamoDB"
+   * @reference "jobTitle" attribute of "OpensearchJob.model.ts" from "AWS Opensearch"
+   * @note This should be stored in lowercase
    */
-  assignedByCorporateUserId?: string;
-
-  /**
-   * @referenc "id" attribute of "UserDetail.model.ts" from "AWS DynamoDB"
-   */
-  assignedByUserId?: string;
+  jobTitle: string;
 
   /**
    * @reference "email" attribute of "AgencyUser.model.ts"  from "GCP Firestore"
@@ -36,6 +32,29 @@ interface DbAgencyJobAssignmentDto extends BaseFirestoreModel {
   agencyUserInviteId: string;
 
   status: AgencyJobAssignmentDbStatusEnum;
+
+  /**
+   * @reference "id" attribute of "CorporateUser.model.ts" from "AWS DynamoDB"
+   */
+  assignedByCorporateUserId?: string;
+
+  /**
+   * @reference "id" attribute of "UserDetail.model.ts" from "AWS DynamoDB"
+   */
+  assignedByUserId?: string;
+
+  /**
+   * @description
+   *  1. Number of candidates uploaded or submitted by the agency for this particular job.
+   */
+  totalCandidatesUploaded?: number;
+
+  /**
+   * @reference "id" attribute of "AgencyUserSubmission.model.ts" from "GCP Firestore"
+   */
+  agencyUserSubmissionIds?: string[];
+
+  updatedByCorporateUserId?: string;
 }
 
 export { DbAgencyJobAssignmentDto };

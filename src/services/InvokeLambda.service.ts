@@ -6,7 +6,7 @@ import { awsClientLambdaLibrary } from "../configs/aws-sdk.config";
 import APP_CONSTANTS from "../configs/constants.config";
 
 // import dtos
-import { InvokeLambdParseAgencyUserSubmissionCandidateCvDto } from "../dtos/InvokeLambda.dto";
+import { InvokeLambdaSourceTypeBulkJdResumeMatchingScoreDto, InvokeLambdaSourceTypeJdResumeMatchingScoreDto, InvokeLambdParseAgencyUserSubmissionCandidateCvDto } from "../dtos/InvokeLambda.dto";
 
 class InvokeLambdaService {
   /**
@@ -49,6 +49,22 @@ class InvokeLambdaService {
 
     return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType<InvokeLambdParseAgencyUserSubmissionCandidateCvDto>(
       APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.RESUME_EXTRACTION_LAMBDA_NAME,
+      payload
+    );
+  }
+
+  async triggerSourceTypeJdResumeMatchingScore(payload: InvokeLambdaSourceTypeJdResumeMatchingScoreDto): Promise<APIGatewayProxyResult> {
+    global.logger.info("Trigger Source Type JD Resume Matching Score Lambda [service]", { methodName: this.triggerSourceTypeJdResumeMatchingScore.name });
+    return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType<InvokeLambdaSourceTypeJdResumeMatchingScoreDto>(
+      APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.WORKO_SOURCE_TYPE_JD_RESUME_MATCHING_SCORE,
+      payload
+    );
+  }
+
+  async triggerSourceTypeBulkJdResumeMatchingScore(payload: InvokeLambdaSourceTypeBulkJdResumeMatchingScoreDto): Promise<APIGatewayProxyResult> {
+    global.logger.info("Trigger Source Type Bulk JD Resume Matching Score Lambda [service]", { methodName: this.triggerSourceTypeBulkJdResumeMatchingScore.name });
+    return awsClientLambdaLibrary.triggerLambdaEventInvocationType<InvokeLambdaSourceTypeBulkJdResumeMatchingScoreDto>(
+      APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.WORKO_SOURCE_TYPE_BULK_JD_RESUME_MATCHING_SCORE,
       payload
     );
   }

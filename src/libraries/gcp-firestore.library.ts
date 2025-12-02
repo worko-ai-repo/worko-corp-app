@@ -176,6 +176,48 @@ class GcpFirestoreLibrary {
 
     return updatedDoc.data() as DbEntityDto;
   }
+
+  /**
+   * Batched writes
+   * @see https://docs.cloud.google.com/firestore/native/docs/manage-data/transactions#batched-writes
+   */
+  async bulkUpdateDocumentByIds<UpdateEntityDto extends DocumentData>(
+    commonDbDetails: GcpFirestoreInteractionDto,
+    ids: string[],
+    updateData: UpdateEntityDto
+  ) {
+    const db: Firestore = this.getFirestoreDatabase(
+      commonDbDetails.databaseName
+    );
+
+    // Get a new write batch
+    const batch: WriteBatch = db.batch();
+
+    ids.forEach((id: string) => {
+      const docRef: DocumentReference<DocumentData, DocumentData> = db
+        .collection(commonDbDetails.collectionName)
+        .doc(id);
+      batch.update(docRef, updateData);
+    });
+
+    // Commit the batch
+    const response: WriteResult[] = await batch.commit();
+    global.logger.info("Bulk Update Document Response", {
+      responseLength: response.length,
+      idsLength: ids.length,
+    });
+
+    if (!response || !response.length || response.length !== ids.length) {
+      global.logger.error("Bulk Update Document Response", { 
+        response,
+        responseLength: response.length,
+        idsLength: ids.length
+      });
+      return false;
+    }
+
+    return true;
+  }
 }
 
 export { GcpFirestoreLibrary };

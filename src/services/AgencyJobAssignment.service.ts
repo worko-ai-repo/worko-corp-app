@@ -12,7 +12,7 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { agencyJobAssignmentDaoObj } from "../daos/AgencyJobAssignment.dao";
 
 // Import dtos
-import { AgencyJobAssignmentBulkCreateApiDto, AgencyJobAssignmentListingFilterOptions } from "../dtos/AgencyJobAssignment.dto";
+import { AgencyJobAssignmentBulkCreateApiDto, AgencyJobAssignmentBulkRemoveJobsUpdateApiDto, AgencyJobAssignmentListingFilterOptions } from "../dtos/AgencyJobAssignment.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import enums
@@ -178,6 +178,13 @@ class AgencyJobAssignmentService {
       );
     }
 
+    const reqBodyJobIdsToAssign: string[] = validatedRequestBody.jobsToAssign.map(
+      (eachJob: {
+        jobId: string;
+        jobTitle: string;
+      }) => eachJob.jobId
+    );
+
     /**
      * Check whether any one of the job is already assigned to this `agency` or not by using `companyId`, `jobId`, `agencyRegisteredEmail`
      */
@@ -185,7 +192,7 @@ class AgencyJobAssignmentService {
       await this.getBulkAgencyAssignment(
         reqBodyCompanyId,
         reqBodyAgencyEmail,
-        validatedRequestBody.jobsToAssign
+        reqBodyJobIdsToAssign
       );
 
     if (!existingAssignments.empty) {
@@ -196,13 +203,17 @@ class AgencyJobAssignmentService {
     }
 
     const currentDate: string = dateHelperObj.getISODate();
+    const agencyJobAssignmentIds: string[] = [];
     const createData: DbAgencyJobAssignmentDto[] =
-      validatedRequestBody.jobsToAssign.map((eachJobId: string) => {
+      validatedRequestBody.jobsToAssign.map((eachJob: { jobId: string; jobTitle: string; }) => {
+        const agencyJobAssignmentDocId: string = UlidService.getUlidId();
+        agencyJobAssignmentIds.push(agencyJobAssignmentDocId);
         return {
           companyId: reqBodyCompanyId,
           agencyRegisteredEmail: reqBodyAgencyEmail,
-          jobId: eachJobId,
-          id: UlidService.getUlidId(),
+          jobId: eachJob.jobId,
+          jobTitle: eachJob.jobTitle,
+          id: agencyJobAssignmentDocId,
           assignedByCorporateUserId: actionByCorporateUserId,
           assignedByUserId: actionByUserId,
           agencyUserInviteId: reqBodyAgencyInviteId,
@@ -212,7 +223,99 @@ class AgencyJobAssignmentService {
         };
       });
 
-    return this.createBulkAgencyJobAssignment(createData);
+    const result: boolean = await this.createBulkAgencyJobAssignment(createData);
+    if(result) {
+      // Update jobs assigned count to agency invite
+      const updatedInviteDetails: DbAgencyUserInviteDto | undefined =
+        await agencyUserInviteServiceObj.updateAgencyUserInviteById(
+          reqBodyAgencyInviteId,
+          {
+            updatedAt: currentDate,
+            totalAssignedJobs: (agencyUserInviteDetails?.totalAssignedJobs ?? 0) + validatedRequestBody.jobsToAssign.length,
+            agencyJobAssignmentIds: [...(agencyUserInviteDetails?.agencyJobAssignmentIds ?? []), ...agencyJobAssignmentIds],
+          }
+        );
+    } else {
+      global.logger.error(
+        `Failed to create bulk agency job assignment, so we are not updating the counts of job assigned to agency [Service]`,
+        {
+          methodName: this.performCreateBulkAgencyJobAssignmentActivities.name,
+        }
+      )
+    }
+
+    return result;
+  }
+
+  async removeBulkAgencyJobAssignment(validatedRequestBody: AgencyJobAssignmentBulkRemoveJobsUpdateApiDto): Promise<boolean> {
+    global.logger.info(`Remove Bulk Agency Job Assignment [Service]`, {
+      methodName: this.removeBulkAgencyJobAssignment.name,
+    });
+
+    const { actionByCorporateUserId } = getActionByUserId();
+    if(!actionByCorporateUserId) {
+      throw new BaseError(
+        `Unauthorized.`,
+        HttpStatusCode.UNAUTHORIZED_401
+      );
+    }
+
+    const agencyUserInviteDetails: DbAgencyUserInviteDto | undefined = await agencyUserInviteServiceObj.getAgencyUserInviteById(validatedRequestBody.agencyUserInviteId);
+    if(!agencyUserInviteDetails) {
+      throw new BaseError(
+        `Agency User Invite Details not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+
+    if(agencyUserInviteDetails.invitedByCorporateUserId !== actionByCorporateUserId) {
+      global.logger.error(`Action by corporate user id not match with invited by corporate user id, so you are not allowed to perform this action.`, {
+        methodName: this.removeBulkAgencyJobAssignment.name,
+        actionByCorporateUserId,
+        agencyUserInviteDetails
+      })
+      throw new BaseError(
+        `You are not allowed to perform this action.`,
+        HttpStatusCode.FORBIDDEN_403
+      );
+    }
+
+    const result: boolean = await this.updateBulkAgencyJobAssignmentByIds(
+      validatedRequestBody.agencyJobAssignmentIdsToRemove,
+      {
+        status: AgencyJobAssignmentDbStatusEnum.INACTIVE,
+        updatedAt: dateHelperObj.getISODate(),
+        updatedByCorporateUserId: actionByCorporateUserId
+      }
+    );
+
+    if(result) {
+      let totalAssignedJobs: number | undefined;
+      if(agencyUserInviteDetails.totalAssignedJobs) {
+        if(agencyUserInviteDetails.totalAssignedJobs >= validatedRequestBody.agencyJobAssignmentIdsToRemove.length) {
+          totalAssignedJobs = agencyUserInviteDetails.totalAssignedJobs - validatedRequestBody.agencyJobAssignmentIdsToRemove.length;
+          await agencyUserInviteServiceObj.updateAgencyUserInviteById(validatedRequestBody.agencyUserInviteId, {
+            updatedAt: dateHelperObj.getISODate(),
+            updatedByCorporateUserId: actionByCorporateUserId,
+            totalAssignedJobs
+          })
+        }
+      }
+    }
+
+    /**
+     * @todo: 
+     *  1. We need to use `reasonForRemoval` to send email to that particular agency.
+     */
+
+    return result;
+  }
+
+  async updateBulkAgencyJobAssignmentByIds(
+    ids: string[],
+    updateData: Partial<DbAgencyJobAssignmentDto>,
+  ): Promise<boolean> {
+    return agencyJobAssignmentDaoObj.updateBulkAgencyJobAssignmentByIds(ids, updateData);
   }
 
   async createBulkAgencyJobAssignment(
@@ -360,6 +463,13 @@ class AgencyJobAssignmentService {
       jobId,
       agencyRegisteredEmail
     );
+  }
+
+  async updateAgencyJobAssignmentById(
+    id: string,
+    updateData: Partial<DbAgencyJobAssignmentDto>
+  ): Promise<DbAgencyJobAssignmentDto | undefined> {
+    return agencyJobAssignmentDaoObj.updateAgencyJobAssignmentById(id, updateData);
   }
 }
 

@@ -22,18 +22,19 @@ Actions:
     Configuration:
       # Required - Steps are sequential instructions that run shell commands
       Steps:
-        - Run: npm install -g n
+        - Run: export NODE_OPTIONS="--max-old-space-size=8192" # sets nodejs memory limit
+        - Run: npm install -g n # Install node version manager globally
         - Run: npm install serverless@3.40.0 --save-dev
-        - Run: npm i
+        - Run: npm i # Install project dependencies
         - Run: npm run build
         - Run: export AWS_REGION=ap-south-1
         - Run: cp environments/.env.dev .env
         - Run: npx sls deploy --stage=dev
-      Container:
-        Registry: CODECATALYST
+      Container: # Defines the build environment container
+        Registry: CODECATALYST # Use the CodeCatalyst container registry
         Image: CodeCatalystLinuxLambda_Arm64:2024_03
     Compute:
-      Type: Lambda
+      Type: Lambda # Uses AWS Lambda for compute
       Fleet: Linux.Arm64.Large
     Environment:
       Name: dev

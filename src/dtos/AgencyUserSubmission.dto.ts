@@ -1,7 +1,7 @@
 
 // Import dtos
 import { CandidateParsedCvDbPhoneNumberDto } from "./CandidateParsedCv.dto";
-import { CommonPhoneNumberDto } from "./Common.dto";
+import { CommonMatchingScoreDetailDto, CommonPhoneNumberDto } from "./Common.dto";
 import { GcpFirestoreRecordListingFilterOptions, GcpFirestoreRecordListingFilterRequestDTO } from "./Common.gcp-firestore.dto";
 
 export interface AgencyUserSubmissionCandidateParseCvApiDto {
@@ -27,6 +27,26 @@ export interface AgencyUserSubmissionCandidateParseCvResponseDto {
   noticePeriod: number;
   location: string;
   readyToRelocate: boolean;
+  coreSkills?: {
+    skillName: string;
+    years: number;
+    timestamps?: {
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
+  technicalSkills?: {
+    skillName: string;
+    years: number;
+    timestamps?: {
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
+  userPreferredDepartments: string[];
+  userPreferredIndustries: string[];
+  userPreferredlocations: string[];
+  userPreferredRoles: string[];
 }
 
 export interface AgencyUserSubmissionCreateApiDto {
@@ -43,12 +63,32 @@ export interface AgencyUserSubmissionCreateApiDto {
   isNoticePeriodNegotiable: boolean;
   location: string;
   readyToRelocate: boolean;
+  coreSkills?: {
+    skillName: string;
+    years: number;
+    timestamps?: {
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
+  technicalSkills?: {
+    skillName: string;
+    years: number;
+    timestamps?: {
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
+  userPreferredDepartments: string[];
+  userPreferredIndustries: string[];
+  userPreferredlocations: string[];
+  userPreferredRoles: string[];
   cvAwsS3FileName: string;
 
   companyId: string;
   jobId: string;
 
-  agencyComments: string;
+  agencyComments?: string;
 
   /**
    * @reference "id" field of "AgencyUserInvite.model.ts" collection
@@ -76,4 +116,72 @@ export interface AgencyUserSubmissionListingFilterRequestDTO extends GcpFirestor
   agencyName?: string;
   includeJobDetails?: boolean;
   includeCandidateParsedCvDetails?: boolean;
+}
+
+
+export interface AgencyUserSubmissionFindMatchingScoreApiDto {
+  agencyUserSubmissionId: string;
+}
+
+export interface AgencyUserSubmissionBulkFindMatchingScoreApiDto {
+  agencyUserSubmissionIds: string[];
+}
+
+export interface AgencyUserSubmissionBulkFindMatchingScoreInternalDto {
+  agencyUserSubmissionIds: string[];
+  actionByUserId?: string;
+  actionByCorporateUserId?: string;
+  cognitoUserGroups: string[]
+}
+
+export interface AgencyUserSubmissionDbMatchingScoreDetailDto extends CommonMatchingScoreDetailDto {
+
+}
+
+export interface AgencyUserSubmissionInvokedMatchingScoreResponseDto extends AgencyUserSubmissionDbMatchingScoreDetailDto {
+  
+}
+
+export interface AgencyUserSubmissionMoveToApplicantCreateApiDTO {
+  /**
+   * @reference "id" field of "AgencyUserSubmission.model.ts" collection
+   */
+  agencyUserSubmissionId: string;
+
+  /**
+   * jobId
+   *
+   * @reference `id` attribute of `CompanyJob.model.ts`
+   */
+  jobId: string;
+
+  /**
+   * companyName
+   */
+  companyName: string;
+}
+
+export interface AgencyUserSubmissionSendForEvaluationCreateApiDTO {
+  /**
+   * @reference "id" field of "AgencyUserSubmission.model.ts" collection
+   */
+  agencyUserSubmissionId: string;
+
+  /**
+   * jobId
+   *
+   * @reference `id` attribute of `CompanyJob.model.ts`
+   */
+  jobId: string;
+
+  /**
+   * companyName
+   */
+  companyName: string;
+}
+
+export interface AgencyUserSubmissionRejectApplicantCreateApiDTO {
+  agencyUserSubmissionId: string;
+  rejectApplicantReason: string;
+  rejectApplicantDetailedReason?: string;
 }

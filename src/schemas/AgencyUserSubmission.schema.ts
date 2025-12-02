@@ -77,6 +77,48 @@ export const agencyUserSubmissionCreateApiValidationDto = Joi.object({
     "boolean.base": "Ready to relocate is required",
     "any.required": "Ready to relocate is required",
   }),
+  coreSkills: Joi.array()
+    .items(
+      Joi.object({
+        skillName: Joi.string().required().empty("").lowercase(),
+        years: Joi.number().required().min(0),
+        timestamps: Joi.object({
+          createdAt: Joi.string().required(),
+          updatedAt: Joi.string().required(),
+        }).optional(),
+      })
+    )
+    .default([])
+    .optional(),
+  technicalSkills: Joi.array()
+    .items(
+      Joi.object({
+        skillName: Joi.string().required().empty("").lowercase(),
+        years: Joi.number().required().min(0),
+        timestamps: Joi.object({
+          createdAt: Joi.string().required(),
+          updatedAt: Joi.string().required(),
+        }).optional(),
+      })
+    )
+    .default([])
+    .optional(),
+  userPreferredDepartments: Joi.array().items(Joi.string().lowercase()).required().default([]).messages({
+    "array.base": "User Preferred Departments must be an array",
+    "any.required": "User Preferred Departments is required",
+  }),
+  userPreferredIndustries: Joi.array().items(Joi.string().lowercase()).required().default([]).messages({
+    "array.base": "User Preferred Industries must be an array",
+    "any.required": "User Preferred Industries is required",
+  }),
+  userPreferredlocations: Joi.array().items(Joi.string().lowercase()).required().default([]).messages({
+    "array.base": "User Preferred Locations must be an array",
+    "any.required": "User Preferred Locations is required",
+  }),
+  userPreferredRoles: Joi.array().items(Joi.string().lowercase()).required().default([]).messages({
+    "array.base": "User Preferred Roles must be an array",
+    "any.required": "User Preferred Roles is required",
+  }),
   cvAwsS3FileName: Joi.string().required().messages({
     "string.empty": "CV AWS S3 File Name is required",
     "any.required": "CV AWS S3 File Name is required",
@@ -93,9 +135,8 @@ export const agencyUserSubmissionCreateApiValidationDto = Joi.object({
     "string.empty": "Agency user invite id is required",
     "any.required": "Agency user invite id is required",
   }),
-  agencyComments: Joi.string().required().lowercase().messages({
+  agencyComments: Joi.string().optional().lowercase().messages({
     "string.base": "Agency comments must be a string",
-    "string.empty": "Agency comments should not be empty",
   })
 });
 
@@ -129,3 +170,73 @@ export const agencyUserSubmissionFilterDtoValidation = gcpFirestoreCommonSchema.
     }),
   })
 );
+
+export const agencyUserSubmissionFindMatchingScoreApiValidationDto = Joi.object({
+  agencyUserSubmissionId: Joi.string().required().messages({
+    "string.empty": "Agency user submission id is required",
+    "any.required": "Agency user submission id is required",
+  }),
+});
+
+export const agencyUserSubmissionBulkFindMatchingScoreApiValidationDto = Joi.object({
+  agencyUserSubmissionIds: Joi.array().items(Joi.string()).min(1).max(10).required().messages({
+    "array.base": "Agency user submission ids must be an array",
+    "array.min": "At least one agency user submission id is required",
+    "array.max": "Maximum 10 agency user submission ids allowed",
+    "any.required": "Agency user submission ids are required",
+  }),
+});
+
+export const agencyUserSubmissionMoveToApplicantCreateApiDtoValidation = Joi.object({
+  agencyUserSubmissionId: Joi.string().required().messages({
+    "any.required": "The agencyUserSubmissionId field is required.",
+    "any.type": "The agencyUserSubmissionId field must be a string.",
+    "string.empty": "The agencyUserSubmissionId field should not be empty.",
+  }),
+  jobId: Joi.string().required().messages({
+    "any.required": "The jobId field is required.",
+    "any.type": "The jobId field must be a string.",
+    "string.empty": "The jobId field should not be empty.",
+  }),
+
+  companyName: Joi.string().required().uppercase().messages({
+    "any.required": "The companyName field is required.",
+    "any.type": "The companyName field must be a string.",
+    "string.empty": "The companyName field should not be empty.",
+  }),
+});
+
+export const agencyUserSubmissionSendForEvaluationCreateApiDtoValidation = Joi.object({
+  agencyUserSubmissionId: Joi.string().required().messages({
+    "any.required": "The agencyUserSubmissionId field is required.",
+    "any.type": "The agencyUserSubmissionId field must be a string.",
+    "string.empty": "The agencyUserSubmissionId field should not be empty.",
+  }),
+  jobId: Joi.string().required().messages({
+    "any.required": "The jobId field is required.",
+    "any.type": "The jobId field must be a string.",
+    "string.empty": "The jobId field should not be empty.",
+  }),
+
+  companyName: Joi.string().required().uppercase().messages({
+    "any.required": "The companyName field is required.",
+    "any.type": "The companyName field must be a string.",
+    "string.empty": "The companyName field should not be empty.",
+  }),
+});
+
+export const agencyUserSubmissionRejectApplicantCreateApiDtoValidation = Joi.object({
+  agencyUserSubmissionId: Joi.string().required().messages({
+    "any.required": "The agencyUserSubmissionId field is required.",
+    "any.type": "The agencyUserSubmissionId field must be a string.",
+    "string.empty": "The agencyUserSubmissionId field should not be empty.",
+  }),
+  rejectApplicantReason: Joi.string().required().messages({
+    "any.required": "The rejectApplicantReason field is required.",
+    "any.type": "The rejectApplicantReason field must be a string.",
+    "string.empty": "The rejectApplicantReason field should not be empty.",
+  }),
+  rejectApplicantDetailedReason: Joi.string().optional().messages({
+    "any.type": "The rejectApplicantDetailedReason field must be a string.",
+  }),
+});

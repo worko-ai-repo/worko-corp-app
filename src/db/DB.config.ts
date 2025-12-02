@@ -12,6 +12,11 @@ import { CorporateUserModel } from "./aws-dynamodb-models/CorporateUser.model";
 import { EmailTemplateModel } from "./aws-dynamodb-models/EmailTemplate.model";
 import { EmailLogModel } from "./aws-dynamodb-models/EmailLog.model";
 import { CompanyJobModel } from "./aws-dynamodb-models/CompanyJob.model";
+import { UserJobApplicationModel } from "./aws-dynamodb-models/UserJobApplication.model";
+import { CountUserModel } from "./aws-dynamodb-models/CountUser.model";
+import { CountGlobalModel } from "./aws-dynamodb-models/CountGlobal.model";
+import { CountCompanyJobModel } from "./aws-dynamodb-models/CountCompanyJob.model";
+import { CountCompanyModel } from "./aws-dynamodb-models/CountCompany.model";
 
 /**
  * DBConfig
@@ -66,6 +71,19 @@ class DBConfig {
     dynamoose.aws.ddb.set(ddb);
   }
 
+  registerDynamooseWorkoCountModels() {
+    global.logger.info(`Registering all available models for "${DB_CONSTANTS.WORKO_TABLE_NAMES.workoCountTableName}" dynamodb table.`);
+    const workoCountTable = new dynamoose.Table(
+      DB_CONSTANTS.WORKO_TABLE_NAMES.workoCountTableName,
+      [
+        CountUserModel,
+        CountGlobalModel,
+        CountCompanyJobModel,
+        CountCompanyModel,
+      ]
+    );
+  }
+
   /**
    * registerDynamooseWorkoJobAppModels
    *
@@ -80,7 +98,8 @@ class DBConfig {
     const workoJobAppTable = new dynamoose.Table(
       DB_CONSTANTS.WORKO_TABLE_NAMES.workoJobAppTableName,
       [
-        CompanyJobModel
+        CompanyJobModel,
+        UserJobApplicationModel
       ]
     );
   } 
@@ -115,6 +134,7 @@ class DBConfig {
   registerDynamooseModels() {
     this.registerDynamooseWorkoModels();
     this.registerDynamooseWorkoJobAppModels();
+    this.registerDynamooseWorkoCountModels();
   }
 }
 

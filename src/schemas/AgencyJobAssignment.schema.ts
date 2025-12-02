@@ -14,9 +14,15 @@ export const agencyJobAssignmentBulkCreateApiDtoValidation = Joi.object({
 
   jobsToAssign: Joi.array()
     .items(
-      Joi.string().required().messages({
-        "string.empty": "Job id is required",
-        "any.required": "Job id is required",
+      Joi.object({
+        jobId: Joi.string().required().messages({
+          "string.empty": "Job id is required",
+          "any.required": "Job id is required",
+        }),
+        jobTitle: Joi.string().required().lowercase().messages({
+          "string.empty": "Job title is required",
+          "any.required": "Job title is required",
+        }),
       })
     )
     .required()
@@ -39,6 +45,29 @@ export const agencyJobAssignmentBulkCreateApiDtoValidation = Joi.object({
     "string.empty": "Agency invite id is required",
     "any.required": "Agency invite id is required",
   }),
+});
+
+export const agencyJobAssignmentBulkRemoveJobsUpdateApiDtoValidation = Joi.object({
+  agencyJobAssignmentIdsToRemove: Joi.array()
+    .items(Joi.string())
+    .required()
+    .min(1)
+    .max(10)
+    .messages({
+      "array.empty": "Jobs to remove is required",
+      "any.required": "Jobs to remove is required",
+      "array.min": "At least one job id is required",
+      "array.max": "Maximum 10 job ids are allowed",
+      "array.base": "Jobs to remove must be an array of strings",
+    }),
+  agencyUserInviteId: Joi.string().required().messages({
+    "string.empty": "Agency user invite id is required",
+    "any.required": "Agency user invite id is required",
+  }),
+  reasonForRemoval: Joi.string().required().messages({
+    "string.empty": "Reason for removal is required",
+    "any.required": "Reason for removal is required",
+  })
 });
 
 export const agencyJobAssignmentFilterDtoValidation = gcpFirestoreCommonSchema.concat(
