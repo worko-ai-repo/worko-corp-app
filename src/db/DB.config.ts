@@ -1,0 +1,141 @@
+// Import dynamoose related packages
+import * as dynamoose from "dynamoose";
+
+// Import DB constants
+import APP_CONSTANTS from "../configs/constants.config";
+import { DB_CONSTANTS } from "./DB.constants";
+
+// Import models
+import { CompanyDetailModel } from "./aws-dynamodb-models/CompanyDetail.model";
+import { UserDetailModel } from "./aws-dynamodb-models/UserDetail.model";
+import { CorporateUserModel } from "./aws-dynamodb-models/CorporateUser.model";
+import { EmailTemplateModel } from "./aws-dynamodb-models/EmailTemplate.model";
+import { EmailLogModel } from "./aws-dynamodb-models/EmailLog.model";
+import { CompanyJobModel } from "./aws-dynamodb-models/CompanyJob.model";
+import { UserJobApplicationModel } from "./aws-dynamodb-models/UserJobApplication.model";
+import { CountUserModel } from "./aws-dynamodb-models/CountUser.model";
+import { CountGlobalModel } from "./aws-dynamodb-models/CountGlobal.model";
+import { CountCompanyJobModel } from "./aws-dynamodb-models/CountCompanyJob.model";
+import { CountCompanyModel } from "./aws-dynamodb-models/CountCompany.model";
+
+/**
+ * DBConfig
+ *
+ * Class to initialise the database connection, register dynamoose models, etc.
+ */
+class DBConfig {
+  /**
+   * init
+   *
+   * Initialise the required components to enable DynamoDB connection.
+   */
+  init() {
+    this.setDynamooseConnection();
+    this.registerDynamooseModels();
+  }
+
+  /**
+   * setDynamooseConnection
+   *
+   * Set up the DynamoDB connection to couunicate with the database.
+   */
+  setDynamooseConnection() {
+    // Log message
+    global.logger.info(
+      "Establish the 'DynamoDB' connection through 'Dynamoose'."
+    );
+
+    // Configuration to connect to the DynamodDB database
+    let config = {};
+
+    // If the stage is local then use then connect to the local DynamoDB
+    if (process.env.APP_STAGE == APP_CONSTANTS.STAGES.LOCAL) {
+      config = {
+        credentials: {
+          accessKeyId: process.env.APP_AWS_DYNAMODB_ACCESS_KEY_ID as string,
+          secretAccessKey: process.env
+            .APP_AWS_DYNAMODB_SECRET_ACCESS_KEY as string,
+        },
+        region: APP_CONSTANTS.STAGES.LOCAL,
+        endpoint: "http://localhost:8000",
+      };
+    }
+    // For other stages, the required permissions would be added in the "serverless.ts" file
+    else {
+      config = {
+        region: process.env.APP_SLS_REGION,
+      };
+    }
+
+    const ddb = new dynamoose.aws.ddb.DynamoDB(config);
+    dynamoose.aws.ddb.set(ddb);
+  }
+
+  registerDynamooseWorkoCountModels() {
+    global.logger.info(`Registering all available models for "${DB_CONSTANTS.WORKO_TABLE_NAMES.workoCountTableName}" dynamodb table.`);
+    const workoCountTable = new dynamoose.Table(
+      DB_CONSTANTS.WORKO_TABLE_NAMES.workoCountTableName,
+      [
+        CountUserModel,
+        CountGlobalModel,
+        CountCompanyJobModel,
+        CountCompanyModel,
+      ]
+    );
+  }
+
+  /**
+   * registerDynamooseWorkoJobAppModels
+   *
+   * Register all the worko related models to the dynamoose
+   * The models registered here will be used to interact with the
+   * "worko-job-app" DynamoDB table.
+   */
+  registerDynamooseWorkoJobAppModels() {
+    global.logger.info(
+      `Registering all available models for "worko-job-app" dynamodb table.`
+    );
+    const workoJobAppTable = new dynamoose.Table(
+      DB_CONSTANTS.WORKO_TABLE_NAMES.workoJobAppTableName,
+      [
+        CompanyJobModel,
+        UserJobApplicationModel
+      ]
+    );
+  } 
+
+  /**
+   * registerDynamooseWorkoModels
+   *
+   * Register all the dynamoose models that interact with the "worko" table
+   * These models are used to interact with the "worko" dynamodb table
+   */
+  registerDynamooseWorkoModels() {
+    global.logger.info(
+      `Registering all available models for "worko" dynamodb table.`
+    );
+    const workoTable = new dynamoose.Table(
+      DB_CONSTANTS.WORKO_TABLE_NAMES.workoTableName,
+      [
+        CompanyDetailModel,
+        UserDetailModel,
+        CorporateUserModel,
+        EmailTemplateModel,
+        EmailLogModel,
+      ]
+    );
+  }
+
+  /**
+   * registerDynamooseModels
+   *
+   * Register the models created for differet PK and SK to communicate with Dynamoose.
+   */
+  registerDynamooseModels() {
+    this.registerDynamooseWorkoModels();
+    this.registerDynamooseWorkoJobAppModels();
+    this.registerDynamooseWorkoCountModels();
+  }
+}
+
+export default DBConfig;

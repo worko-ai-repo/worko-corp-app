@@ -1,0 +1,203 @@
+
+
+1. 
+```json
+{
+   "errorCode": 500,
+   "errorMsg": "Could not load the default credentials. Browse to https://cloud.google.com/docs/authentication/getting-started for more information.",
+   "timeStamp": "2025-10-29T09:07:24.756Z"
+}
+```
+
+2. 
+```json
+{
+   "errorCode": 500,
+   "errorMsg": "7 PERMISSION_DENIED: Permission denied on resource project 36911887802.",
+   "timeStamp": "2025-10-29T12:37:03.946Z"
+}
+```
+```json
+{
+  "error": {
+    "code": 7,
+    "details": "Permission denied on resource project 36911887802.",
+    "domain": "googleapis.com",
+    "errorInfoMetadata": {
+      "consumer": "projects/36911887802",
+      "containerInfo": "36911887802",
+      "service": "firestore.googleapis.com"
+    },
+    "metadata": {
+      "google.rpc.errorinfo-bin": [
+        {
+          "data": [10, 16, 67],
+          "type": "Buffer"
+        }
+      ],
+      "google.rpc.help-bin": [
+        {
+          "data": [10, 66, 10],
+          "type": "Buffer"
+        }
+      ],
+      "google.rpc.localizedmessage-bin": [
+        {
+          "data": [10, 5, 101],
+          "type": "Buffer"
+        }
+      ],
+      "grpc-status-details-bin": [
+        {
+          "data": [8, 7, 18],
+          "type": "Buffer"
+        }
+      ],
+      "x-debug-tracking-id": ["14446558079885841586;o=1"]
+    },
+    "note": "Exception occurred in retry method that was not classified as transient",
+    "reason": "CONSUMER_INVALID",
+    "statusDetails": [
+      {
+        "domain": "googleapis.com",
+        "metadata": {
+          "consumer": "projects/36911887802",
+          "containerInfo": "36911887802",
+          "service": "firestore.googleapis.com"
+        },
+        "reason": "CONSUMER_INVALID"
+      },
+      {
+        "locale": "en-US",
+        "message": "Permission denied on resource project 36911887802."
+      },
+      {
+        "links": [
+          {
+            "description": "Google developers console",
+            "url": "https://console.developers.google.com"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+
+3. 
+```json
+{
+    "errorCode": 500,
+    "errorMsg": "5 NOT_FOUND: ",
+    "timeStamp": "2025-10-29T13:06:36.819Z"
+}
+```
+```json
+{
+  "error": {
+    "code": 5,
+    "details": "",
+    "metadata": {
+      "x-debug-tracking-id": ["8023488023995321271;o=1"]
+    },
+    "note": "Exception occurred in retry method that was not classified as transient"
+  },
+}
+
+```
+
+
+4. 
+```json
+{
+   "Message": "User is not authorized to access this resource because no identity-based policy allows the execute-api:Invoke action"
+}
+```
+
+5. 
+```ts
+/**
+ * @see https://repost.aws/knowledge-center/api-gateway-cors-errors
+ */
+```
+```sh
+Access to fetch at 'https://bdwmxdaqll.execute-api.ap-south-1.amazonaws.com/dev/agency-invite/01JWAQF1G96E0SE9XHXSFGHNWW/' from origin 'http://localhost:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+
+Access to fetch at 'https://bdwmxdaqll.execute-api.ap-south-1.amazonaws.com/dev/file/gsu2u/AGENCY_INVITE_CONTRACT_COPY' from origin 'http://localhost:8080' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+```
+
+6. 
+```json
+{
+  "code": 9,
+  "details": "The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/worko-dev/firestore/databases/worko-corp-db-dev/indexes?create_composite=Cltwcm9qZWN0cy93b3Jrby1kZXYvZGF0YWJhc2VzL3dvcmtvLWNvcnAtZGItZGV2L2NvbGxlY3Rpb25Hcm91cHMvYWdlbmN5VXNlckludml0ZXMvaW5kZXhlcy9fEAEaDQoJY29tcGFueUlkEAEaEAoMaW52aXRlU3RhdHVzEAEaHAoYaW52aXRlZEJ5Q29ycG9yYXRlVXNlcklkEAEaDQoJY3JlYXRlZEF0EAIaDAoIX19uYW1lX18QAg",
+  "metadata": {
+    "x-debug-tracking-id": ["10899137199917501285;o=1"]
+  }
+}
+```
+
+7. 
+```json
+{
+  "errorCode": 500,
+  "errorMsg": "Value for argument \"data\" is not a valid Firestore document. Cannot use \"undefined\" as a Firestore value (found in field \"assignedByUserId\"). If you want to ignore undefined values, enable `ignoreUndefinedProperties`.",
+  "timeStamp": "2025-11-07T11:09:13.501Z"
+}
+```
+
+8. 
+```ts
+/**
+ * Whenever i used "request body" in "GET" listing api below error is occurred.
+ */
+```
+```sh
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<HTML>
+
+<HEAD>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<TITLE>ERROR: The request could not be satisfied</TITLE>
+</HEAD>
+
+<BODY>
+<H1>403 ERROR</H1>
+<H2>The request could not be satisfied.</H2>
+<HR noshade size="1px">
+Bad request.
+We can't connect to the server for this app or website at this time. There might be too much traffic or a
+configuration error. Try again later, or contact the app or website owner.
+<BR clear="all">
+If you provide content to customers through CloudFront, you can find steps to troubleshoot and help prevent this error by reviewing the CloudFront documentation.
+<BR clear="all">
+<HR noshade size="1px">
+<PRE>
+Generated by cloudfront (CloudFront)
+Request ID: fjj1thTsqdAIw1eTu5hXjsR-YSFiE02KYS29nAPuRTR3Cs4LxLRBkQ==
+</PRE>
+<ADDRESS>
+</ADDRESS>
+</BODY>
+
+</HTML>
+```
+
+
+9. 
+```json
+{
+  "errorMessage": "An error occurred (ValidationException) when calling the Query operation: Invalid KeyConditionExpression: Incorrect operand type for operator or function; operator or function: begins_with, operand type: NULL",
+  "errorType": "ClientError",
+  "requestId": "266e3403-28c8-42ec-a617-0ecf63eba39d",
+  "stackTrace": [
+    "  File \"/var/task/lambda_function.py\", line 1478, in lambda_handler\n    item = query_dynamodb_item_with_sk_prefix(table_name, partition_key_value, sort_key_prefix)\n",
+    "  File \"/var/task/lambda_function.py\", line 89, in query_dynamodb_item_with_sk_prefix\n    response = table.query(\n",
+    "  File \"/opt/python/boto3/resources/factory.py\", line 581, in do_action\n    response = action(self, *args, **kwargs)\n",
+    "  File \"/opt/python/boto3/resources/action.py\", line 88, in __call__\n    response = getattr(parent.meta.client, operation_name)(*args, **params)\n",
+    "  File \"/opt/python/botocore/client.py\", line 553, in _api_call\n    return self._make_api_call(operation_name, kwargs)\n",
+    "  File \"/opt/python/botocore/client.py\", line 1009, in _make_api_call\n    raise error_class(parsed_response, operation_name)\n"
+  ]
+}
+```
