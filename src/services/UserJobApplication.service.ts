@@ -62,6 +62,8 @@ class UserJobApplicationService {
       jobId: reqBodyJobId,
       companyName: reqBodyCompanyName,
       agencyUserSubmissionId: reqBodyAgencyUserSubmissionId,
+      candidateParsedCvId: reqBodyCandidateParsedCvId,
+      agencyUserId: reqBodyAgencyUserId,
     } = reqBody;
 
     let statusTrackerActionByUserId: string | undefined;
@@ -133,6 +135,8 @@ class UserJobApplicationService {
         },
       ],
       agencyUserSubmissionId: reqBodyAgencyUserSubmissionId,
+      candidateParsedCvId: reqBodyCandidateParsedCvId,
+      agencyUserId: reqBodyAgencyUserId,
       ...reqBody?.matchingScoreDetails,
     };
 
@@ -334,7 +338,9 @@ class UserJobApplicationService {
           userType: statusTrackerActionByUserType,
         },
       ],
+      agencyUserId: reqBody.agencyUserId,
       agencyUserSubmissionId: reqBodyAgencyUserSubmissionId,
+      candidateParsedCvId: reqBody.candidateParsedCvId,
       ...reqBody?.matchingScoreDetails,
     };
 
@@ -346,7 +352,7 @@ class UserJobApplicationService {
       );
     if (!jobApplicationDetails || !jobApplicationDetails.id) {
       throw new BaseError(
-        `Unable to move the candidate to applicants page.`,
+        `Unable to send for evaluation.`,
         HttpStatusCode.INTERNAL_SERVER_ERROR_500
       );
     }

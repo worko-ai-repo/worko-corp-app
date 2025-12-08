@@ -1,7 +1,4 @@
 
-// Import dtos
-import { AgencyUserSubmissionBulkFindMatchingScoreInternalDto } from "./AgencyUserSubmission.dto";
-
 // Import enums
 import { InvokeLambdaSourceTypeBulkJdResumeMatchingScoreEntityTypeEnum } from "../enums/InvokeLambda.enum";
 
@@ -13,6 +10,24 @@ export interface InvokeLambdParseAgencyUserSubmissionCandidateCvDto {
 }
 
 export interface InvokeLambdaSourceTypeJdResumeMatchingScoreDto {
+  /**
+   * @reference "id" attribute of "AgencyUserSubmission.model.ts"
+   */
+  /*
+  // Below is the update data
+  {
+    updatedAt: dateHelperObj.getISODate(),
+    updatedByCorporateUserId: actionByCorporateUserId,
+    updatedByUserId: actionByUserId,
+    matchingScoreDetails: AgencyUserSubmissionDbMatchingScoreDetailDto;
+  }
+  */
+  agencyUserSubmissionId: string;
+
+  actionByCorporateUserId?: string;
+
+  actionByUserId?: string;
+
   /**
    * @reference The "id" attribute of the "CompanyJob.model.ts" from AWS DynamoDB
    */
@@ -51,14 +66,4 @@ export interface InvokeLambdaSourceTypeJdResumeMatchingScoreDto {
    * @example "USR#EML#shaukt1998+29@gmail.com"
    */
   USER_PK?: string;
-}
-
-export interface InvokeLambdaSourceTypeBulkJdResumeMatchingScoreDto {
-  entityType: InvokeLambdaSourceTypeBulkJdResumeMatchingScoreEntityTypeEnum;
-
-  /**
-   * @description
-   *  1. Whenever "entityType" is "AGENCY_USER_SUBMISSION_FIND_MATCH_SCORE_BULK_JD_RESUME"
-   */
-  agencyUserSubmissionFindMatchScoreBulkJdResume?: AgencyUserSubmissionBulkFindMatchingScoreInternalDto;
 }

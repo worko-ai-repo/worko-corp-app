@@ -17,6 +17,7 @@ import { CountUserModel } from "./aws-dynamodb-models/CountUser.model";
 import { CountGlobalModel } from "./aws-dynamodb-models/CountGlobal.model";
 import { CountCompanyJobModel } from "./aws-dynamodb-models/CountCompanyJob.model";
 import { CountCompanyModel } from "./aws-dynamodb-models/CountCompany.model";
+import { ScheduleJobModel } from "./aws-dynamodb-models/ScheduleJob.model";
 
 /**
  * DBConfig
@@ -122,6 +123,7 @@ class DBConfig {
         CorporateUserModel,
         EmailTemplateModel,
         EmailLogModel,
+        ScheduleJobModel
       ]
     );
   }

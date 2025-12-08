@@ -77,14 +77,14 @@ class AgencyJobAssignmentDao implements BaseDao {
       }
     );
 
-    const { status, agencyRegisteredEmail, companyId, searchText } = filterOptions;
+    const { status, agencyRegisteredEmail, companyId, searchText, assignedByCorporateUserId } = filterOptions;
 
     const db: Firestore = this.getAgencyJobAssignmentFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db.collection(
       this.collectionName
     );
 
-    if(!status && !agencyRegisteredEmail && !companyId && !searchText) {
+    if(!status && !agencyRegisteredEmail && !companyId && !searchText && !assignedByCorporateUserId) {
       baseQuery = baseQuery.orderBy("createdAt", filterOptions.sortOrder);
     } else {
       if (status) baseQuery = baseQuery.where("status", "==", status);
@@ -95,7 +95,14 @@ class AgencyJobAssignmentDao implements BaseDao {
           agencyRegisteredEmail
         );
       if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
-      if (searchText) baseQuery = baseQuery.where("jobTitle", "==", searchText.toLowerCase());
+      if (assignedByCorporateUserId) baseQuery = baseQuery.where("assignedByCorporateUserId", "==", assignedByCorporateUserId);
+      if (searchText) {
+        const searchLower = searchText.toLowerCase();
+        baseQuery = baseQuery.where("jobTitle", "==", searchLower);
+        // baseQuery = baseQuery
+        //   .where("jobTitle", ">=", searchLower)
+        //   .where("jobTitle", "<=", searchLower + '\uf8ff');
+      }
     }
 
     return gcpFirestoreUtilObj.paginateGcpFirestore<

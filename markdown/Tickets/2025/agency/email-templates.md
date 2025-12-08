@@ -45,3 +45,52 @@
   "description": "Whenever `corporate-recruiter/admin` sends an invite to a user and if the user already have an agency account at `worko` then this email will be sent to that user."
 }
 ```
+
+
+3. 
+```json
+{
+    "bodyHtml": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <title>Worko | Application Update</title> <style type=\"text/css\"> a:hover { color: #0056b3 !important; } </style> </head> <body style=\"margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, Helvetica, sans-serif;\"> <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" style=\"background-color: #f4f4f4; margin: 0; padding: 0;\"> <tr> <td align=\"center\" valign=\"top\" style=\"padding: 40px 0;\"> <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"600\" style=\"max-width: 600px; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);\"> <tr> <td align=\"center\" style=\"padding: 20px; background-color: #71f8f8; border-top-left-radius: 8px; border-top-right-radius: 8px;\"> <img src=\"{{workoLogoUrl}}\" alt=\"Worko Logo\" width=\"150\" style=\"display: block; max-width: 150px;\" /> </td> </tr> <tr> <td style=\"padding: 40px 25px; font-size: 16px; line-height: 28px; color: #333333;\"> <p style=\"margin: 0 0 20px; font-size: 18px; color: #182b45; font-weight: bold;\"> Hi {{candidateName}}, </p> <p style=\"margin: 0 0 20px; font-size: 18px; color: #182b45; font-weight: bold;\"> Great news!, </p> <p style=\"margin: 0 0 20px; font-size: 16px;\"> Our team at Worko reviewed your profile and found you a strong match for the {{jobTitle}} position at {{companyName}}. We’ve moved your application into their hiring process.. </p> <p style=\"margin: 0 0 10px; font-size: 16px; font-weight: bold;\"> To track your real-time application status, feedback, and updates, your Worko account has been created. Here are your login details: </p> <p style=\"margin: 0 0 20px; font-size: 16px;\"> Email: {{candidateEmail}}<br /> Temporary Password: {{candidateTemporaryPassword}} </p> <p style=\"margin: 0 0 5px; font-size: 16px;\"> Please update your password to access your dashboard: </p> <div style=\"text-align: center; margin: 25px 0;\"> <a href=\"{{candidateLoginUrl}}\" style=\"background-color: #007bff; color: #ffffff; padding: 12px 22px; text-decoration: none; font-size: 16px; border-radius: 6px; display: inline-block;\"> Set New Password & View Application </a> </div> <p style=\"margin: 0 0 15px; font-size: 16px;\"> Inside your Worko dashboard, you can also: </p> <ul style=\"margin: 0 0 20px; padding-left: 18px; font-size: 16px; line-height: 26px;\"> <li>Apply to other matching roles</li> <li>Get interview guidance</li> <li>Stay updated with new opportunities</li> </ul> <p style=\"margin: 0 0 20px; font-size: 16px;\"> Wishing you the best for the next steps! </p> <p style=\"margin: 0; font-size: 16px; font-weight: bold; color: #182b45;\"> Onwards & Upwards,<br /> <strong>Team Worko</strong> </p> </td> </tr> <tr> <td style=\"padding: 20px; background-color: #182b45; color: #ffffff; font-size: 14px; text-align: center; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;\"> <p style=\"margin: 0 0 10px;\"> <a href=\"{{instagramUrl}}\" style=\"text-decoration: none; margin: 0 10px;\"> <img src=\"{{instagramLogoUrl}}\" alt=\"Instagram\" width=\"24\" style=\"vertical-align: middle;\" /> </a> <a href=\"{{linkedInUrl}}\" style=\"text-decoration: none; margin: 0 10px;\"> <img src=\"{{linkedInLogoUrl}}\" alt=\"LinkedIn\" width=\"24\" style=\"vertical-align: middle;\" /> </a> </p> <p style=\"margin: 0 0 10px;\">Worko</p> <p style=\"margin: 0;\">HSR Layout, Bengaluru, Karnataka, 560102</p> </td> </tr> </table> </td> </tr> </table> </body> </html>",
+    "bodyText": "Worko Application Update\n\nHi {{candidateName}},\n\nGreat news!\n\nOur team at Worko reviewed your profile and found you a strong match for the {{jobTitle}} position at {{companyName}}. We’ve moved your application into their hiring process.\n\nTo track your real-time application status, feedback, and updates, your Worko account has been created.\n\nHere are your login details:\nEmail: {{candidateLoginUrl}}\nTemporary Password: {{candidateTemporaryPassword}}\n\nPlease update your password to access your dashboard.\n\nInside your dashboard, you can also:\n- Apply to other matching roles\n- Get interview guidance\n- Stay updated with new opportunities\n\nWishing you the best for the next steps!\n\nOnwards & Upwards,\nTeam Worko",
+    
+    "description": "The template is used whenever the agency submits a unregistered candidate for a job, if corporate-recruiter/admin or worko-admin moves the candidate to applicant then we are creating his account from backend with temporary password and sending the reminder email.",
+    "placeholders": [
+        "candidateName",
+        "candidateEmail",
+        "jobTitle",
+        "companyName",
+        "candidateLoginUrl",
+        "candidateTemporaryPassword",
+        "instagramUrl",
+        "instagramLogoUrl",
+        "linkedInUrl",
+        "linkedInLogoUrl",
+        "workoLogoUrl"
+    ],
+    "subject": "Your Profile Is Being Considered for the {{jobTitle}} Role at {{companyName}} 🚀",
+    "templateName": "CAND_ACCOUNT_CHANGE_PASS_SIGNUP_REMINDER",
+    "title": "Your Profile Is Being Considered for the {{jobTitle}} Role at {{companyName}} 🚀"
+}
+```
+
+
+4. 
+```json
+{
+  "bodyHtml": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\" /> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /> <title>Worko | Email Verification</title> <style type=\"text/css\"> a:hover { color: #0056b3 !important; } </style> </head> <body style=\"margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, Helvetica, sans-serif;\"> <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" style=\"background-color: #f4f4f4; margin: 0; padding: 0;\"> <tr> <td align=\"center\" valign=\"top\" style=\"padding: 40px 0;\"> <table border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"600\" style=\"max-width: 600px; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);\"> <tr> <td align=\"center\" style=\"padding: 20px; background-color: #71f8f8; border-top-left-radius: 8px; border-top-right-radius: 8px;\"> <img src=\"{{workoLogoUrl}}\" alt=\"Worko Logo\" width=\"150\" style=\"display: block; max-width: 150px;\" /> </td> </tr> <tr> <td style=\"padding: 40px 25px; font-size: 16px; line-height: 28px; color: #333333;\"> <p style=\"margin: 0 0 20px; font-size: 18px; color: #182b45; font-weight: bold;\"> Hi {{candidateName}}, </p> <p style=\"margin: 0 0 20px; font-size: 16px;\"> To secure your account and continue accessing your application dashboard, please verify your email address using the code below: </p> <p style=\"margin: 0 0 25px; font-size: 22px; font-weight: bold; color: #182b45; text-align: center;\"> Your Verification Code: <span style=\"color: #007bff;\">{{otp}}</span> </p> <p style=\"margin: 0 0 20px; font-size: 16px;\"> Enter this code in the Worko portal to verify your email and proceed with updating your password. </p> <p style=\"margin: 0 0 20px; font-size: 16px;\"> If you didn’t request this, please ignore this email. Your account will remain secure. </p> <p style=\"margin: 0; font-size: 16px; font-weight: bold; color: #182b45;\"> Onwards & Upwards,<br /> <strong>Team Worko</strong> </p> </td> </tr> <tr> <td style=\"padding: 20px; background-color: #182b45; color: #ffffff; font-size: 14px; text-align: center; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;\"> <p style=\"margin: 0 0 10px;\"> <a href=\"{{instagramUrl}}\" style=\"text-decoration: none; margin: 0 10px;\"> <img src=\"{{instagramLogoUrl}}\" alt=\"Instagram\" width=\"24\" style=\"vertical-align: middle;\" /> </a> <a href=\"{{linkedInUrl}}\" style=\"text-decoration: none; margin: 0 10px;\"> <img src=\"{{linkedInLogoUrl}}\" alt=\"LinkedIn\" width=\"24\" style=\"vertical-align: middle;\" /> </a> </p> <p style=\"margin: 0 0 10px;\">Worko</p> <p style=\"margin: 0;\">HSR Layout, Bengaluru, Karnataka, 560102</p> </td> </tr> </table> </td> </tr> </table> </body> </html>",
+  "bodyText": "Worko Email Verification\n\nHi {{candidateName}},\n\nTo secure your account and continue accessing your application dashboard, please verify your email address using the code below.\n\nYour Verification Code: {{otp}}\n\nEnter this code in the Worko portal to verify your email and proceed with updating your password.\n\nIf you didn’t request this, please ignore this email.\n\nOnwards & Upwards,\nTeam Worko",
+  "description": "The template is used whenever the agency submits an unregistered candidate for a job. If corporate-recruiter/admin or worko-admin moves the candidate to applicant, we create his account from backend with a temporary password. When the candidate tries to log in using that temporary password, we verify his email before he updates his password.",
+  "placeholders": [
+    "candidateName",
+    "otp",
+    "instagramUrl",
+    "instagramLogoUrl",
+    "linkedInUrl",
+    "linkedInLogoUrl",
+    "workoLogoUrl"
+  ],
+  "subject": "Your verification code",
+  "templateName": "CAND_FORCE_CHANGE_PASSWORD_EMAIL_VERIFICATION_OTP",
+  "title": "Your verification code"
+}
+```

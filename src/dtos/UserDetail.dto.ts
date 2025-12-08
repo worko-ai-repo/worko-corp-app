@@ -55,3 +55,32 @@ export interface UserDetailDbCandidateExperienceDto {
    */
   endDate?: string;
 }
+
+export interface UserDetailCreateDto {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  number: string;
+  linkedinUrl?: string;
+  ECTC?: number;
+  YOE?: number;
+  CV?: string;
+  emailList: { [key: string]: string };
+  userType: string[];
+  isEmailVerified: boolean;
+  isNumberVerified: boolean;
+  lastAccessedDash: string;
+  referralCount: number;
+  isSubscribed: boolean;
+  expiryDate: Date;
+  acceptedTermsAndConditions: boolean;
+  /**
+   * @description
+   *  1. whenever the agency submits a unregistered candidate for a job and if a corporate move it to applicants page
+   *     then in backend we are creating the candidate account in cognito and aws dynamodb as unverified email without sending any
+   *     otp, and we will specify this as "true", and as of now this attribute is used while listing job applications and attaching applicant details
+   *     to them.
+   */
+  isUserCreatedInternally?: boolean;
+}

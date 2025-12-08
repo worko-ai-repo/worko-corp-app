@@ -5,7 +5,7 @@
    // Request Body
    {
    "agencyInviteId": "01KBCQHF7BGMA8NGBZE4T16W9K",
-   "agencyName": "APP SO BHARAT BHAAI"
+   "agencyName": "APP SO BHARAT BHAAI",
    }
    ```
 

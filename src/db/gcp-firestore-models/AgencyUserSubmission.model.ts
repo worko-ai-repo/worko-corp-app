@@ -66,6 +66,8 @@ interface DbAgencyUserSubmissionDto extends BaseFirestoreModel {
 
   matchingScoreDetails?: AgencyUserSubmissionDbMatchingScoreDetailDto;
 
+  isFindMatchingScoreInProgress?: boolean;
+
   updatedByCorporateUserId?: string;
 
   /**

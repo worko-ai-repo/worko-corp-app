@@ -201,3 +201,33 @@ Request ID: fjj1thTsqdAIw1eTu5hXjsR-YSFiE02KYS29nAPuRTR3Cs4LxLRBkQ==
   ]
 }
 ```
+
+
+10. 
+```json
+2025-12-05T03:47:24.384Z	undefined	ERROR	Uncaught Exception 	{
+    "errorType": "Error",
+    "errorMessage": "Scheduler ARNs are not properly configured",
+    "errorCode": 500,
+    "errorMsg": "Scheduler ARNs are not properly configured",
+    "timeStamp": "2025-12-05T03:47:24.383Z",
+    "stack": [
+        "Error: Scheduler ARNs are not properly configured",
+        "    at new BaseError (/var/task/dist/src/app.js:160674:15)",
+        "    at new ScheduleJobService (/var/task/dist/src/app.js:120400:19)",
+        "    at 47106 (/var/task/dist/src/app.js:120456:31)",
+        "    at __webpack_require__ (/var/task/dist/src/app.js:248010:42)",
+        "    at 79808 (/var/task/dist/src/app.js:198985:31)",
+        "    at __webpack_require__ (/var/task/dist/src/app.js:248010:42)",
+        "    at 17523 (/var/task/dist/src/app.js:36645:46)",
+        "    at __webpack_require__ (/var/task/dist/src/app.js:248010:42)",
+        "    at 8947 (/var/task/dist/src/app.js:18796:23)",
+        "    at __webpack_require__ (/var/task/dist/src/app.js:248010:42)"
+    ]
+}
+```
+
+10. 
+```sh
+User: arn:aws:sts::211125353899:assumed-role/worko-corp-dev-ap-south-1-lambdaRole/worko-corp-dev-appScheduler is not authorized to perform: cognito-idp:AdminGetUser on resource: arn:aws:cognito-idp:ap-south-1:211125353899:userpool/c1f33dfa-c0d1-7043-dd6f-046dedb7dfbe because no identity-based policy allows the cognito-idp:AdminGetUser action
+```

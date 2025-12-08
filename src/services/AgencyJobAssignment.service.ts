@@ -407,11 +407,20 @@ class AgencyJobAssignmentService {
         );
       }
     } else {
-      global.logger.error(`Agency User Details not found.`, {
-        methodName: this.performGetAllAgencyJobAssignmentsActivities.name,
-        convertedAgencyCognitoUserId,
-      });
-      throw new BaseError("Unauthorized.", HttpStatusCode.UNAUTHORIZED_401);
+      const {actionByCorporateUserId, actionByUserId} = getActionByUserId();
+      if(actionByUserId) {
+        throw new BaseError("Unauthorized.", HttpStatusCode.UNAUTHORIZED_401);
+      } else if(actionByCorporateUserId) {
+        if(!filterOptions.companyId) {
+          throw new BaseError("Company id is required", HttpStatusCode.BAD_REQUEST_400);
+        }
+
+        if(!filterOptions.assignedByCorporateUserId) {
+          throw new BaseError("Assigned by corporate user id is required", HttpStatusCode.BAD_REQUEST_400);
+        }
+      } else {
+        throw new BaseError("Unauthorized.", HttpStatusCode.UNAUTHORIZED_401);
+      }
     }
 
     const { includeJobDetails } = filterOptions;

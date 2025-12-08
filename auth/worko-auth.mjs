@@ -377,6 +377,8 @@ var checkWhitelistedUrl = function (url, httpMethod) {
     { path: "/user/register/candidate", method: HttpMethodsConstants.ANY },
     { path: "/user/register/employee", method: HttpMethodsConstants.ANY },
     { path: "/user/:email(*)/cv", method: HttpMethodsConstants.ANY },
+    { path: "/user/request-otp/force-change-password", method: HttpMethodsConstants.POST },
+    { path: "/user/verify-otp/force-change-password", method: HttpMethodsConstants.POST },
 
     // file routes
     { path: "/file/gsu2u/USER_RESUME", method: HttpMethodsConstants.ANY },
@@ -560,6 +562,7 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
     // Agency Job Assignment Routers
     { path: "/agency-job-assignment/bulk", method: HttpMethodsConstants.POST },
     { path: "/agency-job-assignment/bulk/remove-jobs", method: HttpMethodsConstants.PATCH },
+    { path: "/agency-job-assignment*", method: HttpMethodsConstants.GET },
 
     // File routers
     {
@@ -577,6 +580,7 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
 
     // Agency User Submission Routers
     { path: "/agency-user-submission*", method: HttpMethodsConstants.GET },
+    { path: "/agency-user-submission/:id", method: HttpMethodsConstants.GET },
     { path: "/agency-user-submission/find-matching-score", method: HttpMethodsConstants.POST },
     { path: "/agency-user-submission/move-to-applicant", method: HttpMethodsConstants.POST },
     { path: "/agency-user-submission/send-for-evaluation", method: HttpMethodsConstants.POST },
@@ -690,6 +694,7 @@ var isCorporateAdminUrl = function (url, httpMethod) {
     // Agency Job Assignment Routers
     { path: "/agency-job-assignment/bulk", method: HttpMethodsConstants.POST },
     { path: "/agency-job-assignment/bulk/remove-jobs", method: HttpMethodsConstants.PATCH },
+    { path: "/agency-job-assignment*", method: HttpMethodsConstants.GET },
 
     // File routers
     {
@@ -713,6 +718,7 @@ var isCorporateAdminUrl = function (url, httpMethod) {
 
     // Agency User Submission Routers
     { path: "/agency-user-submission*", method: HttpMethodsConstants.GET },
+    { path: "/agency-user-submission/:id", method: HttpMethodsConstants.GET },
     { path: "/agency-user-submission/find-matching-score", method: HttpMethodsConstants.POST },
     { path: "/agency-user-submission/move-to-applicant", method: HttpMethodsConstants.POST },
     { path: "/agency-user-submission/send-for-evaluation", method: HttpMethodsConstants.POST },
@@ -771,12 +777,6 @@ var isAgencyUrl = function (url, httpMethod) {
 
     // Job routers
     { path: "/job/parsejd", method: HttpMethodsConstants.POST },
-
-    // corporate bulk jd routes
-    { path: "/corporate-bulk-jd/*", method: HttpMethodsConstants.ANY },
-
-    // corporate bulk jd resume routes
-    { path: "/corporate-bulk-jd-resume/*", method: HttpMethodsConstants.ANY },
 
     // Corporate Candidate Profile Routers
     { path: "/corporate-candidate-profile/duplicate", method: HttpMethodsConstants.GET },
@@ -928,6 +928,7 @@ var isAdminUrl = function (url, httpMethod) {
 
     // Agency User Submission Routers
     { path: "/agency-user-submission*", method: HttpMethodsConstants.GET },
+    { path: "/agency-user-submission/:id", method: HttpMethodsConstants.GET },
     {
       path: "/agency-user-submission/find-matching-score",
       method: HttpMethodsConstants.POST,

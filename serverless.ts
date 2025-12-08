@@ -52,6 +52,11 @@ const serverlessConfiguration: AWS = {
       APP_AWS_SUBNET2: "${env:APP_AWS_SUBNET2}",
       APP_SLS_REGION: "${env:APP_SLS_REGION}",
       APP_AWS_AGENCY_COGNITO_USER_POOL_ID: "${env:APP_AWS_AGENCY_COGNITO_USER_POOL_ID}",
+      APP_AWS_WORKO_COGNITO_USER_POOL_ID: "${env:APP_AWS_WORKO_COGNITO_USER_POOL_ID}",
+    },
+    awsLambdaFunctions: {
+      APP_AWS_SCHEDULER_HANDLER_LAMBDA_ARN: "arn:aws:lambda:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-corp-${self:custom.app.STAGE}-appScheduler",
+      APP_AWS_SCHEDULER_HANDLER_ROLE_ARN: "arn:aws:iam::${self:custom.aws.APP_AWS_ACCOUNT_ID}:role/worko-schedule-invoke-lambda-role",
     },
   },
 
@@ -61,6 +66,11 @@ const serverlessConfiguration: AWS = {
     runtime: "nodejs18.x",
 
     stage: process.env.APP_SLS_STAGE,
+
+    environment: {
+      APP_AWS_SCHEDULER_HANDLER_LAMBDA_ARN: "${self:custom.awsLambdaFunctions.APP_AWS_SCHEDULER_HANDLER_LAMBDA_ARN}",
+      APP_AWS_SCHEDULER_HANDLER_ROLE_ARN: "${self:custom.awsLambdaFunctions.APP_AWS_SCHEDULER_HANDLER_ROLE_ARN}",
+    },
 
     /**
      * region
@@ -142,13 +152,46 @@ const serverlessConfiguration: AWS = {
           "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-corp-${self:custom.app.STAGE}-app-sourcetype-bulk-find-jd-cv-match-score",
         ],
       },
-
+      {
+        Effect: "Allow",
+        Action: [
+          "iam:PassRole",
+          "scheduler:GetSchedule",
+          "scheduler:UpdateSchedule",
+          "scheduler:CreateSchedule",
+          "scheduler:DeleteSchedule"
+        ],
+        Resource: [
+          "arn:aws:iam::${self:custom.aws.APP_AWS_ACCOUNT_ID}:role/worko-schedule-invoke-lambda-role",
+          "arn:aws:scheduler:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:schedule/*/*"
+        ]
+      },
+      {
+        Effect: "Allow",
+        "Action": [
+          "scheduler:GetScheduleGroup",
+          "scheduler:DeleteScheduleGroup",
+          "scheduler:CreateScheduleGroup"
+        ],
+        "Resource": "arn:aws:scheduler:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:schedule-group/*"
+      },
       {
         Effect : "Allow",
         "Action": [
           "cognito-idp:AdminGetUser",
+          "cognito-idp:AdminCreateUser",
         ],
-        "Resource":"arn:aws:cognito-idp:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:userpool/${self:custom.aws.APP_AWS_AGENCY_COGNITO_USER_POOL_ID}"
+        "Resource":[
+          /**
+           * @example "arn:aws:cognito-idp:ap-south-1:211125353899:userpool/ap-south-1_xGreJKkNc"
+           */
+          "arn:aws:cognito-idp:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:userpool/${self:custom.aws.APP_AWS_WORKO_COGNITO_USER_POOL_ID}",
+
+          /**
+           * @example "arn:aws:cognito-idp:ap-south-1:211125353899:userpool/ap-south-1_KB3omxXcw"
+           */
+          "arn:aws:cognito-idp:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:userpool/${self:custom.aws.APP_AWS_AGENCY_COGNITO_USER_POOL_ID}"
+        ]
       },
     ],
   },
@@ -195,17 +238,16 @@ const serverlessConfiguration: AWS = {
     },
 
     /**
-     * app-sourcetype-bulk-find-jd-cv-match-score
-     * 
+     * appScheduler
+     *
      * AWS Lambda Function Format:- {service}-{enviroment}-{functionName}
-     * Ex:
-     *  1. `worko-corp-local-app-sourcetype-bulk-find-jd-cv-match-score`
-     *  2. `worko-corp-dev-app-sourcetype-bulk-find-jd-cv-match-score`
-     *  3. `worko-corp-prod-app-sourcetype-bulk-find-jd-cv-match-score`
+     * Example:
+     *  1. `worko-corp-local-appScheduler`
+     *  2. `worko-corp-dev-appScheduler`
+     *  3. `worko-corp-prod-appScheduler`
      */
-    "app-sourcetype-bulk-find-jd-cv-match-score": {
-      handler: "dist/src/app-sourcetype-bulk-find-jd-cv-match-score.handler",
-      timeout: 900, // Set timeout to 900 seconds (15 minutes)
+    appScheduler: {
+      handler: "dist/src/app-scheduler.handler",
     },
   },
 };

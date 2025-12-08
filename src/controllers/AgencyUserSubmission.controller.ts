@@ -1,15 +1,9 @@
 // Import express packages
 import { Request, Response, NextFunction } from "express";
 
-// Import aws packages
-import { APIGatewayProxyResult } from "aws-lambda";
-
 // Import dtos
 import { AgencyUserSubmissionBulkFindMatchingScoreApiDto, AgencyUserSubmissionCandidateParseCvApiDto, AgencyUserSubmissionCandidateParseCvResponseDto, AgencyUserSubmissionCreateApiDto, AgencyUserSubmissionFindMatchingScoreApiDto, AgencyUserSubmissionListingFilterOptions, AgencyUserSubmissionListingFilterRequestDTO, AgencyUserSubmissionMoveToApplicantCreateApiDTO, AgencyUserSubmissionRejectApplicantCreateApiDTO, AgencyUserSubmissionSendForEvaluationCreateApiDTO } from "../dtos/AgencyUserSubmission.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
-
-// Import enums
-import { InvokeLambdaSourceTypeBulkJdResumeMatchingScoreEntityTypeEnum } from "../enums/InvokeLambda.enum";
 
 // Import helpers
 import { GcpFirestoreRequestHelper } from "../helpers/request.gcp-firestore.helper";
@@ -22,7 +16,6 @@ import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
 
 // Import services
 import { agencyUserSubmissionServiceObj } from "../services/AgencyUserSubmission.service";
-import InvokeLambdaService from "../services/InvokeLambda.service";
 
 // Import schemas
 import { agencyUserSubmissionBulkFindMatchingScoreApiValidationDto, agencyUserSubmissionCandidateParseCvApiValidationDto, agencyUserSubmissionCreateApiValidationDto, agencyUserSubmissionFilterDtoValidation, agencyUserSubmissionFindMatchingScoreApiValidationDto, agencyUserSubmissionMoveToApplicantCreateApiDtoValidation, agencyUserSubmissionRejectApplicantCreateApiDtoValidation, agencyUserSubmissionSendForEvaluationCreateApiDtoValidation } from "../schemas/AgencyUserSubmission.schema";
@@ -109,10 +102,14 @@ class AgencyUserSubmissionController {
       if (reqBodyError) {
         throw new RequestValidationError(reqBodyError);
       }
-      const response: DbAgencyUserSubmissionDto = await agencyUserSubmissionServiceObj.findMatchingScoreAgencyUserSubmission(
+      const response: boolean = await agencyUserSubmissionServiceObj.findMatchingScoreAgencyUserSubmission(
         validatedReqBody
       );
-      res.status(HttpStatusCode.OK_200).json(response);
+      if(!response) {
+        throw new BaseError("Failed to find matching score.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+      }
+
+      res.status(HttpStatusCode.ACCEPTED_202).json({ message: "Matching score process initiated." });
     } catch (error) {
       global.logger.error(`Find Matching Score Agency User Submission [Controller]`, {
         methodName: this.findMatchingScoreAgencyUserSubmission.name,
@@ -139,22 +136,9 @@ class AgencyUserSubmissionController {
         throw new RequestValidationError(reqBodyError);
       }
 
-      const {actionByUserId, actionByCorporateUserId} = getActionByUserId();
-      const cognitoUserGroups: string[] = global.requestLocalContext.cognitoUserGroups;
+      await agencyUserSubmissionServiceObj.bulkFindMatchingScoreAgencyUserSubmission(validatedReqBody);
 
-      const response: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeBulkJdResumeMatchingScore(
-        {
-          entityType: InvokeLambdaSourceTypeBulkJdResumeMatchingScoreEntityTypeEnum.AGENCY_USER_SUBMISSION_FIND_MATCH_SCORE_BULK_JD_RESUME,
-          agencyUserSubmissionFindMatchScoreBulkJdResume: {
-            agencyUserSubmissionIds: validatedReqBody.agencyUserSubmissionIds,
-            actionByUserId,
-            actionByCorporateUserId,
-            cognitoUserGroups
-          }
-        }
-      )
-
-      res.status(response.statusCode).json({ message: "Bulk matching score processing initiated." });
+      res.status(HttpStatusCode.ACCEPTED_202).json({ message: "Bulk matching score processing initiated." });
     } catch (error) {
       global.logger.error(`Bulk Find Matching Score Agency User Submission [Controller]`, {
         methodName: this.bulkFindMatchingScoreAgencyUserSubmission.name,
@@ -328,6 +312,28 @@ class AgencyUserSubmissionController {
     } catch (error) {
       global.logger.error(`Get All Agency User Submission By Filter Options [Controller]`, {
         methodName: this.getAllAgencyUserSubmissionByFilterOptions.name,
+        error,
+      })
+      next(error);
+    }
+  };
+
+  getAgencyUserSubmissionById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const id: string = req.params.id;
+      const response: DbAgencyUserSubmissionDto | undefined =
+        await agencyUserSubmissionServiceObj.getAgencyUserSubmissionById(id);
+      if(!response) {
+        throw new BaseError("Agency user submission details not found", HttpStatusCode.NOT_FOUND_404);
+      }
+      res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(`Get Agency User Submission By Id [Controller]`, {
+        methodName: this.getAgencyUserSubmissionById.name,
         error,
       })
       next(error);

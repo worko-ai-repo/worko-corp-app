@@ -52,7 +52,7 @@ class AgencyUserSubmissionDao implements BaseDao {
       methodName: this.getAllAgencyUserSubmissionByFilterOptions.name,
     });
 
-    const { companyId, jobId, agencyRegisteredEmail, candidateEmail } =
+    const { companyId, jobId, agencyRegisteredEmail, candidateEmail, agencyName, agencyJobAssignedByCorporateUserId } =
       filterOptions;
 
     const db: Firestore = this.getAgencyUserSubmissionFirestoreDatabase();
@@ -61,7 +61,7 @@ class AgencyUserSubmissionDao implements BaseDao {
     );
 
     // If no filter options are provided, order by createdAt in specific order
-    if(!companyId && !jobId && !agencyRegisteredEmail && !candidateEmail) {
+    if(!companyId && !jobId && !agencyRegisteredEmail && !candidateEmail && !agencyName && !agencyJobAssignedByCorporateUserId) {
       baseQuery = baseQuery.orderBy("createdAt", filterOptions.sortOrder);
     } else {
       if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
@@ -74,7 +74,8 @@ class AgencyUserSubmissionDao implements BaseDao {
       if (agencyRegisteredEmail)
         baseQuery = baseQuery.where("agencyRegisteredEmail", "==", agencyRegisteredEmail);
       if (candidateEmail) baseQuery = baseQuery.where("candidateEmail", "==", candidateEmail);
-      if (filterOptions.agencyName) baseQuery = baseQuery.where("agencyName", "==", filterOptions.agencyName);
+      if (agencyName) baseQuery = baseQuery.where("agencyName", "==", filterOptions.agencyName);
+      if (agencyJobAssignedByCorporateUserId) baseQuery = baseQuery.where("agencyJobAssignedByCorporateUserId", "==", agencyJobAssignedByCorporateUserId);
     }
 
     return gcpFirestoreUtilObj.paginateGcpFirestore<

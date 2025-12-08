@@ -17,6 +17,12 @@ import {
 
 export interface UserJobApplicationMoveToApplicantCreateApiDTO {
   agencyUserSubmissionId: string;
+  /**
+   * @reference "id" field of "AgencyUser.model.ts"
+   * @description The registered agency user 
+   */
+  agencyUserId: string;
+  candidateParsedCvId: string;
 
   /**
    * jobId
@@ -41,6 +47,8 @@ export interface UserJobApplicationMoveToApplicantCreateApiDTO {
 
 export interface UserJobApplicationMoveToApplicantCreateDto {
   agencyUserSubmissionId: string;
+  agencyUserId: string;
+  candidateParsedCvId: string;
   /**
    * jobId
    *
@@ -90,6 +98,8 @@ export interface UserJobApplicationMoveToApplicantCreateDto {
 
 export interface UserJobApplicationSendForEvaluationCreateApiDTO {
   agencyUserSubmissionId: string;
+  agencyUserId: string;
+  candidateParsedCvId: string;
 
   /**
    * jobId

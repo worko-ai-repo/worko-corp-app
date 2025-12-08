@@ -77,4 +77,9 @@ AgencyUserSubmissionRouter.patch("/reject-applicant", agencyUserSubmissionContro
  */
 AgencyUserSubmissionRouter.get("/", agencyUserSubmissionController.getAllAgencyUserSubmissionByFilterOptions);
 
+/**
+ * @authorisedRoles ["corporate-admin", "corporate-recruiter", "admin"]
+ */
+AgencyUserSubmissionRouter.get("/:id", agencyUserSubmissionController.getAgencyUserSubmissionById);
+
 export default AgencyUserSubmissionRouter;

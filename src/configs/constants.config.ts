@@ -122,7 +122,9 @@ const APP_CONSTANTS = {
   },
 
   FRONTEND_URLS: {
-    WORKO_AGENCY_LOGIN_URL: `${process.env.APP_WORKO_AGENCY_FRONTEND_BASE_URL}`,
+    WORKO_LOGIN_URL: `${process.env.APP_WORKO_FRONTEND_BASE_URL}/auth/login`,
+
+    WORKO_AGENCY_LOGIN_URL: `${process.env.APP_WORKO_AGENCY_FRONTEND_BASE_URL}/auth/agency/login`,
 
     /**
      * @example "https://agency.worko.work/auth/agency/signup/01KA0Z4YZF598N7WA3ETMEWAV6"
@@ -173,6 +175,16 @@ const APP_CONSTANTS = {
       };
 
     return socialProfielForEmails;
+  },
+
+  /**
+   * @todo: If not signup we will send 8 reminders, Days: 1-3-5-9-12-18-21-30
+   */
+  get CAND_CHANGE_PASS_SIGNUP_REMINDER_DELAY(): number {
+    return process.env.APP_SLS_STAGE === APP_CONSTANTS.STAGES.PROD
+      ? 3 * 24 * 60 * 60 * 1000 // 3 days in milliseconds
+      // : 5 * 60 * 1000; // 5 minutes in milliseconds 
+      : 365 * 24 * 60 * 60 * 1000; // 1 year in milliseconds
   },
 
   WORKO_LOGO_URL: process.env.APP_WORKO_LOGO_URL,

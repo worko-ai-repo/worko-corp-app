@@ -127,13 +127,6 @@ export interface AgencyUserSubmissionBulkFindMatchingScoreApiDto {
   agencyUserSubmissionIds: string[];
 }
 
-export interface AgencyUserSubmissionBulkFindMatchingScoreInternalDto {
-  agencyUserSubmissionIds: string[];
-  actionByUserId?: string;
-  actionByCorporateUserId?: string;
-  cognitoUserGroups: string[]
-}
-
 export interface AgencyUserSubmissionDbMatchingScoreDetailDto extends CommonMatchingScoreDetailDto {
 
 }
@@ -159,6 +152,7 @@ export interface AgencyUserSubmissionMoveToApplicantCreateApiDTO {
    * companyName
    */
   companyName: string;
+  jobTitle: string;
 }
 
 export interface AgencyUserSubmissionSendForEvaluationCreateApiDTO {
@@ -178,6 +172,7 @@ export interface AgencyUserSubmissionSendForEvaluationCreateApiDTO {
    * companyName
    */
   companyName: string;
+  jobTitle: string;
 }
 
 export interface AgencyUserSubmissionRejectApplicantCreateApiDTO {

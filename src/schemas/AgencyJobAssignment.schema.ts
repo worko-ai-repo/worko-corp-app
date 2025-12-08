@@ -92,5 +92,8 @@ export const agencyJobAssignmentFilterDtoValidation = gcpFirestoreCommonSchema.c
     companyId: Joi.string().optional().messages({
       "string.empty": "Company id should not be empty",
     }),
+    assignedByCorporateUserId: Joi.string().optional().messages({
+      "string.empty": "Assigned by corporate user id should not be empty",
+    }),
   })
 );

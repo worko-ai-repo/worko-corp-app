@@ -53,6 +53,8 @@ export interface AgencyJobAssignmentListingFilterOptions extends GcpFirestoreRec
   companyId?: string;
 
   includeJobDetails?: boolean;
+  
+  assignedByCorporateUserId?: string
 }
 
 
@@ -67,4 +69,6 @@ export interface AgencyJobAssignmentListingFilterRequestDTO extends GcpFirestore
   companyId?: string;
 
   includeJobDetails?: boolean;
+
+  assignedByCorporateUserId?: string
 }

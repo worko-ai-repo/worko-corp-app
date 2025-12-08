@@ -55,6 +55,8 @@ class DbUserJobApplicationDto extends BaseDbDto {
    * @reference `id` attribute of `AgencyUserSubmission.model.ts`
    */
   agencyUserSubmissionId?: string;
+  agencyUserId?: string;
+  candidateParsedCvId?: string;
 
   status!: JobApplicationStatus;
   statusTracker!: JobApplicationStatusTrackerType;
@@ -280,6 +282,14 @@ const UserJobApplicationSchema: Schema = new dynamoose.Schema(
       required: true,
     },
     agencyUserSubmissionId: {
+      type: String,
+      required: false,
+    },
+    agencyUserId: {
+      type: String,
+      required: false,
+    },
+    candidateParsedCvId: {
       type: String,
       required: false,
     },

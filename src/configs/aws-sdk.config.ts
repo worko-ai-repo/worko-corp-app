@@ -7,6 +7,7 @@ import { AwsS3ClientLibrary } from "../libraries/aws-s3-client.library";
 import { AwsClientCognitoIdentityProviderLibrary } from "../libraries/aws-client-cognito-identity-provider.library";
 import { AwsSesClientLibrary } from "../libraries/aws-ses-client.library";
 import { AwsClientLambdaLibrary } from "../libraries/aws-client-lambda.library";
+import { AwsSchedulerLibrary } from "../libraries/aws-scheduler-client.library";
 
 /**
  * awsConfigOptions
@@ -114,6 +115,24 @@ const awsClientLambdaLibrary: AwsClientLambdaLibrary = new AwsClientLambdaLibrar
 global.logger.info(`The "awsClientLambdaLibrary" is initialised.`);
 
 
+/**
+ * ****************************************************************************************************
+ * AWS Scheduler Client Library
+ * ****************************************************************************************************
+ */
+
+/**
+ * awsSchedulerConfigOptions
+ * 
+ * AWS Scheduler specific configurations extending the "awsConfigOptions".
+ */
+const awsSchedulerConfigOptions: AWS.Scheduler.ClientConfiguration = {
+  ...awsConfigOptions,
+}
+const awsSchedulerClientLibrary: AwsSchedulerLibrary = new AwsSchedulerLibrary(awsSchedulerConfigOptions);
+console.log("The 'awsSchedulerClientLibrary' is initialised.");
+
+
 // Export the required resourses
 export {
   // Configurations
@@ -127,4 +146,5 @@ export {
   awsClientCognitoIdentityProviderLibrary,
   awsSesClientLibrary,
   awsClientLambdaLibrary,
+  awsSchedulerClientLibrary
 };

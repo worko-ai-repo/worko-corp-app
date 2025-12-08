@@ -204,6 +204,11 @@ export const agencyUserSubmissionMoveToApplicantCreateApiDtoValidation = Joi.obj
     "any.type": "The companyName field must be a string.",
     "string.empty": "The companyName field should not be empty.",
   }),
+  jobTitle: Joi.string().required().lowercase().messages({
+    "any.required": "The jobTitle field is required.",
+    "any.type": "The jobTitle field must be a string.",
+    "string.empty": "The jobTitle field should not be empty.",
+  }),
 });
 
 export const agencyUserSubmissionSendForEvaluationCreateApiDtoValidation = Joi.object({
@@ -222,6 +227,11 @@ export const agencyUserSubmissionSendForEvaluationCreateApiDtoValidation = Joi.o
     "any.required": "The companyName field is required.",
     "any.type": "The companyName field must be a string.",
     "string.empty": "The companyName field should not be empty.",
+  }),
+  jobTitle: Joi.string().required().lowercase().messages({
+    "any.required": "The jobTitle field is required.",
+    "any.type": "The jobTitle field must be a string.",
+    "string.empty": "The jobTitle field should not be empty.",
   }),
 });
 
