@@ -820,16 +820,6 @@ export interface ApplicantDetails {
    }
    ```
 
-# Updates
-
-# Today's Plan
-1. Check and Implement `composite` indexes for `gcp collections` with `createdAt` sortorder included 
-2. implement code on `update cv`
-3. Test the `move to appl` entirely
-4. work on `composite indexes` with `createdAt` field
-5. Test `find matching score` feature and debug `jdMatchErrorCode` bug
-6. Check with ashutosh regarding update cv for post signup
-7. 
 
 ```sh
 Email Template — Job Assigned
@@ -876,28 +866,6 @@ ClientId
 }
 ```
 
-```sh
-Email Template — Worko Moved Candidate Into Company’s Application Process
-Subject: Your Profile Is Being Considered for the {Role Name} Role at {Company Name} 🚀
-Hi {Candidate Name},
-Great news!
- Our team at Worko reviewed your profile and found you a strong match for the {Role Name} position at {Company Name}. We’ve moved your application into their hiring process.
-To track your real-time application status, feedback, and updates, your Worko account has been created.
-Here are your login details:
- Email: {Email}
- Temporary Password: {TempPassword}
-Please update your password to access your dashboard:
- :point_right: Set New Password & View Application
-Inside Worko, you can also:
- • Apply to other matching roles
- • Get interview guidance
- • Stay updated with new opportunities
-Wishing you the best for the next steps!
-Onwards & Upwards,
- Team Worko
-```
-
-
 
 1. Creating Candidate in `cognito`, we create as `unverified` email and status as `Force change password`
 2. Candidate will recieve force change password reminder with email and temporary password which we created and candidate will be redirected to `login` page once he recieves `email` and `temporary password` to candidate
@@ -908,3 +876,93 @@ Onwards & Upwards,
    `https://api.dev.worko.work/user/verify-otp/force-change-password`
       1. In this email we will mark `cognito email` as verified and mark `isEmailVerified` as `true` in `aws dynamodb` against `ID#` partition
 6. Then now `Frontend` will show a `dialog` box with `new password` and `confirm password` to  for `candidate` and in `cognito` the status will changes to `CONFIRMED`
+
+
+```ts
+ def create_search_optimized_embedding_text(self, candidate_data: Dict) -> str:
+        """Create embedding text from search-relevant fields"""
+        embedding_parts = []
+        
+        if candidate_data.get('companyId'):
+            embedding_parts.append(f"Company ID: {candidate_data['companyId']}")
+        
+        if candidate_data.get('currentCompany'):
+            embedding_parts.append(f"Current Company: {candidate_data['currentCompany']}")
+        
+        if candidate_data.get('currentDesignation'):
+            embedding_parts.append(f"Current Designation: {candidate_data['currentDesignation']}")
+        
+        if candidate_data.get('totalYOE') is not None:
+            embedding_parts.append(f"Total Experience: {candidate_data['totalYOE']} years")
+        
+        if candidate_data.get('relevantYOE') is not None:
+            embedding_parts.append(f"Relevant Experience: {candidate_data['relevantYOE']} years")
+        
+        if candidate_data.get('currentCTC') is not None:
+            embedding_parts.append(f"Current CTC: {candidate_data['currentCTC']} LPA")
+        
+        if candidate_data.get('expectedCTC') is not None:
+            embedding_parts.append(f"Expected CTC: {candidate_data['expectedCTC']} LPA")
+        
+        if candidate_data.get('noticePeriod') is not None:
+            embedding_parts.append(f"Notice Period: {candidate_data['noticePeriod']} days")
+        
+        if candidate_data.get('isNoticePeriodNegotiable') is not None:
+            negotiable = "Yes" if candidate_data['isNoticePeriodNegotiable'] else "No"
+            embedding_parts.append(f"Notice Period Negotiable: {negotiable}")
+        
+        if candidate_data.get('location'):
+            embedding_parts.append(f"Current Location: {candidate_data['location']}")
+        
+        if candidate_data.get('readyToRelocate') is not None:
+            relocate = "Yes" if candidate_data['readyToRelocate'] else "No"
+            embedding_parts.append(f"Ready to Relocate: {relocate}")
+        
+        if candidate_data.get('coreSkills'):
+            core_skills_text = format_skills_list(candidate_data['coreSkills'], "Core Skills")
+            if core_skills_text:
+                embedding_parts.append(core_skills_text)
+        
+        if candidate_data.get('technicalSkills'):
+            tech_skills_text = format_skills_list(candidate_data['technicalSkills'], "Technical Skills")
+            if tech_skills_text:
+                embedding_parts.append(tech_skills_text)
+        
+        if candidate_data.get('userPreferredDepartments'):
+            dept_text = format_string_array(candidate_data['userPreferredDepartments'], "Preferred Departments")
+            if dept_text:
+                embedding_parts.append(dept_text)
+        
+        if candidate_data.get('userPreferredIndustries'):
+            industry_text = format_string_array(candidate_data['userPreferredIndustries'], "Preferred Industries")
+            if industry_text:
+                embedding_parts.append(industry_text)
+        
+        if candidate_data.get('userPreferredRoles'):
+            roles_text = format_string_array(candidate_data['userPreferredRoles'], "Preferred Roles")
+            if roles_text:
+                embedding_parts.append(roles_text)
+        
+        if candidate_data.get('userPreferredlocations'):
+            locations_text = format_string_array(candidate_data['userPreferredlocations'], "Preferred Locations")
+            if locations_text:
+                embedding_parts.append(locations_text)
+        
+        return " | ".join(embedding_parts)
+    
+```
+
+
+# Updates
+
+# Today's Plan
+1. Discuss with `CTO` about `composite` indexes for `gcp collections` with `createdAt` sortorder 
+2. implement code on `update cv`
+3. Test the `move to appl` and `send for eval` entirely
+5. Test `find matching score` feature once after shaukat fix it
+6. Check with ashutosh about every FE code merge
+7. Implement create document with embedding in gcp firestore
+8. Explain to ashutosh about `cvAwsS3ResourceType=USER_RESUME` issue in `admin dash`
+   ```sh
+   rohithappala999+cand9@gmail.com
+   ```

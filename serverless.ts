@@ -193,6 +193,13 @@ const serverlessConfiguration: AWS = {
           "arn:aws:cognito-idp:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:userpool/${self:custom.aws.APP_AWS_AGENCY_COGNITO_USER_POOL_ID}"
         ]
       },
+      {
+        "Effect": "Allow",
+        "Action": [
+            "secretsmanager:GetSecretValue",
+        ],
+        "Resource": "arn:aws:secretsmanager:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:secret:GCP-secrect-uxzpTx"
+      }
     ],
   },
 

@@ -3,11 +3,14 @@ import AWS from "aws-sdk";
 
 // Import configs
 import APP_CONSTANTS from "./constants.config";
+
+// Import libraries
 import { AwsS3ClientLibrary } from "../libraries/aws-s3-client.library";
 import { AwsClientCognitoIdentityProviderLibrary } from "../libraries/aws-client-cognito-identity-provider.library";
 import { AwsSesClientLibrary } from "../libraries/aws-ses-client.library";
 import { AwsClientLambdaLibrary } from "../libraries/aws-client-lambda.library";
 import { AwsSchedulerLibrary } from "../libraries/aws-scheduler-client.library";
+import { AwsClientSecretsManagerLibrary } from "../libraries/aws-client-secrets-manager.libary";
 
 /**
  * awsConfigOptions
@@ -116,6 +119,15 @@ global.logger.info(`The "awsClientLambdaLibrary" is initialised.`);
 
 
 /**
+ * awsClientSecretsManagerLibrary
+ * 
+ * NOTE: For this client secrets manager, the `aws-sdk v3` is used
+ */
+const awsClientSecretsManagerLibrary: AwsClientSecretsManagerLibrary = new AwsClientSecretsManagerLibrary();
+global.logger.info(`The "awsClientSecretsManagerLibrary" is initialised.`);
+
+
+/**
  * ****************************************************************************************************
  * AWS Scheduler Client Library
  * ****************************************************************************************************
@@ -146,5 +158,6 @@ export {
   awsClientCognitoIdentityProviderLibrary,
   awsSesClientLibrary,
   awsClientLambdaLibrary,
-  awsSchedulerClientLibrary
+  awsSchedulerClientLibrary,
+  awsClientSecretsManagerLibrary
 };

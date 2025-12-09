@@ -12,6 +12,9 @@ import { CandidateParsedCvCorporateListingFilterOptions } from "../dtos/Candidat
 // Import daos
 import BaseDao from "./BaseGcpFirestore.dao";
 
+// Import libraries
+import { gcpFirestoreVectorLibrary } from "../libraries/gcp-firestore-vector.library";
+
 // Import models
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
 
@@ -19,6 +22,7 @@ import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidatePars
 import { gcpFirestoreUtilObj } from "../utils/gcp-firestore.util";
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
+
 
 class CandidateParsedCvDao implements BaseDao {
   databaseName: string = `worko-corp-db-${process.env.APP_SLS_STAGE}`;
@@ -35,14 +39,15 @@ class CandidateParsedCvDao implements BaseDao {
     return gcpFirestoreLibrary.getFirestoreDatabase(this.databaseName);
   }
 
-  async createCandidateParsedCv(createData: DbCandidateParsedCvDto) {
+  async createCandidateParsedCvWithEmbedding(createData: DbCandidateParsedCvDto, embeddingText: string): Promise<DbCandidateParsedCvDto | undefined> {
     global.logger.info(`Create Candidate Parsed CV [DAO]`, {
-      methodName: this.createCandidateParsedCv.name,
+      methodName: this.createCandidateParsedCvWithEmbedding.name,
     });
 
-    return gcpFirestoreLibrary.createDocument<DbCandidateParsedCvDto>(
+    return gcpFirestoreVectorLibrary.createDocumentWithEmbedding<DbCandidateParsedCvDto>(
       this.getCandidateParsedCvModelDetails(),
-      createData
+      createData,
+      embeddingText
     );
   }
 

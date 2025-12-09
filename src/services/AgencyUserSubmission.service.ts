@@ -505,7 +505,7 @@ class AgencyUserSubmissionService {
       DbAgencyJobAssignmentDto | undefined, 
       DbAgencyUserInviteDto | undefined
     ] = await Promise.all([
-      candidateParsedCvServiceObj.createCandidateParsedCv(
+      candidateParsedCvServiceObj.createCandidateParsedCvWithEmbedding(
         candidateParsedCvCreateData
       ),
       this.createAgencyUserSubmission(agencyUserSubmissionCreateData),
