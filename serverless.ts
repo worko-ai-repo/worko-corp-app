@@ -53,6 +53,7 @@ const serverlessConfiguration: AWS = {
       APP_SLS_REGION: "${env:APP_SLS_REGION}",
       APP_AWS_AGENCY_COGNITO_USER_POOL_ID: "${env:APP_AWS_AGENCY_COGNITO_USER_POOL_ID}",
       APP_AWS_WORKO_COGNITO_USER_POOL_ID: "${env:APP_AWS_WORKO_COGNITO_USER_POOL_ID}",
+      APP_AWS_SECRETS_MANAGER_1_ARN_SECRET: "${env:APP_AWS_SECRETS_MANAGER_1_ARN_SECRET}",
     },
     awsLambdaFunctions: {
       APP_AWS_SCHEDULER_HANDLER_LAMBDA_ARN: "arn:aws:lambda:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-corp-${self:custom.app.STAGE}-appScheduler",
@@ -198,7 +199,7 @@ const serverlessConfiguration: AWS = {
         "Action": [
             "secretsmanager:GetSecretValue",
         ],
-        "Resource": "arn:aws:secretsmanager:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:secret:GCP-secrect-uxzpTx"
+        "Resource": "arn:aws:secretsmanager:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:secret:${self:custom.aws.APP_AWS_SECRETS_MANAGER_1_ARN_SECRET}"
       }
     ],
   },

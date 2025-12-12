@@ -83,8 +83,6 @@ const APP_CONSTANTS = {
      */
     WORKO_SOURCE_TYPE_JD_RESUME_MATCHING_SCORE: `worko-sourcetype-jd-resume-matching-${process.env.APP_SLS_STAGE}`,
 
-    WORKO_SOURCE_TYPE_BULK_JD_RESUME_MATCHING_SCORE: `worko-corp-${process.env.APP_SLS_STAGE}-app-sourcetype-bulk-find-jd-cv-match-score`,
-
     /**
      * RESUME_EXTRACTION_LAMBDA_NAME
      */
