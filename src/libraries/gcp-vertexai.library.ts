@@ -1,3 +1,4 @@
+/*
 // Import vertexai package
 import {
   GenerateContentResult,
@@ -102,3 +103,4 @@ class GcpVertexAiLibrary {
 }
 
 export { GcpVertexAiLibrary };
+*/

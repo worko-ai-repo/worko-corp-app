@@ -231,3 +231,55 @@ Request ID: fjj1thTsqdAIw1eTu5hXjsR-YSFiE02KYS29nAPuRTR3Cs4LxLRBkQ==
 ```sh
 User: arn:aws:sts::211125353899:assumed-role/worko-corp-dev-ap-south-1-lambdaRole/worko-corp-dev-appScheduler is not authorized to perform: cognito-idp:AdminGetUser on resource: arn:aws:cognito-idp:ap-south-1:211125353899:userpool/c1f33dfa-c0d1-7043-dd6f-046dedb7dfbe because no identity-based policy allows the cognito-idp:AdminGetUser action
 ```
+
+11. 
+```json
+{
+    "error": {
+        "code": 3,
+        "details": "Vectors must be at most 2048 dimensions.",
+        "metadata": {
+            "x-debug-tracking-id": [
+                "8900261890962958164;o=1"
+            ]
+        }
+    }
+}
+```
+
+12. 
+```json
+{
+    "error": {
+        "code": 3,
+        "details": "A maximum of 1 'ARRAY_CONTAINS' filter is allowed per disjunction.",
+        "metadata": {
+            "x-debug-tracking-id": [
+                "10846233465156938146;o=1"
+            ]
+        }
+    }
+}
+```
+
+13. 
+```sh
+Error:
+UPDATE_FAILED: AppDashschedulerDashhandlerLambdaFunction (AWS::Lambda::Function)
+
+Resource handler returned message: "Unzipped size must be smaller than 262144000 bytes (Service: Lambda, Status Code: 400, Request ID: 956855d8-4e68-46ca-93df-49c433fb97ef) (SDK Attempt Count: 1)" (RequestToken: 6202dce0-06d6-29f4-f59a-0bcc09218185, HandlerErrorCode: InvalidRequest)
+
+View the full error: https://ap-south-1.console.aws.amazon.com/cloudformation/home?region=ap-south-1#/stack/detail?stackId=arn%3Aaws%3Acloudformation%3Aap-south-1%3A211125353899%3Astack%2Fworko-api-dev%2F62746260-218b-11ef-aa9d-0a3d9fa7ad09
+```
+
+14. 
+```sh
+2025-12-11T13:16:20.165Z	undefined	ERROR	(node:2) Warning: NodeDeprecationWarning: The AWS SDK for JavaScript (v3) will
+no longer support Node.js v18.20.8 in January 2026.
+
+To continue receiving updates to AWS services, bug fixes, and security
+updates please upgrade to a supported Node.js LTS version.
+
+More information can be found at: https://a.co/c895JFp
+(Use `node --trace-warnings ...` to show where the warning was created)
+```

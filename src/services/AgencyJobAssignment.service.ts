@@ -162,6 +162,24 @@ class AgencyJobAssignmentService {
           HttpStatusCode.NOT_FOUND_404
         );
       }
+
+      if (
+        reqBodyCompanyId !== agencyUserInviteDetails.companyId
+      ) {
+        global.logger.error(
+          `The agency invite is not associated with the company.`,
+          {
+            validatedRequestBody,
+            agencyUserInviteDetails,
+            methodName:
+              this.performCreateBulkAgencyJobAssignmentActivities.name,
+          }
+        );
+        throw new BaseError(
+          `The agency invite is not associated with the company you are trying to perform this action.`,
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
     } else {
       global.logger.error(
         `You are not worko-admin or corporate-admin/recruiter, so you are not allowed to perform this action.`,

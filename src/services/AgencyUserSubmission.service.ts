@@ -1088,7 +1088,7 @@ class AgencyUserSubmissionService {
        * @todo Need to check when and where this is updating in the process
        */
       expiryDate: DateTime.now().toJSDate(), 
-
+      isUserCreatedInternally: true,
       acceptedTermsAndConditions: false
     };
 

@@ -1,4 +1,5 @@
 
+/*
 export interface GcpVertexAiSecretResponseDto {
   type: string; // "service_account";
   project_id: string; // "worko-dev";
@@ -12,3 +13,4 @@ export interface GcpVertexAiSecretResponseDto {
   client_x509_cert_url: string; // "https://www.googleapis.com/robot/v1/metadata/x509/worko-vertex-ai-dev%40worko-dev.iam.gserviceaccount.com";
   universe_domain: string; // "googleapis.com";
 } 
+*/

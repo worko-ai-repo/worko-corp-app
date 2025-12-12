@@ -824,11 +824,11 @@ export interface ApplicantDetails {
 ```sh
 Email Template — Job Assigned
 Subject: New Role Assigned to Your Agency — Start Submitting Candidates :briefcase:
-Hi {Agency Name / Contact Name},
-A new job has been assigned to you by {Company Name} on Worko:
- Role: {Job Title}
- Location: {Location or "Remote"}
- CTC: {Salary Range if provided}
+Hi {{contactPersonName}},
+A new job has been assigned to you by {{companyName}} on Worko:
+ Role: {{jobTitle}}
+ Location: {{jobLocation}}
+ CTC: {jobSalaryRange} # Only if provided
 You can now start submitting shortlisted candidates directly from your Worko Agency Dashboard.
 :point_right: View Job & Submit Candidates
 If you need any help or have questions, we’re here to support you.
@@ -956,13 +956,7 @@ ClientId
 # Updates
 
 # Today's Plan
-1. Discuss with `CTO` about `composite` indexes for `gcp collections` with `createdAt` sortorder 
-2. implement code on `update cv`
-3. Test the `move to appl` and `send for eval` entirely
-5. Test `find matching score` feature once after shaukat fix it
-6. Check with ashutosh about every FE code merge
-7. Implement create document with embedding in gcp firestore
-8. Explain to ashutosh about `cvAwsS3ResourceType=USER_RESUME` issue in `admin dash`
-   ```sh
-   rohithappala999+cand9@gmail.com
-   ```
+1. move `firestore` to `aws secrets manager` and use from them in all repos
+2. bulk update by document ids with embedding
+3. single update document by id with embedding
+4. bulk create documents

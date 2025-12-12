@@ -2,7 +2,6 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 import { CandidateParsedCvCorporateListingFilterOptions, CandidateParsedCvCorporateListingFilterRequestDTO } from "../dtos/CandidateParsedCv.dto";
 
 // Import helpers
