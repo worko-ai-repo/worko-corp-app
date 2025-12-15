@@ -31,7 +31,7 @@ class CentralCandidateProfileDao implements BaseDao {
     };
   }
 
-  getCentralCandidateProfileFirestoreDatabase(): Firestore {
+  getCentralCandidateProfileFirestoreDatabase(): Promise<Firestore> {
     return gcpFirestoreLibrary.getFirestoreDatabase(this.databaseName);
   }
 
@@ -56,7 +56,7 @@ class CentralCandidateProfileDao implements BaseDao {
   ): Promise<GcpFirestoreRecordListingResponseDTO<DbCentralCandidateProfileDto[]>> {
     const { refereeType, candidateEmail } = filterOptions;
 
-    const db: Firestore = this.getCentralCandidateProfileFirestoreDatabase();
+    const db: Firestore = await this.getCentralCandidateProfileFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db.collection(
       this.collectionName
     );

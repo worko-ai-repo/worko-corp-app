@@ -31,7 +31,7 @@ class CorporateCandidateProfileDao implements BaseDao {
     };
   }
 
-  getCorporateCandidateProfileFirestoreDatabase(): Firestore {
+  getCorporateCandidateProfileFirestoreDatabase(): Promise<Firestore> {
     return gcpFirestoreLibrary.getFirestoreDatabase(this.databaseName);
   }
 
@@ -49,7 +49,7 @@ class CorporateCandidateProfileDao implements BaseDao {
     candidateEmailId: string,
     phoneNumberDetails: CorporateCandidateProfileDbPhoneNumberDto
   ): Promise<QuerySnapshot<DocumentData, DocumentData>> {
-    const db: Firestore = this.getCorporateCandidateProfileFirestoreDatabase();
+    const db: Firestore = await this.getCorporateCandidateProfileFirestoreDatabase();
 
     return db
       .collection(this.collectionName)
@@ -79,7 +79,7 @@ class CorporateCandidateProfileDao implements BaseDao {
   ): Promise<GcpFirestoreRecordListingResponseDTO<DbCorporateCandidateProfileDto[]>> {
     const { refereeType, companyId, candidateEmail } = filterOptions;
 
-    const db: Firestore = this.getCorporateCandidateProfileFirestoreDatabase();
+    const db: Firestore = await this.getCorporateCandidateProfileFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db.collection(
       this.collectionName
     );

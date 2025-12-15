@@ -4,8 +4,9 @@
   "description": "",
   "main": "",
   "scripts": {
+    "local": "nodemon",
     "build": "rimraf dist && tsc",
-    "deploy-offline": "npm run build && npx sls offline",
+    "deploy-offline": "npm run build && npx sls offline --stage=local",
     "build-webpack": "webpack",
     "serve": "webpack-dev-server"
   },

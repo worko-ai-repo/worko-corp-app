@@ -18,7 +18,7 @@ class GcpAiPlatformLibrary {
     if (
       !process.env.APP_GCP_AI_PLATFORM_MODEL_NAME ||
       !process.env.APP_GCP_AI_PLATFORM_LOCATION ||
-      !process.env.APP_AWS_SECRETS_MANAGER_1 ||
+      !process.env.APP_AWS_SECRETS_MANAGER_GCP_AI_PLATFORM ||
       !process.env.APP_GCP_PROJECT_ID
     ) {
       global.logger.error(
@@ -26,6 +26,8 @@ class GcpAiPlatformLibrary {
         {
           modelName: process.env.APP_GCP_AI_PLATFORM_MODEL_NAME,
           location: process.env.APP_GCP_AI_PLATFORM_LOCATION,
+          projectId: process.env.APP_GCP_PROJECT_ID,
+          awsSecretsManager: process.env.APP_AWS_SECRETS_MANAGER_GCP_AI_PLATFORM,
         }
       );
       throw new BaseError(
@@ -45,7 +47,7 @@ class GcpAiPlatformLibrary {
   async initAiPlatformArguments(): Promise<PredictionServiceClientConfig> {
     const credentials: GcpAiplatformSecretResponseDto =
       await awsClientSecretsManagerLibrary.getParsedSecret<GcpAiplatformSecretResponseDto>(
-        process.env.APP_AWS_SECRETS_MANAGER_1 as string
+        process.env.APP_AWS_SECRETS_MANAGER_GCP_AI_PLATFORM as string
       );
     const config: PredictionServiceClientConfig = {
       apiEndpoint: `${this.LOCATION}-aiplatform.googleapis.com`,

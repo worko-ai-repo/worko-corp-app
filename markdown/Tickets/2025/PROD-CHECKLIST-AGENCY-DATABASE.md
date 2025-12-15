@@ -29,7 +29,7 @@
    2. Create composite indexes as same as in `dev`
 8. Create frontend origin as `https://agency.worko.ai`
 9. deploy below ai lambdas by checking with @shaukat
-   1. `resume-parser`
+   1. `worko-resume-parser-dev`
    2. `worko-sourcetype-jd-resume-matching-prod`
 
 

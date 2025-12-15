@@ -86,7 +86,7 @@ const APP_CONSTANTS = {
     /**
      * RESUME_EXTRACTION_LAMBDA_NAME
      */
-    RESUME_EXTRACTION_LAMBDA_NAME: "resume-parser",
+    RESUME_EXTRACTION_LAMBDA_NAME: `worko-resume-parser-${process.env.APP_STAGE}`,
   },
 
   CASUAL_EMAIL_DOMAINS: [

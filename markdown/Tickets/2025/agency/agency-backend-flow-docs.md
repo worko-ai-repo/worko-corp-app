@@ -954,9 +954,12 @@ ClientId
 
 
 # Updates
+1. move `firestore` to `aws secrets manager` and use from them in all repos
+2. review aws sdk v3 in worko-api
+3. fix deployment issue in `worko-api` at `npm i` for file open error
+4. fix create and update email template issue for new aws sdk v3 email library
+
 
 # Today's Plan
-1. move `firestore` to `aws secrets manager` and use from them in all repos
-2. bulk update by document ids with embedding
-3. single update document by id with embedding
-4. bulk create documents
+1. test the user preference
+2. `worko-resume-parser-dev` instead of `resume-parser`

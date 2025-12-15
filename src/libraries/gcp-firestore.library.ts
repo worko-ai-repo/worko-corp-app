@@ -1,30 +1,56 @@
 // Import firestore package
 import { Firestore, Settings, DocumentData, WriteResult, DocumentSnapshot, WriteBatch, DocumentReference, QuerySnapshot, QueryDocumentSnapshot } from "@google-cloud/firestore";
 
+// Import sdk configs
+import { awsClientSecretsManagerLibrary } from "../configs/aws-sdk.config";
+
 // Import dtos
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
+import { GcpFirestoreSecretResponseDto } from "../dtos/Common.gcp-firestore.dto";
+
+// Import utils
+import { BaseError } from "../utils/errors.util";
+import HttpStatusCode from "../utils/http-codes.util";
 
 /**
  * Firestore overview
  * @see https://docs.cloud.google.com/firestore/native/docs/overview
  */
 class GcpFirestoreLibrary {
-  initFirestoreArguments(databaseId: string): Settings {
+  constructor() {
+    if (
+      !process.env.APP_GCP_PROJECT_ID ||
+      !process.env.APP_AWS_SECRETS_MANAGER_GCP_FIRESTORE
+    ) {
+      global.logger.error(
+        `PROJECT_ID or AWS_SECRETS_MANAGER is not defined in .env file.`,
+        {
+          projectId: process.env.APP_GCP_PROJECT_ID,
+          awsSecretsManager: process.env.APP_AWS_SECRETS_MANAGER_GCP_FIRESTORE,
+        }
+      );
+      throw new BaseError(
+        "PROJECT_ID or AWS_SECRETS_MANAGER is not defined in .env file.",
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+  }
+
+  async initFirestoreArguments(databaseId: string): Promise<Settings> {
+    const credentials: GcpFirestoreSecretResponseDto =
+      await awsClientSecretsManagerLibrary.getParsedSecret<GcpFirestoreSecretResponseDto>(
+        process.env.APP_AWS_SECRETS_MANAGER_GCP_FIRESTORE as string
+      );
+
     const settings: Settings = {
       databaseId: databaseId,
       ignoreUndefinedProperties: true,
+      projectId: process.env.APP_GCP_PROJECT_ID,
+      credentials: {
+        client_email: credentials.client_email,
+        private_key: credentials.private_key,
+      },
     };
-
-    if (process.env.APP_GCP_PROJECT_ID) {
-      settings.projectId = process.env.APP_GCP_PROJECT_ID;
-    }
-
-    if (process.env.APP_GCP_CLIENT_EMAIL && process.env.APP_GCP_PRIVATE_KEY) {
-      settings.credentials = {
-        client_email: process.env.APP_GCP_CLIENT_EMAIL,
-        private_key: process.env.APP_GCP_PRIVATE_KEY,
-      };
-    }
 
     /**
      * @todo: Implement emulator if running locally
@@ -33,15 +59,16 @@ class GcpFirestoreLibrary {
     return settings;
   }
 
-  getFirestoreDatabase(databaseId: string): Firestore {
-    return new Firestore(this.initFirestoreArguments(databaseId));
+  async getFirestoreDatabase(databaseId: string): Promise<Firestore> {
+    const settings: Settings = await this.initFirestoreArguments(databaseId);
+    return new Firestore(settings);
   }
 
   async createDocument<DbEntityDto extends DocumentData>(
     commonDbDetails: GcpFirestoreInteractionDto,
     data: DbEntityDto
   ): Promise<DbEntityDto | undefined> {
-    const db: Firestore = this.getFirestoreDatabase(
+    const db: Firestore = await this.getFirestoreDatabase(
       commonDbDetails.databaseName
     );
 
@@ -74,7 +101,7 @@ class GcpFirestoreLibrary {
     commonDbDetails: GcpFirestoreInteractionDto,
     documents: DbEntityDto[]
   ) {
-    const db: Firestore = this.getFirestoreDatabase(
+    const db: Firestore = await this.getFirestoreDatabase(
       commonDbDetails.databaseName
     );
 
@@ -102,7 +129,7 @@ class GcpFirestoreLibrary {
     commonDbDetails: GcpFirestoreInteractionDto,
     id: string
   ): Promise<DbEntityDto | undefined> {
-    const db: Firestore = this.getFirestoreDatabase(
+    const db: Firestore = await this.getFirestoreDatabase(
       commonDbDetails.databaseName
     );
     const doc: DocumentSnapshot<DocumentData, DocumentData> = await db
@@ -123,7 +150,7 @@ class GcpFirestoreLibrary {
   ): Promise<DbEntityDto[]> {
     if (!ids.length) return [];
     
-    const db: Firestore = this.getFirestoreDatabase(commonDbDetails.databaseName);
+    const db: Firestore = await this.getFirestoreDatabase(commonDbDetails.databaseName);
     
     // Chunk IDs into groups of 10 (Firestore 'in' limit)
     const chunks: string[][] = [];
@@ -151,7 +178,7 @@ class GcpFirestoreLibrary {
     id: string,
     data: UpdateEntityDto
   ): Promise<DbEntityDto | undefined> {
-    const db: Firestore = this.getFirestoreDatabase(
+    const db: Firestore = await this.getFirestoreDatabase(
       commonDbDetails.databaseName
     );
 
@@ -186,7 +213,7 @@ class GcpFirestoreLibrary {
     ids: string[],
     updateData: UpdateEntityDto
   ) {
-    const db: Firestore = this.getFirestoreDatabase(
+    const db: Firestore = await this.getFirestoreDatabase(
       commonDbDetails.databaseName
     );
 

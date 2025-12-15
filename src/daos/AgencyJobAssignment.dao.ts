@@ -31,7 +31,7 @@ class AgencyJobAssignmentDao implements BaseDao {
     };
   }
 
-  getAgencyJobAssignmentFirestoreDatabase(): Firestore {
+  getAgencyJobAssignmentFirestoreDatabase(): Promise<Firestore> {
     return gcpFirestoreLibrary.getFirestoreDatabase(this.databaseName);
   }
 
@@ -57,7 +57,7 @@ class AgencyJobAssignmentDao implements BaseDao {
       methodName: this.getBulkAgencyAssignment.name,
     });
 
-    const db: Firestore = this.getAgencyJobAssignmentFirestoreDatabase();
+    const db: Firestore = await this.getAgencyJobAssignmentFirestoreDatabase();
 
     return db
       .collection(this.collectionName)
@@ -79,7 +79,7 @@ class AgencyJobAssignmentDao implements BaseDao {
 
     const { status, agencyRegisteredEmail, companyId, searchText, assignedByCorporateUserId } = filterOptions;
 
-    const db: Firestore = this.getAgencyJobAssignmentFirestoreDatabase();
+    const db: Firestore = await this.getAgencyJobAssignmentFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db.collection(
       this.collectionName
     );
@@ -126,7 +126,7 @@ class AgencyJobAssignmentDao implements BaseDao {
       }
     );
 
-    const db: Firestore = this.getAgencyJobAssignmentFirestoreDatabase();
+    const db: Firestore = await this.getAgencyJobAssignmentFirestoreDatabase();
 
     return db
       .collection(this.collectionName)

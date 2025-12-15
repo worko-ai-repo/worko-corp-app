@@ -36,7 +36,7 @@ class AgencyUserInviteDao implements BaseDao {
     };
   }
 
-  getAgencyUserInviteFirestoreDatabase(): Firestore {
+  getAgencyUserInviteFirestoreDatabase(): Promise<Firestore> {
     return gcpFirestoreLibrary.getFirestoreDatabase(this.databaseName);
   }
 
@@ -73,7 +73,7 @@ class AgencyUserInviteDao implements BaseDao {
     const { companyId, invitedByCorporateUserId, inviteStatus, agencyEmail } =
       filterOptions;
 
-    const db: Firestore = this.getAgencyUserInviteFirestoreDatabase();
+    const db: Firestore = await this.getAgencyUserInviteFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db.collection(
       this.collectionName
     );
@@ -136,7 +136,7 @@ class AgencyUserInviteDao implements BaseDao {
       GSTIN
     } = data
 
-    const db: Firestore = this.getAgencyUserInviteFirestoreDatabase();
+    const db: Firestore = await this.getAgencyUserInviteFirestoreDatabase();
 
     /**
      * @see https://firebase.google.com/docs/firestore/query-data/queries#or_queries

@@ -23,7 +23,7 @@ class AgencyUserSubmissionDao implements BaseDao {
   databaseName: string = `worko-corp-db-${process.env.APP_SLS_STAGE}`;
   collectionName: string = "agencyUserSubmissions";
 
-  getAgencyUserSubmissionFirestoreDatabase() {
+  getAgencyUserSubmissionFirestoreDatabase(): Promise<Firestore> {
     return gcpFirestoreLibrary.getFirestoreDatabase(this.databaseName);
   }
 
@@ -55,7 +55,7 @@ class AgencyUserSubmissionDao implements BaseDao {
     const { companyId, jobId, agencyRegisteredEmail, candidateEmail, agencyName, agencyJobAssignedByCorporateUserId } =
       filterOptions;
 
-    const db: Firestore = this.getAgencyUserSubmissionFirestoreDatabase();
+    const db: Firestore = await this.getAgencyUserSubmissionFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db.collection(
       this.collectionName
     );

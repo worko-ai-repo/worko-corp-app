@@ -157,7 +157,7 @@ class GcpFirestoreVectorLibrary {
       queryText,
       "RETRIEVAL_QUERY"
     );
-    const db: Firestore = gcpFirestoreLibrary.getFirestoreDatabase(
+    const db: Firestore = await gcpFirestoreLibrary.getFirestoreDatabase(
       commonDbDetails.databaseName
     );
 

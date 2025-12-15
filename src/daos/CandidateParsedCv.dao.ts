@@ -35,7 +35,7 @@ class CandidateParsedCvDao implements BaseDao {
     };
   }
 
-  getCandidateParsedCvFirestoreDatabase() {
+  getCandidateParsedCvFirestoreDatabase(): Promise<Firestore> {
     return gcpFirestoreLibrary.getFirestoreDatabase(this.databaseName);
   }
 
@@ -78,7 +78,7 @@ class CandidateParsedCvDao implements BaseDao {
       throw new BaseError("CompanId is required", HttpStatusCode.BAD_REQUEST_400);
     }
 
-    const db: Firestore = this.getCandidateParsedCvFirestoreDatabase();
+    const db: Firestore = await this.getCandidateParsedCvFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db
       .collection(this.collectionName)
       .where("companyId", "==", companyId);
