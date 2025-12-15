@@ -94,14 +94,14 @@ class GcpFirestoreVectorLibrary {
 
     const updateData: UpdateEntityDto & {
       embeddingVector: FieldValue;
-      embeddingRegeneratedAt: string;
+      embeddingGeneratedAt: string;
       embeddingModel: string;
       embeddingDimensions: number;
       embeddingOptimizedForSearch: boolean;
     } = {
       ...data,
       embeddingVector: FieldValue.vector(embedding),
-      embeddingRegeneratedAt: data.updatedAt,
+      embeddingGeneratedAt: data.updatedAt,
       embeddingModel: this.MODEL_NAME,
       embeddingDimensions: dimensions,
       embeddingOptimizedForSearch: true,
@@ -116,7 +116,7 @@ class GcpFirestoreVectorLibrary {
     return gcpFirestoreLibrary.updateDocumentById<
       UpdateEntityDto & {
         embeddingVector: FieldValue;
-        embeddingRegeneratedAt: string;
+        embeddingGeneratedAt: string;
         embeddingModel: string;
         embeddingDimensions: number;
         embeddingOptimizedForSearch: boolean;

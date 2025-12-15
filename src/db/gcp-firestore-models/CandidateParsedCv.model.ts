@@ -158,7 +158,6 @@ interface DbCandidateParsedCvDto extends BaseFirestoreModel {
    * @example "2022-01-01T00:00:00.000Z"
    */
   embeddingGeneratedAt?: string;
-  embeddingRegeneratedAt?: string;
   /**
    * @example "amazon.titan-embed-text-v2:0"
    */
