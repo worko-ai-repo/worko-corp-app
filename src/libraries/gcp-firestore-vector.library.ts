@@ -19,6 +19,10 @@ import { dateHelperObj } from "../helpers/date.helper";
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
 
+/**
+ * Search with vector embeddings
+ * @see https://firebase.google.com/docs/firestore/vector-search
+ */
 class GcpFirestoreVectorLibrary {
   constructor() {
     if (
@@ -38,6 +42,10 @@ class GcpFirestoreVectorLibrary {
   }
   private readonly MODEL_NAME = process.env.APP_GCP_AI_PLATFORM_MODEL_NAME as string;
 
+  /**
+   * Store vector embeddings
+   * @see https://firebase.google.com/docs/firestore/vector-search#store_vector_embeddings
+   */
   async createDocumentWithEmbedding<DbEntityDto extends DocumentData>(
     commonDbDetails: GcpFirestoreInteractionDto,
     data: DbEntityDto,
