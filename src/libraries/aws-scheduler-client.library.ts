@@ -1,5 +1,17 @@
 // NPM packages
-import AWS from "aws-sdk";
+import {
+  SchedulerClient,
+  CreateScheduleCommand,
+  DeleteScheduleCommand,
+  GetScheduleCommand,
+  type SchedulerClientConfig,
+  type CreateScheduleCommandInput,
+  type CreateScheduleCommandOutput,
+  type DeleteScheduleCommandInput,
+  type DeleteScheduleCommandOutput,
+  type GetScheduleCommandInput,
+  type GetScheduleCommandOutput,
+} from "@aws-sdk/client-scheduler";
 
 /**
  * AwsSchedulerLibrary
@@ -14,22 +26,36 @@ class AwsSchedulerLibrary {
    *
    * AWS Scheduler object to perform scheduling related operations.
    */
-  private scheduler: AWS.Scheduler;
+  private scheduler: SchedulerClient;
 
   /**
    * constructor
    *
    * Initializes the AWS Scheduler client with the provided configuration.
    *
-   * @param {AWS.Scheduler.ClientConfiguration} config - Configuration options for the AWS Scheduler client.
+   * @param {SchedulerClientConfig} config - Configuration options for the AWS Scheduler client.
    */
-  constructor(private config: AWS.Scheduler.ClientConfiguration) {
-    this.scheduler = new AWS.Scheduler(this.config);
+  constructor(private config: SchedulerClientConfig) {
+    this.scheduler = new SchedulerClient(this.config);
 
     // Log message indicating successful initialization of the class
     console.log(`The '${AwsSchedulerLibrary.name}' is initialised.`, {
       filePath: __filename,
     });
+  }
+
+  async getScheduleById(
+    params: GetScheduleCommandInput
+  ): Promise<GetScheduleCommandOutput> {
+    // Logger message for the getScheduleById method call
+    global.logger.info("Fetching schedule by ID (data).", {
+      filePath: __filename,
+      methodName: this.getScheduleById.name,
+      params: params,
+    });
+
+    // Fetch and return the schedule details
+    return this.scheduler.send(new GetScheduleCommand(params));
   }
 
   /**
@@ -40,9 +66,9 @@ class AwsSchedulerLibrary {
    * @param {AWS.Scheduler.ClientConfiguration} config
    * @returns {void}
    */
-  updateConfig(config: AWS.Scheduler.ClientConfiguration): void {
+  updateConfig(config: SchedulerClientConfig): void {
     this.config = config;
-    this.scheduler = new AWS.Scheduler(config);
+    this.scheduler = new SchedulerClient(config);
   }
   /**
    * createSchedule
@@ -53,8 +79,8 @@ class AwsSchedulerLibrary {
    * @returns {Promise<AWS.Scheduler.CreateScheduleOutput>} - A promise that resolves to the output of the create schedule operation.
    */
   async createSchedule(
-    params: AWS.Scheduler.CreateScheduleInput
-  ): Promise<AWS.Scheduler.CreateScheduleOutput> {
+    params: CreateScheduleCommandInput
+  ): Promise<CreateScheduleCommandOutput> {
     // Logger message for the createSchedule method call
     global.logger.info("Creating new schedule (data).", {
       filePath: __filename,
@@ -63,7 +89,7 @@ class AwsSchedulerLibrary {
     });
 
     // Create the schedule and return the result
-    return this.scheduler.createSchedule(params).promise();
+    return this.scheduler.send(new CreateScheduleCommand(params));
   }
 
   /**
@@ -75,8 +101,8 @@ class AwsSchedulerLibrary {
    * @returns {Promise<AWS.Scheduler.DeleteScheduleOutput>} - A promise that resolves to the output of the delete schedule operation.
    */
   async deleteSchedule(
-    params: AWS.Scheduler.DeleteScheduleInput
-  ): Promise<AWS.Scheduler.DeleteScheduleOutput> {
+    params: DeleteScheduleCommandInput
+  ): Promise<DeleteScheduleCommandOutput> {
     // Logger message for the deleteSchedule method call
     global.logger.info("Deleting schedule (data).", {
       filePath: __filename,
@@ -85,7 +111,7 @@ class AwsSchedulerLibrary {
     });
 
     // Delete the schedule and return the result
-    return this.scheduler.deleteSchedule(params).promise();
+    return this.scheduler.send(new DeleteScheduleCommand(params));
   }
 }
 

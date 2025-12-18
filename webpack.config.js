@@ -1,78 +1,98 @@
+/**
+ * @see https://webpack.js.org/guides/typescript/
+ * @see https://programoholic.medium.com/build-and-deploy-serverless-application-with-webpack-584163367390
+ * @description
+ *  1. Reduce the build size of the application from more than `250MB` to 2–3 MB per lambda using webpack
+ */
 
-const path = require("path")
-const slsw =  require("serverless-webpack")
+const path = require("path");
+const slsw = require("serverless-webpack");
+const webpack = require("webpack");
+const nodeExternals = require("webpack-node-externals");
+const TerserPlugin = require("terser-webpack-plugin");
+const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
 
 module.exports = {
-  /**
-   * Entry point for the Webpack bundling process.
-   * Automatically detected by Serverless Webpack (`slsw.lib.entries`) based on your `serverless.ts` function definitions.
-   */
   entry: slsw.lib.entries,
 
   /**
-   * Defines the environment for which Webpack is bundling the code.
-   * Setting it to 'node' targets Node.js, which is the runtime environment for AWS Lambda.
+   * @description  tells webpack you're building for Node.js environment
    */
   target: "node",
-
-  /**
-   * Specifies the build mode:
-   * - 'development' for local builds to include source maps and easier debugging.
-   * - 'production' for optimized and minified code ready for deployment to AWS.
-   */
   mode: slsw.lib.webpack.isLocal ? "development" : "production", // Use "production" for deployment
 
-  /**
-   * Output settings for the bundled files.
-   *
-   * @property {string} libraryTarget - Specifies the module format for output, set to 'commonjs' as required by AWS Lambda.
-   * @property {string} path - The directory where Webpack will output the bundled files, in this case '.webpack'.
-   * @property {string} filename - The output filename pattern for the bundled functions.
-   */
   output: {
     libraryTarget: "commonjs",
     path: path.join(__dirname, ".webpack"),
     filename: "[name].js",
   },
-
-  /**
-   * Resolves extensions for module imports.
-   * Allows importing files without needing to specify their extensions for TypeScript (`.ts`) and JavaScript (`.js`).
-   * Automatically resolve '.ts' and '.js' files when importing.
-   */
   resolve: {
     extensions: [".ts", ".js"],
   },
 
   /**
-   * Memory optimization for containerized builds
+   * @description ForkTsCheckerWebpackPlugin is used for Typescript’s type-checking and linting.
+   */
+  plugins: [new ForkTsCheckerWebpackPlugin()],
+
+  /**
+   * Optimization for Lambda deployment
    */
   optimization: {
-    splitChunks: false,
-    minimize: false
+    minimize: true,
+
+    /**
+     * @description
+     * TerserPlugin is one of the most popular code minification library.
+     * We are using this to minify the code.
+     */
+    minimizer: [
+      new TerserPlugin({
+        terserOptions: {
+          keep_classnames: true,
+          keep_fnames: true,
+        },
+      }),
+    ],
   },
 
   /**
    * Reduce build output to prevent memory issues
    */
-  stats: 'errors-only',
+  stats: "errors-only",
 
-  /**
-   * Defines how different file types should be processed (rules).
-   *
-   * @property {RegExp} test - Specifies which file types should be processed. In this case, `.ts` files.
-   * @property {string} use - Specifies the loader to handle TypeScript files, which is `ts-loader`.
-   * @property {string[]} include - Restricts the compilation to the 'src' directory where your TypeScript source files are located.
-   * @property {RegExp} exclude - Excludes the 'node_modules' directory from TypeScript compilation, as external libraries don't need to be recompiled.
-   */
   module: {
     rules: [
       {
+        // Process all .ts files
         test: /\.ts$/,
-        use: "ts-loader",
+
+        // Use typescript loader to covert TypeScript to JavaScript
+        loader: "ts-loader",
+
+        options: {
+          // disable type checker - we will use it in fork plugin
+          transpileOnly: true,
+        },
+        
+        // Only process files within `src` directory
         include: [path.resolve(__dirname, "src")],
+
+        // Skip typescript files in dependencies
         exclude: /node_modules/,
       },
     ],
   },
+
+  /**
+   * @description  says "don't add polyfills, the runtime already has Node.js APIs"
+   */
+  node: false,
+
+  /**
+   * @description
+   * node-externals library enables the third party dependencies to be installed separately and not included in the build file.
+   * You can avoid it if you want the the third party libraries to be included in the build file.
+   */
+  externals: [nodeExternals()],
 };

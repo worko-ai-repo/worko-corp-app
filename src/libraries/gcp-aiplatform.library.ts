@@ -75,7 +75,7 @@ class GcpAiPlatformLibrary {
     title?: string,
     retries: number = 3
   ): Promise<{
-    embedding: number[];
+    embedding: number[]; // [1.0 , 2.0, 3.0]
     dimensions: number;
   }> {
     const predictionClient: PredictionServiceClient =

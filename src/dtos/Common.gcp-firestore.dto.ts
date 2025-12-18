@@ -115,6 +115,9 @@ export interface GcpFirestoreRecordListingPaginationResponseDTO {
    * lastKey 
    *
    * Sample Value: "WzE3NDAzOTY2NDE0MzEsIjE0MzA3MDQwMzIiXQ"
+   * 
+   * @description
+   *  1. Whenever normal firestore pagination is used then "lastKey" will be utilized to determine whether the API should return more results or not.
    */
   lastKey?: string;
 

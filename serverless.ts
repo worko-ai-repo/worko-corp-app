@@ -40,6 +40,29 @@ const serverlessConfiguration: AWS = {
   ],
 
   custom: {
+    webpack: {
+      webpackConfig: './webpack.config.js',
+      packager: 'npm',
+      includeModules: {
+
+        /**
+         * @description We are passing the configuration for the serverless-webpack plugin. 
+         * You can explicitly exclude and include third party libraries based on your requirement. 
+         * Since @aws-sdk v3 is already provided in the lambda environment by AWS , 
+         * we don’t need to package it in the build hence it’s been excluded forcefully.
+         */
+        forceExclude: [
+          "@aws-sdk/client-cognito-identity-provider",
+          "@aws-sdk/client-lambda",
+          "@aws-sdk/client-scheduler",
+          "@aws-sdk/client-secrets-manager",
+          "@aws-sdk/client-ses",
+          "@aws-sdk/client-s3",
+          "@aws-sdk/s3-request-presigner",
+          "@aws-sdk/lib-storage"
+        ]
+      }
+    },
     app: {
       STAGE: "${env:APP_SLS_STAGE}",
     },

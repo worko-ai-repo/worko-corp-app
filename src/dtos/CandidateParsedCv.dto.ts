@@ -8,8 +8,10 @@ import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsed
 
 export interface CandidateParsedCvDbPhoneNumberDto extends CommonPhoneNumberDto {}
 
-export interface CandidateParsedCvCorporateListingFilterOptions extends GcpFirestoreRecordListingFilterOptions {
+export interface CandidateParsedCvCorpEmbeddingListingFilterOptions extends GcpFirestoreRecordListingFilterOptions {
    companyId: string;
+   searchByPrompt?: string;
+   searchByJobDescription?: string;
    jobId?: string;
    currentCompany?: string;
    currentDesignation?: string;
@@ -23,8 +25,10 @@ export interface CandidateParsedCvCorporateListingFilterOptions extends GcpFires
    isNoticePeriodNegotiable?: boolean;
 }
 
-export interface CandidateParsedCvCorporateListingFilterRequestDTO extends GcpFirestoreRecordListingFilterRequestDTO {
+export interface CandidateParsedCvCorpEmbeddingListingFilterRequestDTO extends GcpFirestoreRecordListingFilterRequestDTO {
    companyId: string;
+   searchByPrompt?: string;
+   searchByJobDescription?: string;
    jobId?: string;
    currentCompany?: string;
    currentDesignation?: string;

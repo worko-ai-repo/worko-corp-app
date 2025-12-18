@@ -3,13 +3,22 @@ import Joi from "joi";
 // Import schemas
 import { gcpFirestoreCommonSchema } from "./Common.gcp-firestore.schema";
 
-export const candidateParsedCvCorporateFilterDtoValidation =
+export const candidateParsedCvCorpEmbeddingFilterDtoValidation =
   gcpFirestoreCommonSchema.concat(
     Joi.object({
       companyId: Joi.string().required().messages({
         "string.empty": "Company id is required",
         "any.required": "Company id is required",
       }),
+      searchByPrompt: Joi.string().optional().allow(null).messages({
+        "string.base": "Search by prompt should be a string",
+      }),
+      searchByJobDescription: Joi.string()
+        .optional()
+        .allow(null)
+        .messages({
+          "string.base": "Search by job description should be a string",
+        }),
       jobId: Joi.string().optional().allow(null, "").messages({
         "string.base": "Job id should be a string",
       }),

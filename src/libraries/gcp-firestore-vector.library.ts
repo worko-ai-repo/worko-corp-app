@@ -1,6 +1,6 @@
 
 // Import firestore package
-import { Firestore, DocumentData, QueryDocumentSnapshot, VectorQuerySnapshot, FieldValue } from "@google-cloud/firestore";
+import { Firestore, DocumentData, QueryDocumentSnapshot, VectorQuerySnapshot, FieldValue, Query, VectorQuery, VectorValue, WhereFilterOp, DocumentSnapshot } from "@google-cloud/firestore";
 
 // Import sdk configs
 import { 
@@ -10,10 +10,12 @@ import {
 
 // Import dtos
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
-import { VectorQueryResult } from "../dtos/Common.gcp-firestore-vector.dto";
+import { GcpFirestoreVectorRecordListingFilterOptions } from "../dtos/Common.gcp-firestore-vector.dto";
+import { GcpFirestoreRecordListingResponseDTO, GcpFirestoreRecordListingPaginationResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import helpers
 import { dateHelperObj } from "../helpers/date.helper";
+import { gcpFirestoreBase64EncodeStrToLastKey, gcpFirestorelastKeyToBase64EncodeStr } from "../helpers/gcp-firestore.helper";
 
 // Import utils
 import { BaseError } from "../utils/errors.util";
@@ -55,7 +57,7 @@ class GcpFirestoreVectorLibrary {
       await gcpAiPlatformLibrary.generateEmbedding(embeddingText);
 
     const documentWithEmbedding: DbEntityDto & {
-      embeddingVector: FieldValue;
+      embeddingVector: VectorValue;
       embeddingGeneratedAt: string;
       embeddingModel: string;
       embeddingDimensions: number;
@@ -71,7 +73,7 @@ class GcpFirestoreVectorLibrary {
 
     return gcpFirestoreLibrary.createDocument<
       DbEntityDto & {
-        embeddingVector: FieldValue;
+        embeddingVector: VectorValue;
         embeddingGeneratedAt: string;
         embeddingModel: string;
         embeddingDimensions: number;
@@ -101,7 +103,7 @@ class GcpFirestoreVectorLibrary {
       );
 
     const updateData: UpdateEntityDto & {
-      embeddingVector: FieldValue;
+      embeddingVector: VectorValue;
       embeddingGeneratedAt: string;
       embeddingModel: string;
       embeddingDimensions: number;
@@ -123,7 +125,7 @@ class GcpFirestoreVectorLibrary {
 
     return gcpFirestoreLibrary.updateDocumentById<
       UpdateEntityDto & {
-        embeddingVector: FieldValue;
+        embeddingVector: VectorValue;
         embeddingGeneratedAt: string;
         embeddingModel: string;
         embeddingDimensions: number;
@@ -133,6 +135,7 @@ class GcpFirestoreVectorLibrary {
     >(commonDbDetails, id, updateData);
   }
 
+  /*
   async getDocumentsByEmbedding<DbEntityDto>(
     commonDbDetails: GcpFirestoreInteractionDto,
     queryText: string,
@@ -146,15 +149,7 @@ class GcpFirestoreVectorLibrary {
       }[];
       distanceThreshold?: number;
     }
-  ): Promise<{
-    results: VectorQueryResult<DbEntityDto>[];
-    pagination: {
-      page: number;
-      limit: number;
-      totalResults: number;
-      hasMore: boolean;
-    };
-  }> {
+  ): Promise<GcpFirestoreRecordListingResponseDTO<DbEntityDto[]>> {
     const limit = options?.limit || 10;
     const page = options?.page || 1;
     const additionalFilters = options?.additionalFilters;
@@ -169,7 +164,7 @@ class GcpFirestoreVectorLibrary {
       commonDbDetails.databaseName
     );
 
-    let query: FirebaseFirestore.Query = db.collection(
+    let query: Query = db.collection(
       commonDbDetails.collectionName
     );
 
@@ -185,25 +180,20 @@ class GcpFirestoreVectorLibrary {
     const fetchLimit = limit * page + 1; // +1 to check if there are more results
 
     // Use Firestore's native vector search with findNearest (updated API)
-    const vectorQuery = query.findNearest({
+    const vectorQuery: VectorQuery<DocumentData, DocumentData> = query.findNearest({
       vectorField: "embeddingVector",
       queryVector: embedding,
-      limit: fetchLimit,
+      limit: limit,
       distanceMeasure: "COSINE",
     });
 
-    const snapshot: VectorQuerySnapshot<DocumentData, DocumentData> =
-      await vectorQuery.get();
+    const snapshot: VectorQuerySnapshot<DocumentData, DocumentData> = await vectorQuery.get();
 
-    const allResults: VectorQueryResult<DbEntityDto>[] = [];
+    const allResults: DbEntityDto[] = [];
 
     snapshot.forEach(
       (doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => {
         const data = doc.data() as DbEntityDto & { embeddingVector: number[] };
-        global.logger.info(
-          "Found document with embedding before calculating cosine distance",
-          { documentId: doc.id }
-        );
 
         // Calculate distance (lower distance = higher similarity = better match)
         const distance: number = this.calculateCosineDistance(
@@ -212,48 +202,143 @@ class GcpFirestoreVectorLibrary {
         );
 
         // Calculate similarity score (0-100, higher is better)
-        const score = Math.max(0, Math.min(100, (1 - distance) * 100));
+        // const score: number = Math.max(0, Math.min(100, (1 - distance) * 100));
 
         // Apply distance threshold if provided
         if (!distanceThreshold || distance <= distanceThreshold) {
-          allResults.push({
-            document: data,
-            distance,
-            score, // Add score for easier interpretation
-          });
+          allResults.push(data);
         }
       }
     );
 
     // Results are already sorted by distance (best matches first) from Firestore
     // But we'll ensure they're sorted by score (descending) for clarity
-    allResults.sort((a, b) => (a.score || 0) - (b.score || 0)).reverse();
+    // allResults.sort((a, b) => (a.score || 0) - (b.score || 0)).reverse();
 
     // Calculate pagination
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const paginatedResults = allResults.slice(startIndex, endIndex);
-    const hasMore = allResults.length > endIndex;
+    // const startIndex = (page - 1) * limit;
+    // const endIndex = startIndex + limit;
+    // const paginatedResults = allResults.slice(startIndex, endIndex);
+    // const hasMore = allResults.length > endIndex;
 
-    global.logger.info("Vector search completed", {
+    const pagination: GcpFirestoreRecordListingPaginationResponseDTO = {
+      count: allResults.length,
+      pageSize: limit,
+      hasMore: allResults.length === fetchLimit ? true : false,
+    };
+
+    const response: GcpFirestoreRecordListingResponseDTO<DbEntityDto[]> = {
+      data: allResults,
+      pagination,
+    };
+
+    return response;
+  }
+  */
+
+  async getDocumentsByEmbedding<DbEntityDto>(
+    commonDbDetails: GcpFirestoreInteractionDto,
+    queryText: string,
+    filterOptions?: GcpFirestoreVectorRecordListingFilterOptions
+  ): Promise<GcpFirestoreRecordListingResponseDTO<DbEntityDto[]>> {
+    global.logger.info("Getting documents by embedding", { 
       queryText,
-      totalResults: allResults.length,
-      page,
-      limit,
-      returnedResults: paginatedResults.length,
-      hasMore,
-      hasFilters: !!additionalFilters?.length,
+      filterOptions
+     });
+
+    // Generate embedding for the query text with RETRIEVAL_QUERY task type
+    const { embedding } = await gcpAiPlatformLibrary.generateEmbedding(
+      queryText,
+      "RETRIEVAL_QUERY"
+    );
+    global.logger.debug("Generated embedding for query text length", { 
+      generatedEmbeddingLength: embedding.length
+    });
+    const db: Firestore = await gcpFirestoreLibrary.getFirestoreDatabase(
+      commonDbDetails.databaseName
+    );
+
+    let query: Query = db.collection(
+      commonDbDetails.collectionName
+    );
+
+    let limit: number = 10;
+
+    // Apply additional filters if provided
+    if (filterOptions && filterOptions?.preFilters && filterOptions.preFilters.length > 0) {
+      limit = filterOptions.pageSize;
+      filterOptions.preFilters.forEach(
+        (filter: {
+          field: string;
+          operator: WhereFilterOp;
+          value: string;
+        }) => {
+          query = query.where(filter.field, filter.operator, filter.value);
+        }
+      );
+    }
+
+    // Handle pagination with lastKey
+    if (filterOptions?.lastKey) {
+      const lastKeyDetails: {
+        gcpFirestoreDocumentId: string;
+      } | undefined = gcpFirestoreBase64EncodeStrToLastKey(filterOptions.lastKey);
+      if(lastKeyDetails) {
+        const { gcpFirestoreDocumentId } = lastKeyDetails;
+        const docSnapshot: DocumentSnapshot<DocumentData, DocumentData> = await db
+          .collection(commonDbDetails.collectionName)
+          .doc(gcpFirestoreDocumentId)
+          .get();
+        query = query.startAfter(docSnapshot);
+      }
+    }
+
+    // Use Firestore's native vector search with findNearest (updated API)
+    const vectorQuery: VectorQuery<DocumentData, DocumentData> = query.findNearest({
+      vectorField: "embeddingVector",
+      queryVector: embedding,
+      limit: limit,
+      distanceMeasure: "COSINE",
+      distanceThreshold: filterOptions?.distanceThreshold,
+      distanceResultField: "embeddingVectorDistance",
     });
 
-    return {
-      results: paginatedResults,
-      pagination: {
-        page,
-        limit,
-        totalResults: allResults.length,
-        hasMore,
-      },
+    const snapshot: VectorQuerySnapshot<DocumentData, DocumentData> = await vectorQuery.get();
+
+    const allResults: DbEntityDto[] = [];
+
+    snapshot.forEach(
+      (doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => {
+        const data = doc.data() as DbEntityDto & { embeddingVector: { _values: number[] }, embeddingVectorDistance: number };
+
+        // Calculate distance (lower distance = higher similarity = better match)
+        const distance: number = data.embeddingVectorDistance;
+        global.logger.debug("Calculated distance", { 
+          calculatedCosineDistanceByFirestore: distance,
+          givenDistanceThresholdInFilter: filterOptions?.distanceThreshold
+        });
+
+        allResults.push(data);
+      }
+    );
+
+    const lastDoc: QueryDocumentSnapshot<DocumentData, DocumentData> | undefined = 
+      snapshot.docs[snapshot.docs.length - 1];
+
+    const pagination: GcpFirestoreRecordListingPaginationResponseDTO = {
+      count: allResults.length,
+      pageSize: limit,
+      lastKey: allResults.length === limit && lastDoc ? gcpFirestorelastKeyToBase64EncodeStr({
+        gcpFirestoreDocumentId: lastDoc.id
+      }) : undefined,
     };
+
+    const response: GcpFirestoreRecordListingResponseDTO<DbEntityDto[]> = {
+      data: allResults,
+      pagination,
+    };
+
+    return response;
   }
 
   /**
@@ -291,22 +376,6 @@ class GcpFirestoreVectorLibrary {
       newEmbeddingText,
       title
     );
-  }
-
-  private calculateCosineDistance(vec1: number[], vec2: number[]): number {
-    let dotProduct: number = 0;
-    let norm1: number = 0;
-    let norm2: number = 0;
-
-    for (let i = 0; i < vec1.length; i++) {
-      dotProduct += vec1[i] * vec2[i];
-      norm1 += vec1[i] * vec1[i];
-      norm2 += vec2[i] * vec2[i];
-    }
-
-    const similarity: number =
-      dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
-    return 1 - similarity;
   }
 }
 

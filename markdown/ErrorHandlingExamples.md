@@ -283,3 +283,81 @@ updates please upgrade to a supported Node.js LTS version.
 More information can be found at: https://a.co/c895JFp
 (Use `node --trace-warnings ...` to show where the warning was created)
 ```
+
+15. 
+```json
+{
+  "error": { "name": "CredentialsProviderError", "tryNextLink": false },
+  "level": "error",
+  "message": "Failed to get secret",
+  "methodName": "getSecret"
+}
+```
+
+16. 
+```json
+{
+  "error": {
+    "$fault": "client",
+    "$metadata": {
+      "attempts": 1,
+      "httpStatusCode": 400,
+      "requestId": "9f409923-5fb3-4355-8a39-026a0ac386db",
+      "totalRetryDelay": 0
+    },
+    "__type": "UnrecognizedClientException",
+    "message": "The security token included in the request is invalid.",
+    "name": "UnrecognizedClientException"
+  },
+  "level": "error",
+  "message": "Failed to get secret",
+  "methodName": "getSecret"
+}
+```
+
+17. 
+```json
+{
+  "error": {
+    "code": 5,
+    "details": "",
+    "metadata": { "x-debug-tracking-id": ["12498081562676102037;o=1"] }
+  },
+  "level": "error",
+  "message": "Get All Candidate Parsed Cv By Corporate Filter Options [Controller]",
+  "methodName": "getAllCandidateParsedCvByCorporateFilterOptions"
+}
+```
+
+18. 
+```json
+{PS C:\Users\rohit> aws sts get-caller-identity
+
+An error occurred (ExpiredToken) when calling the GetCallerIdentity operation: The security token included in the request is expired
+PS C:\Users\rohit>
+  "error": {
+    "$fault": "client",
+    "$metadata": {
+      "attempts": 1,
+      "httpStatusCode": 400,
+      "requestId": "8dd720f6-94c8-4c28-8c47-7a5bfa0d0bcb",
+      "totalRetryDelay": 0
+    },
+    "__type": "ExpiredTokenException",
+    "message": "The security token included in the request is expired",
+    "name": "ExpiredTokenException"
+  },
+  "level": "error",
+  "message": "Failed to get secret",
+  "methodName": "getSecret"
+}
+```
+
+11. 
+```json
+{
+    "errorCode": 500,
+    "errorMsg": "9 FAILED_PRECONDITION: Missing vector index configuration. Please create the required index with the following gcloud command: gcloud firestore indexes composite create --project=worko-dev --database=\"worko-corp-db-dev\" --collection-group=candidateParsedCvs --query-scope=COLLECTION --field-config=order=ASCENDING,field-path=companyId --field-config=vector-config='{\"dimension\":\"768\",\"flat\": \"{}\"}',field-path=embeddingVector",
+    "timeStamp": "2025-12-17T09:58:44.535Z"
+}
+```

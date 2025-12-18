@@ -6,6 +6,9 @@ import {
   SecretsManagerClientConfig,
 } from "@aws-sdk/client-secrets-manager";
 
+// Import configs
+import APP_CONSTANTS from "../configs/constants.config";
+
 // Import utils
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
@@ -20,6 +23,22 @@ class AwsClientSecretsManagerLibrary {
     config = {
       region: process.env.APP_SLS_REGION,
     };
+
+    /**
+     * @todo: 
+     *  1. Need to investigate how to use AWS credentials for local development
+     *  2. I configured aws credentials in my local machine and it worked without below code, so need to 
+     *    investigate how this code works from local machine.
+     */
+    // if (APP_CONSTANTS.STAGES.LOCAL === process.env.APP_STAGE) {
+    //   if(!process.env.APP_AWS_ACCESS_KEY_ID || !process.env.APP_AWS_SECRET_ACCESS_KEY) {
+    //     throw new BaseError("Missing AWS credentials for local development [AWS SECRETS MANAGER LIBRARY]", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    //   }
+    //   config.credentials = {
+    //     accessKeyId: process.env.APP_AWS_ACCESS_KEY_ID,
+    //     secretAccessKey: process.env.APP_AWS_SECRET_ACCESS_KEY,
+    //   };
+    // }
 
     return config;
   }

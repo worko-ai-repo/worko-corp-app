@@ -1,13 +1,15 @@
 
 // Import firestore package
-import { DocumentData, Firestore, Query } from "@google-cloud/firestore";
+import { Firestore } from "@google-cloud/firestore";
 
 // Import configs
 import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
+import APP_CONSTANTS from "../configs/constants.config";
 
 // Import dtos
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
-import { CandidateParsedCvCorporateListingFilterOptions } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvCorpEmbeddingListingFilterOptions } from "../dtos/CandidateParsedCv.dto";
+import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import daos
 import BaseDao from "./BaseGcpFirestore.dao";
@@ -19,13 +21,16 @@ import { gcpFirestoreVectorLibrary } from "../libraries/gcp-firestore-vector.lib
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
 
 // Import utils
-import { gcpFirestoreUtilObj } from "../utils/gcp-firestore.util";
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
 
 
 class CandidateParsedCvDao implements BaseDao {
-  databaseName: string = `worko-corp-db-${process.env.APP_SLS_STAGE}`;
+  constructor() {
+    if(!process.env.APP_STAGE) throw new BaseError("APP_STAGE is not defined in .env file.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+  }
+
+  databaseName: string =  APP_CONSTANTS.STAGES.PROD===process.env.APP_STAGE ? "worko-corp-db-prod" : `worko-corp-db-dev`;
   collectionName: string = "candidateParsedCvs";
 
   getCandidateParsedCvModelDetails(): GcpFirestoreInteractionDto {
@@ -58,47 +63,26 @@ class CandidateParsedCvDao implements BaseDao {
     );
   }
 
-  async getAllCandidateParsedCvsByCorporateFilterOptions(filterOptions: CandidateParsedCvCorporateListingFilterOptions) {
-    const { 
-      companyId,
-      jobId,
-      currentCompany,
-      currentDesignation,
-      totalYOE,
-      relevantYOE,
-      currentCTC,
-      expectedCTC,
-      noticePeriod,
-      location,
-      readyToRelocate,
-      isNoticePeriodNegotiable
-    } = filterOptions;
-
-    if(!companyId) {
-      throw new BaseError("CompanId is required", HttpStatusCode.BAD_REQUEST_400);
-    }
-
-    const db: Firestore = await this.getCandidateParsedCvFirestoreDatabase();
-    let baseQuery: Query<DocumentData, DocumentData> = db
-      .collection(this.collectionName)
-      .where("companyId", "==", companyId);
-
-    if(jobId) baseQuery = baseQuery.where("jobId", "==", jobId);
-    if(currentCompany) baseQuery = baseQuery.where("currentCompany", "==", currentCompany);
-    if(currentDesignation) baseQuery = baseQuery.where("currentDesignation", "==", currentDesignation);
-    if(totalYOE) baseQuery = baseQuery.where("totalYOE", "==", totalYOE);
-    if(relevantYOE) baseQuery = baseQuery.where("relevantYOE", "==", relevantYOE);
-    if(currentCTC) baseQuery = baseQuery.where("currentCTC", "==", currentCTC);
-    if(expectedCTC) baseQuery = baseQuery.where("expectedCTC", "==", expectedCTC);
-    if(noticePeriod) baseQuery = baseQuery.where("noticePeriod", "==", noticePeriod);
-    if(location) baseQuery = baseQuery.where("location", "==", location);
-    if(readyToRelocate) baseQuery = baseQuery.where("readyToRelocate", "==", readyToRelocate);
-    if(isNoticePeriodNegotiable) baseQuery = baseQuery.where("isNoticePeriodNegotiable", "==", isNoticePeriodNegotiable);
-
-    return gcpFirestoreUtilObj.paginateGcpFirestore<
-      CandidateParsedCvCorporateListingFilterOptions,
-      DbCandidateParsedCvDto
-    >(db, this.collectionName, baseQuery, filterOptions);
+  async getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
+    filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions
+  ): Promise<
+    GcpFirestoreRecordListingResponseDTO<DbCandidateParsedCvDto[]>
+  > {
+    return gcpFirestoreVectorLibrary.getDocumentsByEmbedding<DbCandidateParsedCvDto>(
+      candidateParsedCvDaoObj.getCandidateParsedCvModelDetails(),
+      filterOptions.searchByPrompt as string,
+      {
+        preFilters: [
+          {
+            field: "companyId",
+            operator: "==",
+            value: filterOptions.companyId as string
+          }
+        ],
+        pageSize: filterOptions.pageSize,
+        distanceThreshold: 0.6
+      },
+    );
   }
 
   async getCandidateParsedCvById(id: string): Promise<DbCandidateParsedCvDto | undefined> {

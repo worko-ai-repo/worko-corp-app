@@ -2,7 +2,8 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { CandidateParsedCvCorporateListingFilterOptions, CandidateParsedCvCorporateListingFilterRequestDTO } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterRequestDTO } from "../dtos/CandidateParsedCv.dto";
+import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import helpers
 import { GcpFirestoreRequestHelper } from "../helpers/request.gcp-firestore.helper";
@@ -14,7 +15,7 @@ import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidatePars
 import { candidateParsedCvServiceObj } from "../services/CandidateParsedCv.service";
 
 // Import schemas
-import { candidateParsedCvCorporateFilterDtoValidation } from "../schemas/CandidateParsedCv.schema";
+import { candidateParsedCvCorpEmbeddingFilterDtoValidation } from "../schemas/CandidateParsedCv.schema";
 
 // import utils
 import HttpStatusCode from "../utils/http-codes.util";
@@ -38,29 +39,31 @@ class CandidateParsedCvController {
     }
   }
 
-  getAllCandidateParsedCvByCorporateFilterOptions = async (
+  getAllCandidateParsedCvByCorpEmbeddingFilterOptions = async (
     req: Request,
     res: Response,
     next: NextFunction
   ) => {
     try {
-      const candidateParsedCvListingFilterRequest: CandidateParsedCvCorporateListingFilterOptions =
+      const candidateParsedCvListingFilterRequest: CandidateParsedCvCorpEmbeddingListingFilterOptions =
         GcpFirestoreRequestHelper.parseFilterOptions<
-          CandidateParsedCvCorporateListingFilterRequestDTO,
-          CandidateParsedCvCorporateListingFilterOptions
+          CandidateParsedCvCorpEmbeddingListingFilterRequestDTO,
+          CandidateParsedCvCorpEmbeddingListingFilterOptions
         >(
-          req.query as unknown as CandidateParsedCvCorporateListingFilterRequestDTO
+          req.query as unknown as CandidateParsedCvCorpEmbeddingListingFilterRequestDTO
         );
 
       let { error, value: validatedRequestBody } =
-        candidateParsedCvCorporateFilterDtoValidation.validate(
+        candidateParsedCvCorpEmbeddingFilterDtoValidation.validate(
           candidateParsedCvListingFilterRequest,
           { abortEarly: false }
         );
       if (error) {
         throw new RequestValidationError(error);
       }
-      const response = await candidateParsedCvServiceObj.performGetAllCandidateParsedCvByCorporateActivities(
+      const response: GcpFirestoreRecordListingResponseDTO<
+        DbCandidateParsedCvDto[]
+      > = await candidateParsedCvServiceObj.performGetAllCandidateParsedCvByCorporateActivities(
          validatedRequestBody
       );
       res.status(HttpStatusCode.OK_200).json(response);
@@ -68,7 +71,7 @@ class CandidateParsedCvController {
       global.logger.error(
         `Get All Candidate Parsed Cv By Corporate Filter Options [Controller]`,
         {
-          methodName: this.getAllCandidateParsedCvByCorporateFilterOptions.name,
+          methodName: this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions.name,
           error,
         }
       );

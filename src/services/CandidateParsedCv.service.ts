@@ -1,9 +1,12 @@
 
 // Import dtos
-import { CandidateParsedCvCorporateListingFilterOptions } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvCorpEmbeddingListingFilterOptions } from "../dtos/CandidateParsedCv.dto";
 
 // Import daos
 import { candidateParsedCvDaoObj } from "../daos/CandidateParsedCv.dao";
+
+// Import libraries
+import { gcpFirestoreVectorLibrary } from "../libraries/gcp-firestore-vector.library";
 
 // Import models
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
@@ -168,15 +171,21 @@ class CandidateParsedCvService {
   }
 
   async performGetAllCandidateParsedCvByCorporateActivities(
-    filterOptions: CandidateParsedCvCorporateListingFilterOptions
+    filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions
   ) {
-    return this.getAllCandidateParsedCvByCorporateFilterOptions(filterOptions);
+    /**
+     * @todo 
+     *  1. Need to implement authorization checks
+     *  2. Basic data validations
+     */
+
+    return this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(filterOptions);
   }
 
-  async getAllCandidateParsedCvByCorporateFilterOptions(
-    filterOptions: CandidateParsedCvCorporateListingFilterOptions
+  async getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
+    filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions
   ) {
-    return candidateParsedCvDaoObj.getAllCandidateParsedCvsByCorporateFilterOptions(
+    return candidateParsedCvDaoObj.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
       filterOptions
     );
   }
