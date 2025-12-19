@@ -464,6 +464,16 @@ class UserJobApplicationService {
 
     return jobApplicationDetails;
   }
+
+  async getJobApplicationByjobId(
+    applicantEmail: string,
+    jobId: string
+  ): Promise<QueryResponse<DbUserJobApplicationDto>> {
+    return userJobApplicationDao.getJobApplicationByjobId(
+      applicantEmail,
+      jobId
+    );
+  }
 }
 
 // Create an instance of the UserJobApplicationService class and export it

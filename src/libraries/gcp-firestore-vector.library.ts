@@ -239,7 +239,7 @@ class GcpFirestoreVectorLibrary {
   async getDocumentsByEmbedding<DbEntityDto>(
     commonDbDetails: GcpFirestoreInteractionDto,
     queryText: string,
-    filterOptions?: GcpFirestoreVectorRecordListingFilterOptions
+    filterOptions: GcpFirestoreVectorRecordListingFilterOptions
   ): Promise<GcpFirestoreRecordListingResponseDTO<DbEntityDto[]>> {
     global.logger.info("Getting documents by embedding", { 
       queryText,
@@ -254,6 +254,11 @@ class GcpFirestoreVectorLibrary {
     global.logger.debug("Generated embedding for query text length", { 
       generatedEmbeddingLength: embedding.length
     });
+
+    // 1. Calculate how many documents to skip and how many to fetch
+    const skip: number = (filterOptions.pageNumber - 1) * filterOptions.pageSize;
+    const fetchLimit: number = skip + filterOptions.pageSize;
+
     const db: Firestore = await gcpFirestoreLibrary.getFirestoreDatabase(
       commonDbDetails.databaseName
     );
@@ -262,11 +267,8 @@ class GcpFirestoreVectorLibrary {
       commonDbDetails.collectionName
     );
 
-    let limit: number = 10;
-
     // Apply additional filters if provided
-    if (filterOptions && filterOptions?.preFilters && filterOptions.preFilters.length > 0) {
-      limit = filterOptions.pageSize;
+    if (filterOptions?.preFilters && filterOptions.preFilters.length > 0) {
       filterOptions.preFilters.forEach(
         (filter: {
           field: string;
@@ -278,63 +280,38 @@ class GcpFirestoreVectorLibrary {
       );
     }
 
-    // Handle pagination with lastKey
-    if (filterOptions?.lastKey) {
-      const lastKeyDetails: {
-        gcpFirestoreDocumentId: string;
-      } | undefined = gcpFirestoreBase64EncodeStrToLastKey(filterOptions.lastKey);
-      if(lastKeyDetails) {
-        const { gcpFirestoreDocumentId } = lastKeyDetails;
-        const docSnapshot: DocumentSnapshot<DocumentData, DocumentData> = await db
-          .collection(commonDbDetails.collectionName)
-          .doc(gcpFirestoreDocumentId)
-          .get();
-        query = query.startAfter(docSnapshot);
-      }
-    }
-
     // Use Firestore's native vector search with findNearest (updated API)
     const vectorQuery: VectorQuery<DocumentData, DocumentData> = query.findNearest({
       vectorField: "embeddingVector",
       queryVector: embedding,
-      limit: limit,
+      limit: fetchLimit, // fetch enough docs to cover the current page
       distanceMeasure: "COSINE",
-      distanceThreshold: filterOptions?.distanceThreshold,
+      distanceThreshold: filterOptions.distanceThreshold,
       distanceResultField: "embeddingVectorDistance",
     });
 
     const snapshot: VectorQuerySnapshot<DocumentData, DocumentData> = await vectorQuery.get();
 
-    const allResults: DbEntityDto[] = [];
+    // Manually skip the documents from previous pages
+    const pageDocs: QueryDocumentSnapshot<DocumentData, DocumentData>[] = snapshot.docs.slice(skip, fetchLimit);
 
-    snapshot.forEach(
-      (doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => {
-        const data = doc.data() as DbEntityDto & { embeddingVector: { _values: number[] }, embeddingVectorDistance: number };
-
-        // Calculate distance (lower distance = higher similarity = better match)
-        const distance: number = data.embeddingVectorDistance;
-        global.logger.debug("Calculated distance", { 
-          calculatedCosineDistanceByFirestore: distance,
-          givenDistanceThresholdInFilter: filterOptions?.distanceThreshold
-        });
-
-        allResults.push(data);
-      }
-    );
-
-    const lastDoc: QueryDocumentSnapshot<DocumentData, DocumentData> | undefined = 
-      snapshot.docs[snapshot.docs.length - 1];
+    const data: DbEntityDto[] = pageDocs.map((doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => {
+      const eachData = doc.data() as DbEntityDto & { embeddingVector: { _values: number[] }, embeddingVectorDistance: number };
+      global.logger.debug("Calculated distance", {
+        calculatedCosineDistanceByFirestore: doc.data().embeddingVectorDistance,
+        givenDistanceThresholdInFilter: filterOptions?.distanceThreshold
+      })
+      return eachData;
+    });
 
     const pagination: GcpFirestoreRecordListingPaginationResponseDTO = {
-      count: allResults.length,
-      pageSize: limit,
-      lastKey: allResults.length === limit && lastDoc ? gcpFirestorelastKeyToBase64EncodeStr({
-        gcpFirestoreDocumentId: lastDoc.id
-      }) : undefined,
+      count: data.length,
+      pageSize: filterOptions.pageSize,
+      hasMore: snapshot.docs.length === fetchLimit,
     };
 
     const response: GcpFirestoreRecordListingResponseDTO<DbEntityDto[]> = {
-      data: allResults,
+      data,
       pagination,
     };
 

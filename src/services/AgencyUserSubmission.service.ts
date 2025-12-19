@@ -1297,6 +1297,7 @@ class AgencyUserSubmissionService {
 
     const invokedMatchingScoreDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeJdResumeMatchingScore(
       {
+        cvAwsS3ResourceType: existingCandidateParsedCv.cvAwsS3ResourceType,
         agencyUserSubmissionId: validatedReqBody.agencyUserSubmissionId,
         actionByCorporateUserId,
         actionByUserId,
@@ -1396,6 +1397,7 @@ class AgencyUserSubmissionService {
 
           const invokedMatchingScoreDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeJdResumeMatchingScore(
             {
+              cvAwsS3ResourceType: existingCandidateParsedCv.cvAwsS3ResourceType,
               agencyUserSubmissionId,
               actionByCorporateUserId,
               actionByUserId,

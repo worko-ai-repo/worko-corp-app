@@ -38,8 +38,3 @@ export enum InvocationTypeEnum {
    */
   DryRunType = "DryRun",
 }
-
-
-export enum InvokeLambdaSourceTypeBulkJdResumeMatchingScoreEntityTypeEnum {
-  AGENCY_USER_SUBMISSION_FIND_MATCH_SCORE_BULK_JD_RESUME= "AGENCY_USER_SUBMISSION_FIND_MATCH_SCORE_BULK_JD_RESUME",
-}

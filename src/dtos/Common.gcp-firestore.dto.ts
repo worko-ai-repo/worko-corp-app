@@ -121,6 +121,15 @@ export interface GcpFirestoreRecordListingPaginationResponseDTO {
    */
   lastKey?: string;
 
+  /**
+   * hasMore
+   *
+   * Sample Value: true
+   * @description
+   *  1. Only available for firestore vector search
+   */
+  hasMore?: boolean;
+
   // sortOrder means the order in which the records should be sorted.
   sortOrder?: GcpFirestoreSortOrderTypeEnum;
 }

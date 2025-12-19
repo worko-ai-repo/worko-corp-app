@@ -64,23 +64,32 @@ class CandidateParsedCvDao implements BaseDao {
   }
 
   async getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
-    filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions
+    filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions,
+    distanceThreshold: number,
+    companyId: string,
+    searchByJobDescription?: string
   ): Promise<
     GcpFirestoreRecordListingResponseDTO<DbCandidateParsedCvDto[]>
   > {
+    if(!companyId) throw new BaseError("You Can only list candidates for particular your company.", HttpStatusCode.BAD_REQUEST_400);
+    if(!filterOptions.searchByPrompt && !searchByJobDescription) throw new BaseError("Search by prompt or job description is required.", HttpStatusCode.BAD_REQUEST_400);
+
+    let searchPrompt: string = searchByJobDescription ? searchByJobDescription : (filterOptions.searchByPrompt as string);
+
     return gcpFirestoreVectorLibrary.getDocumentsByEmbedding<DbCandidateParsedCvDto>(
       candidateParsedCvDaoObj.getCandidateParsedCvModelDetails(),
-      filterOptions.searchByPrompt as string,
+      searchPrompt,
       {
         preFilters: [
           {
             field: "companyId",
             operator: "==",
-            value: filterOptions.companyId as string
+            value: companyId
           }
         ],
         pageSize: filterOptions.pageSize,
-        distanceThreshold: 0.6
+        pageNumber: filterOptions.pageNumber,
+        distanceThreshold,
       },
     );
   }

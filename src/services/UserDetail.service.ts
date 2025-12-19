@@ -18,9 +18,11 @@ import userDetailDao from "../daos/UserDetail.dao";
 // Import dtos
 import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
 import { ScheduleJobAdminCandAcctCreateSignupReminderInputDto, ScheduleJobCreateDto } from "../dtos/ScheduleJob.dto";
+import { EmailTemplatePlaceholderCAND_ACCOUNT_CHANGE_PASS_SIGNUP_REMINDER } from "../dtos/EmailTemplatePlaceholder.dto";
 
 // Import enums
 import { ScheduleJobStatus, ScheduleJobType } from "../enums/ScheduleJob.enum";
+import { EmailTemplateEnum } from "../enums/EmailTemplate.enum";
 
 // Import libraries
 import { emailLibrary, EmailSourceDestinationAddress } from "../libraries/email.library";
@@ -38,8 +40,6 @@ import { UserDetailProfileInfoType } from "../types/UserDetail.type";
 // Inport local utils
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
-import { EmailTemplateEnum } from "../enums/EmailTemplate.enum";
-import { EmailTemplatePlaceholderCAND_ACCOUNT_CHANGE_PASS_SIGNUP_REMINDER } from "../dtos/EmailTemplatePlaceholder.dto";
 
 /**
  *  UserDetailService class responsible for managing user-related operations.

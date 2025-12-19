@@ -1,15 +1,59 @@
 
+// Import luxon
+import { DateTime } from "luxon";
+
+// Import dynamoose
+import { QueryResponse } from "dynamoose/dist/ItemRetriever";
+
+// Import aws packages
+import { APIGatewayProxyResult } from "aws-lambda";
+
+// Import aws client cognito identity provider
+import { AdminCreateUserCommandOutput } from "@aws-sdk/client-cognito-identity-provider";
+
+// Import configs
+import APP_CONSTANTS from "../configs/constants.config";
+import { awsClientCognitoIdentityProviderLibrary } from "../configs/aws-sdk.config";
+
 // Import dtos
-import { CandidateParsedCvCorpEmbeddingListingFilterOptions } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
+import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import daos
 import { candidateParsedCvDaoObj } from "../daos/CandidateParsedCv.dao";
 
-// Import libraries
-import { gcpFirestoreVectorLibrary } from "../libraries/gcp-firestore-vector.library";
+// Import dtos
+import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
+import { UserJobApplicationMoveToApplicantCreateApiDTO } from "../dtos/UserJobApplication.dto";
+
+// Import enums
+import { JobApplicationStatus } from "../enums/UserJobApplication.enum";
+import { UserType } from "../enums/User.enum";
+import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
+
+// Import helpers
+import { getActionByUserId } from "../helpers/user.helper";
 
 // Import models
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
+import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
+import { DbUserDetailDto } from "../db/aws-dynamodb-models/UserDetail.model";
+import { DbUserJobApplicationDto } from "../db/aws-dynamodb-models/UserJobApplication.model";
+import { DbCorporateUserDto } from "../db/aws-dynamodb-models/CorporateUser.model";
+import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJobMatching.model";
+
+// Import services
+import { jobServiceObj } from "./Job.service";
+import UserDetailService from "./UserDetail.service";
+import UlidService from "./Ulid.service";
+import { userJobApplicationServiceObj } from "./UserJobApplication.service";
+import { corporateUserServiceObj } from "./CorporateUser.service";
+import InvokeLambdaService from "./InvokeLambda.service";
+import { candidateJobMatchingServiceObj } from "./CandidateJobMatching.service";
+
+// Import utils
+import { BaseError } from "../utils/errors.util";
+import HttpStatusCode from "../utils/http-codes.util";
 
 class CandidateParsedCvService {
   /**
@@ -173,25 +217,426 @@ class CandidateParsedCvService {
   async performGetAllCandidateParsedCvByCorporateActivities(
     filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions
   ) {
-    /**
-     * @todo 
-     *  1. Need to implement authorization checks
-     *  2. Basic data validations
-     */
 
-    return this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(filterOptions);
+    if(filterOptions.searchByJobId && filterOptions.searchByPrompt) throw new BaseError("Search by prompt and search by job description both are not allowed at the same time.", HttpStatusCode.BAD_REQUEST_400);
+
+    const {actionByCorporateUserId} = getActionByUserId();
+    if(!actionByCorporateUserId) {
+      throw new BaseError("Unauthorized", HttpStatusCode.UNAUTHORIZED_401);
+    }
+
+    const corporateUserDetails: DbCorporateUserDto = await corporateUserServiceObj.getCorpUserByIdWithParsing(actionByCorporateUserId);
+    const {companyId} = corporateUserDetails;
+
+    let searchByJobDescription: string | undefined;
+    if(filterOptions.searchByJobId) {
+      // Get job description by job id
+      const jobDetails: DbJobAwsOpensearchDto | undefined = await jobServiceObj.getJobByIdFromAwsOpensearch(filterOptions.searchByJobId);
+      if(!jobDetails) throw new BaseError("Job not found", HttpStatusCode.NOT_FOUND_404);
+      if(!jobDetails.jobDescription) throw new BaseError("Job description not found", HttpStatusCode.NOT_FOUND_404);
+      searchByJobDescription = jobDetails.jobDescription;
+    }
+
+    let response: GcpFirestoreRecordListingResponseDTO<DbCandidateParsedCvDto[]> = await this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
+      filterOptions, 
+      0.4,
+      companyId,
+      searchByJobDescription
+    );
+    if(response.data.length === 0) {
+      global.logger.info(`Candidate for "0.4" distance threshold not found, trying "0.5"`);
+      response = await this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
+        filterOptions, 
+        0.5,
+        companyId,
+        searchByJobDescription,
+      );
+      if(response.data.length === 0) {
+        global.logger.info(`Candidate for "0.5" distance threshold not found, trying "0.6"`);
+        response = await this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
+          filterOptions,
+          0.6,
+          companyId,
+          searchByJobDescription
+        );
+      }
+    }
+    return response;
   }
 
   async getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
-    filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions
+    filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions,
+    distanceThreshold: number,
+    companyId: string,
+    searchByJobDescription?: string
   ) {
     return candidateParsedCvDaoObj.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
-      filterOptions
+      filterOptions,
+      distanceThreshold,
+      companyId,
+      searchByJobDescription
     );
   }
 
   async getCandidateParsedCvById(id: string): Promise<DbCandidateParsedCvDto | undefined> {
     return candidateParsedCvDaoObj.getCandidateParsedCvById(id);
+  }
+
+  private async createJobApplicationMoveToApplicant(
+    validatedRequestBody: MoveToApplicantCandidateParsedCvCreateApiDTO,
+    cognitoUserGroups: string[],
+    candidateParsedCvDetails: DbCandidateParsedCvDto,
+    actionByUserId?: string,
+    actionByCorporateUserId?: string
+  ): Promise<DbUserJobApplicationDto> {
+    const {jobTitle, ...restValidatedRequestBody} = validatedRequestBody;
+    const candJobMatchingDetails: DbCandidateJobMatchingDto | undefined = await candidateJobMatchingServiceObj.getCandidateJobMatchingByEmailAndJobId(
+      candidateParsedCvDetails.email,
+      validatedRequestBody.jobId
+    );
+
+    // Prepare job application create data
+    const jobApplicationCreateData: UserJobApplicationMoveToApplicantCreateApiDTO = {
+      ...restValidatedRequestBody,
+      applicantEmail: candidateParsedCvDetails.email,
+
+      agencyUserId: candidateParsedCvDetails.agencyUserId,
+      agencyUserSubmissionId: candidateParsedCvDetails.agencyUserSubmissionId,
+    };
+
+    if(candJobMatchingDetails) {
+      const {
+        cvExtract,
+        jdMatchErrorCode,
+        jdMatchErrorDesc,
+        matchingScore,
+        checkEXPdata,
+        rejectCTCAndEXP,
+        rejectionFeedbackBySystem,
+        rejectionFeedbackBySystemForApplicant,
+        scoreDetails,
+        scoreDetailsForApplicant,
+        scoreFetchedDate,
+        emailFeedback,
+      } = candJobMatchingDetails;
+      jobApplicationCreateData.matchingScoreDetails = {
+        cvExtract,
+        jdMatchErrorCode,
+        jdMatchErrorDesc,
+        matchingScore,
+        checkEXPdata,
+        rejectCTCAndEXP,
+        rejectionFeedbackBySystem,
+        rejectionFeedbackBySystemForApplicant,
+        scoreDetails,
+        scoreDetailsForApplicant,
+        scoreFetchedDate,
+        emailFeedback
+      };
+    }
+
+    const moveToApplicantDetails: DbUserJobApplicationDto =
+      await userJobApplicationServiceObj.createJobApplicationMoveToApplicant(
+      jobApplicationCreateData,
+      cognitoUserGroups,
+      actionByUserId,
+      actionByCorporateUserId
+    );
+    if(moveToApplicantDetails.status !== JobApplicationStatus.ACCEPTED) {
+      global.logger.error(`Failed to move to applicant`, { methodName: this.moveToApplicantCandidateParsedCv.name, moveToApplicantDetails });
+      throw new BaseError("Failed to move to applicant", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    return moveToApplicantDetails;
+  }
+
+  async moveToApplicantCandidateParsedCv(
+    validatedRequestBody: MoveToApplicantCandidateParsedCvCreateApiDTO,
+    cognitoUserGroups: string[],
+    actionByUserId?: string,
+    actionByCorporateUserId?: string
+  ) {
+    if(!actionByCorporateUserId) {
+      if(!actionByUserId || !cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)) {
+        global.logger.error(`Only corporate or worko admin can move to applicant.`, { 
+          methodName: this.moveToApplicantCandidateParsedCv.name, 
+          validatedRequestBody,
+          actionByUserId,
+          cognitoUserGroups,
+        });
+        throw new BaseError("You are not allowed to access this resource.", HttpStatusCode.FORBIDDEN_403);
+      }
+    }
+
+    if(actionByCorporateUserId) {
+      const corporateUserDetails: QueryResponse<DbCorporateUserDto> = await corporateUserServiceObj.getCorpUserById(actionByCorporateUserId);
+      if(!corporateUserDetails.count) {
+        global.logger.error(`Failed to move to applicant, Corporate User not found`, { methodName: this.moveToApplicantCandidateParsedCv.name, validatedRequestBody });
+        throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+      }
+
+      const reqBodyJobDetails: DbJobAwsOpensearchDto | undefined = await jobServiceObj.getJobByIdFromAwsOpensearch(validatedRequestBody.jobId);
+      if(!reqBodyJobDetails) {
+        global.logger.error(`Failed to move to applicant, Job not found`, { methodName: this.moveToApplicantCandidateParsedCv.name, validatedRequestBody });
+        throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+      }
+
+      const corporateUserData: DbCorporateUserDto = corporateUserDetails[0];
+      if(corporateUserData.companyId !== reqBodyJobDetails.companyId) {
+        global.logger.error(`Failed to move to applicant, Corporate User Company Id and Job Company Id does not match`, { methodName: this.moveToApplicantCandidateParsedCv.name, validatedRequestBody });
+        throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+      }
+    }
+
+    const candidateParsedCvDetails: DbCandidateParsedCvDto | undefined = await candidateParsedCvServiceObj.getCandidateParsedCvById(
+      validatedRequestBody.candidateParsedCvId
+    );
+    if(!candidateParsedCvDetails) {
+      global.logger.error(`Failed to move to applicant, Candidate Parsed Cv not found`, { methodName: this.moveToApplicantCandidateParsedCv.name, validatedRequestBody });
+      throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const {
+      name: candidateName,
+      phoneNumberDetails: candidatePhoneNumberDetails,
+      email: candidateEmail
+    } = candidateParsedCvDetails;
+
+    const workoUserPoolId: string | undefined = process.env.APP_AWS_WORKO_COGNITO_USER_POOL_ID;
+    if(!workoUserPoolId) {
+      global.logger.error(`Failed to move to applicant, Worko User Pool Id not found`, { methodName: this.moveToApplicantCandidateParsedCv.name, validatedRequestBody });
+      throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const applicantRegisteredDetails: QueryResponse<DbUserDetailDto> = await UserDetailService.get(
+      candidateEmail
+    );
+    if(applicantRegisteredDetails.count) {
+      return this.createJobApplicationMoveToApplicant(validatedRequestBody, cognitoUserGroups, candidateParsedCvDetails, actionByUserId, actionByCorporateUserId);
+    }
+
+    const {
+      number: candidatePhoneNumber,
+      countryCode: candidatePhoneNumberCountryCode
+    } = candidatePhoneNumberDetails;
+    const candidateFullPhoneNumber: string = `+${candidatePhoneNumberCountryCode}${candidatePhoneNumber}`;
+    const temporaryPassword: string = `Temp${UlidService.getUlidId().toLowerCase()}!`; // temporary password with lowercase
+
+    const userCreateCognito: AdminCreateUserCommandOutput = await awsClientCognitoIdentityProviderLibrary.createUser(
+      workoUserPoolId,
+      candidateEmail,
+      temporaryPassword,
+      [
+        { Name: "name", Value: candidateName },
+        { Name: "phone_number", Value: `+${candidatePhoneNumberCountryCode}${candidatePhoneNumber}` }
+      ],
+      "SUPPRESS"
+    );
+    if(!userCreateCognito.User?.Username) {
+      global.logger.error(`Failed to move to applicant, Failed to create user in cognito`, { methodName: this.moveToApplicantCandidateParsedCv.name, validatedRequestBody });
+      throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    };
+
+    const createUserDetailDto: UserDetailCreateDto = {
+      id: userCreateCognito.User.Username,
+      userId: userCreateCognito.User.Username,
+      name: candidateName,
+      email: candidateEmail,
+      number: candidateFullPhoneNumber,
+      ECTC: candidateParsedCvDetails.expectedCTC,
+      YOE: candidateParsedCvDetails.relevantYOE,
+      emailList: {
+        primary: candidateEmail
+      },
+      userType: [UserType.CAND],
+      isEmailVerified: false,
+      isNumberVerified: false,
+      lastAccessedDash: UserType.CAND,
+      referralCount: 0,
+      isSubscribed: false,
+
+      /**
+       * @note It is dummy value, it is being updated later in the process
+       * @todo Need to check when and where this is updating in the process
+       */
+      expiryDate: DateTime.now().toJSDate(), 
+
+      acceptedTermsAndConditions: false,
+      isUserCreatedInternally: true
+    };
+
+    const userDetailAndJobAppl: [DbUserDetailDto, DbUserJobApplicationDto,boolean, boolean] = await Promise.all([
+      UserDetailService.createUserDetail(createUserDetailDto),
+      this.createJobApplicationMoveToApplicant(validatedRequestBody, cognitoUserGroups, candidateParsedCvDetails, actionByUserId, actionByCorporateUserId),
+      UserDetailService.sendEmailForCandAcctSignupReminder(
+        candidateEmail,
+        validatedRequestBody.jobTitle,
+        validatedRequestBody.companyName,
+        candidateName,
+        temporaryPassword
+      ),
+      UserDetailService.scheduleCandChangePassSignupReminder(
+        {
+          candidateEmail,
+          candidateName,
+          jobTitle: validatedRequestBody.jobTitle,
+          companyName: validatedRequestBody.companyName,
+          temporaryPassword,
+          candidateCognitoUserId: userCreateCognito.User.Username,
+          reminderSendCount: 0
+        }
+      )
+    ]);
+
+    if(!userDetailAndJobAppl[0] || !userDetailAndJobAppl[1] || !userDetailAndJobAppl[2] || !userDetailAndJobAppl[3]) {
+      global.logger.error(`Failed to move to applicant, Failed to create user detail`, { methodName: this.moveToApplicantCandidateParsedCv.name, userDetailAndJobAppl });
+      throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    return userDetailAndJobAppl[1];
+  }
+
+  async findMatchingScoreCandidateParsedCv(validatedReqBody: CandidateParsedCvFindMatchingScoreApiDto): Promise<{
+    candidateJobMatchingId?: string
+  }> {
+    const {
+      actionByUserId,
+      actionByCorporateUserId,
+    } = getActionByUserId();
+
+    const {
+      candidateParsedCvId,
+      jobId
+    } = validatedReqBody;
+
+    const existingCandidateParsedCv: DbCandidateParsedCvDto | undefined = await candidateParsedCvServiceObj.getCandidateParsedCvById(candidateParsedCvId);
+    if(!existingCandidateParsedCv) {
+      global.logger.error(`Candidate parsed cv not found.`, {
+        methodName: this.findMatchingScoreCandidateParsedCv.name,
+        validatedReqBody,
+        existingCandidateParsedCv
+      });
+      throw new BaseError("Failed to find matching score.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const jobDetails: DbJobAwsOpensearchDto | undefined = await jobServiceObj.getJobByIdFromAwsOpensearch(jobId);
+    if(!jobDetails) {
+      global.logger.error(`Job not found.`, {
+        methodName: this.findMatchingScoreCandidateParsedCv.name,
+        validatedReqBody,
+        jobDetails
+      });
+      throw new BaseError("Failed to find matching score.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    if(actionByCorporateUserId) {
+      const corporateUserDetails: QueryResponse<DbCorporateUserDto> = await corporateUserServiceObj.getCorpUserById(actionByCorporateUserId);
+      if(!corporateUserDetails.count) {
+        global.logger.error(`Corporate user not found.`, {
+          methodName: this.findMatchingScoreCandidateParsedCv.name,
+          validatedReqBody,
+          corporateUserDetails
+        });
+        throw new BaseError("Failed to find matching score.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+      }
+
+      const corporateUserData: DbCorporateUserDto = corporateUserDetails[0];
+
+      if(corporateUserData.companyId !== jobDetails.companyId) {
+        global.logger.error(`Unauthorized access because corporate user company and job details company do not match.`, {
+          methodName: this.findMatchingScoreCandidateParsedCv.name,
+          validatedReqBody,
+          corporateUserData,
+          jobDetails
+        });
+        throw new BaseError("Unauthorized.", HttpStatusCode.UNAUTHORIZED_401);
+      }
+    }
+
+    const {
+      cvAwsS3BucketName,
+      cvAwsS3FilePath,
+      cvAwsS3FileName,
+      email: candidateEmail,
+    } = existingCandidateParsedCv;
+
+    // Check if the user has already applied for the job and throw error if already applied for the job
+    let existingUserJobApplicationQueryResponse: QueryResponse<DbUserJobApplicationDto> =
+      await userJobApplicationServiceObj.getJobApplicationByjobId(
+        candidateEmail,
+        jobId
+      );
+    if(existingUserJobApplicationQueryResponse.count) {
+      global.logger.error(`Failed to find matching score, Candidate already in applicants page`, { 
+        methodName: this.findMatchingScoreCandidateParsedCv.name, 
+        validatedReqBody,
+      });
+      throw new BaseError("Candidate already in application process for this job.", HttpStatusCode.CONFLICT_409);
+    }
+
+    const existingFindMatchingScore: DbCandidateJobMatchingDto | undefined = await candidateJobMatchingServiceObj.getCandidateJobMatchingByEmailAndJobId(
+      candidateEmail,
+      jobId
+    );
+    if(existingFindMatchingScore) {
+      global.logger.error(`Failed to find matching score, Matching score already calculated`, { 
+        methodName: this.findMatchingScoreCandidateParsedCv.name, 
+        validatedReqBody,
+      });
+      throw new BaseError("Matching score already calculated.", HttpStatusCode.CONFLICT_409);
+    }
+
+    const createCandJobMatchDetails: DbCandidateJobMatchingDto | undefined = await candidateJobMatchingServiceObj.createCandidateJobMatching(
+      candidateEmail,
+      jobId,
+      {
+        createdByCorporateUserId: actionByCorporateUserId,
+        createdByUserId: actionByUserId
+      }
+    );
+    if(!createCandJobMatchDetails) {
+      global.logger.error(`Failed to find matching score, Failed to create candidate job matching`, {
+        methodName: this.findMatchingScoreCandidateParsedCv.name,
+        validatedReqBody,
+      });
+      throw new BaseError("Failed to find matching score.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const invokedMatchingScoreDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeJdResumeMatchingScore(
+      {
+        candidateJobMatchingId: createCandJobMatchDetails.id,
+        cvAwsS3ResourceType: existingCandidateParsedCv.cvAwsS3ResourceType,
+        actionByCorporateUserId,
+        actionByUserId,
+        jobId, 
+        cvAwsS3BucketName,
+        cvAwsS3FilePath,
+        cvAwsS3FileName,
+        USER_PK: existingCandidateParsedCv.cvAwsS3ResourceType === CandidateParsedCvAwsS3ResourceTypeEnum.USER_RESUME ? `USR#EML#${existingCandidateParsedCv.email}`: undefined
+      }
+    );
+    if(invokedMatchingScoreDetails.statusCode !== HttpStatusCode.ACCEPTED_202) {
+      global.logger.error(`Failed to find matching score`, {
+        methodName: this.findMatchingScoreCandidateParsedCv.name,
+        invokedMatchingScoreDetails,
+      });
+      throw new BaseError("Failed to find matching score", invokedMatchingScoreDetails.statusCode);
+    }
+
+    if(invokedMatchingScoreDetails.statusCode === HttpStatusCode.ACCEPTED_202) {
+      global.logger.info(`Matching score processing started`, {
+        methodName: this.findMatchingScoreCandidateParsedCv.name,
+        invokedMatchingScoreDetails,
+      });
+
+      return {
+        candidateJobMatchingId: createCandJobMatchDetails.id
+      };
+    } else {
+      return {
+        candidateJobMatchingId: undefined
+      };
+    }
   }
 }
 

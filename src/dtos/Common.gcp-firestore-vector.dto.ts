@@ -40,12 +40,7 @@ export interface GcpFirestoreVectorRecordListingFilterOptions {
    */
   pageSize: number;
 
-  /**
-   * lastKey
-   *
-   * Sample Value: "WzE3NDAzOTY2NDE0MzEsIjE0MzA3MDQwMzIiXQ"
-   */
-  lastKey?: string;
+  pageNumber: number;
 
   /**
    * lastKey

@@ -9,9 +9,9 @@ import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsed
 export interface CandidateParsedCvDbPhoneNumberDto extends CommonPhoneNumberDto {}
 
 export interface CandidateParsedCvCorpEmbeddingListingFilterOptions extends GcpFirestoreRecordListingFilterOptions {
-   companyId: string;
+   pageNumber: number;
    searchByPrompt?: string;
-   searchByJobDescription?: string;
+   searchByJobId?: string;
    jobId?: string;
    currentCompany?: string;
    currentDesignation?: string;
@@ -26,9 +26,9 @@ export interface CandidateParsedCvCorpEmbeddingListingFilterOptions extends GcpF
 }
 
 export interface CandidateParsedCvCorpEmbeddingListingFilterRequestDTO extends GcpFirestoreRecordListingFilterRequestDTO {
-   companyId: string;
+   pageNumber: number;
    searchByPrompt?: string;
-   searchByJobDescription?: string;
+   searchByJobId?: string;
    jobId?: string;
    currentCompany?: string;
    currentDesignation?: string;
@@ -73,3 +73,25 @@ export interface CandidateParsedCvAwsS3FileTrackerDto {
    */
   fileName?: string;
 };
+
+export interface MoveToApplicantCandidateParsedCvCreateApiDTO {
+  candidateParsedCvId: string;
+
+  /**
+   * jobId
+   *
+   * @reference `id` attribute of `CompanyJob.model.ts`
+   */
+  jobId: string;
+
+  /**
+   * companyName
+   */
+  companyName: string;
+  jobTitle: string;
+}
+
+export interface CandidateParsedCvFindMatchingScoreApiDto {
+  candidateParsedCvId: string;
+  jobId: string;
+}

@@ -16,12 +16,17 @@ import {
 } from "../types/UserJobApplication.type";
 
 export interface UserJobApplicationMoveToApplicantCreateApiDTO {
-  agencyUserSubmissionId: string;
+  /**
+   * @note
+   *  1. "agencyUserSubmissionId" and "agencyUserId" are required when `agency submitted candidate` is moved to "Applicants page"
+   */
+  agencyUserSubmissionId?: string;
   /**
    * @reference "id" field of "AgencyUser.model.ts"
    * @description The registered agency user 
    */
-  agencyUserId: string;
+  agencyUserId?: string;
+
   candidateParsedCvId: string;
 
   /**
@@ -46,8 +51,13 @@ export interface UserJobApplicationMoveToApplicantCreateApiDTO {
 }
 
 export interface UserJobApplicationMoveToApplicantCreateDto {
-  agencyUserSubmissionId: string;
-  agencyUserId: string;
+  /**
+   * @note
+   *  1. "agencyUserSubmissionId" and "agencyUserId" are required when `agency submitted candidate` is moved to "Applicants page"
+   */
+  agencyUserSubmissionId?: string;
+  agencyUserId?: string;
+
   candidateParsedCvId: string;
   /**
    * jobId

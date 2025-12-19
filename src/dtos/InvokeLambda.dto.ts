@@ -1,6 +1,6 @@
 
 // Import enums
-import { InvokeLambdaSourceTypeBulkJdResumeMatchingScoreEntityTypeEnum } from "../enums/InvokeLambda.enum";
+import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
 
 export interface InvokeLambdParseAgencyUserSubmissionCandidateCvDto {
   agencyUserId: string;
@@ -11,18 +11,20 @@ export interface InvokeLambdParseAgencyUserSubmissionCandidateCvDto {
 
 export interface InvokeLambdaSourceTypeJdResumeMatchingScoreDto {
   /**
-   * @reference "id" attribute of "AgencyUserSubmission.model.ts"
+   * @description
+   *  1. This will be only available whenever find matching score happens from `search in database` page 
+   *  of `corporate` dashboard
+   *  2. Using this id `ai team` will update matching score details in `candidateJobMatchings` collection
+   * 
+   * @reference `id` attribute of `CandidateJobMatching.model.ts`
    */
-  /*
-  // Below is the update data
-  {
-    updatedAt: dateHelperObj.getISODate(),
-    updatedByCorporateUserId: actionByCorporateUserId,
-    updatedByUserId: actionByUserId,
-    matchingScoreDetails: AgencyUserSubmissionDbMatchingScoreDetailDto;
-  }
-  */
-  agencyUserSubmissionId: string;
+  candidateJobMatchingId?: string;
+
+  /**
+   * @reference "id" attribute of "AgencyUserSubmission.model.ts"
+   * @note This is required if "sourceType" is "AGENCY_SUBMIT_USER_CV"
+   */
+  agencyUserSubmissionId?: string;
 
   actionByCorporateUserId?: string;
 
@@ -32,6 +34,8 @@ export interface InvokeLambdaSourceTypeJdResumeMatchingScoreDto {
    * @reference The "id" attribute of the "CompanyJob.model.ts" from AWS DynamoDB
    */
   jobId: string;
+
+  cvAwsS3ResourceType: CandidateParsedCvAwsS3ResourceTypeEnum;
 
   /**
    * @example
