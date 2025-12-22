@@ -2,6 +2,9 @@
 // Import luxon
 import { DateTime } from "luxon";
 
+// Import google cloud firestore
+import { DocumentData, QueryDocumentSnapshot } from "@google-cloud/firestore";
+
 // Import dynamoose
 import { QueryResponse } from "dynamoose/dist/ItemRetriever";
 
@@ -33,6 +36,7 @@ import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsed
 
 // Import helpers
 import { getActionByUserId } from "../helpers/user.helper";
+import { injectEntityDetailsHelperObj } from "../helpers/injectEntityDetails.helper";
 
 // Import models
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
@@ -216,8 +220,7 @@ class CandidateParsedCvService {
 
   async performGetAllCandidateParsedCvByCorporateActivities(
     filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions
-  ) {
-
+  ): Promise<GcpFirestoreRecordListingResponseDTO<DbCandidateParsedCvDto[]>> {
     if(filterOptions.searchByJobId && filterOptions.searchByPrompt) throw new BaseError("Search by prompt and search by job description both are not allowed at the same time.", HttpStatusCode.BAD_REQUEST_400);
 
     const {actionByCorporateUserId} = getActionByUserId();
@@ -237,14 +240,14 @@ class CandidateParsedCvService {
       searchByJobDescription = jobDetails.jobDescription;
     }
 
-    let response: GcpFirestoreRecordListingResponseDTO<DbCandidateParsedCvDto[]> = await this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
+    let response: GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]> = await this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
       filterOptions, 
       0.4,
       companyId,
       searchByJobDescription
     );
     if(response.data.length === 0) {
-      global.logger.info(`Candidate for "0.4" distance threshold not found, trying "0.5"`);
+      global.logger.info(`Candidates for "0.4" distance threshold not found, trying "0.5"`);
       response = await this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
         filterOptions, 
         0.5,
@@ -252,7 +255,7 @@ class CandidateParsedCvService {
         searchByJobDescription,
       );
       if(response.data.length === 0) {
-        global.logger.info(`Candidate for "0.5" distance threshold not found, trying "0.6"`);
+        global.logger.info(`Candidates for "0.5" distance threshold not found, trying "0.6"`);
         response = await this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
           filterOptions,
           0.6,
@@ -261,7 +264,14 @@ class CandidateParsedCvService {
         );
       }
     }
-    return response;
+    const data: DbCandidateParsedCvDto[] = response.data.map((doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => doc.data() as DbCandidateParsedCvDto);
+    const dataWithPagination: GcpFirestoreRecordListingResponseDTO<
+      DbCandidateParsedCvDto[]
+    > = {
+      data,
+      pagination: response.pagination
+    }
+    return dataWithPagination;
   }
 
   async getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
@@ -269,7 +279,9 @@ class CandidateParsedCvService {
     distanceThreshold: number,
     companyId: string,
     searchByJobDescription?: string
-  ) {
+  ): Promise<
+    GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]>
+  > {
     return candidateParsedCvDaoObj.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
       filterOptions,
       distanceThreshold,
@@ -498,7 +510,7 @@ class CandidateParsedCvService {
 
   async findMatchingScoreCandidateParsedCv(validatedReqBody: CandidateParsedCvFindMatchingScoreApiDto): Promise<{
     candidateJobMatchingId?: string
-  }> {
+  } | DbCandidateJobMatchingDto | DbUserJobApplicationDto> {
     const {
       actionByUserId,
       actionByCorporateUserId,
@@ -560,6 +572,18 @@ class CandidateParsedCvService {
       email: candidateEmail,
     } = existingCandidateParsedCv;
 
+    const existingFindMatchingScore: DbCandidateJobMatchingDto | undefined = await candidateJobMatchingServiceObj.getCandidateJobMatchingByEmailAndJobId(
+      candidateEmail,
+      jobId
+    );
+    if(existingFindMatchingScore) {
+      global.logger.info(`Matching score already calculated`, { 
+        methodName: this.findMatchingScoreCandidateParsedCv.name, 
+        validatedReqBody,
+      });
+      return existingFindMatchingScore;
+    }
+
     // Check if the user has already applied for the job and throw error if already applied for the job
     let existingUserJobApplicationQueryResponse: QueryResponse<DbUserJobApplicationDto> =
       await userJobApplicationServiceObj.getJobApplicationByjobId(
@@ -571,21 +595,22 @@ class CandidateParsedCvService {
         methodName: this.findMatchingScoreCandidateParsedCv.name, 
         validatedReqBody,
       });
-      throw new BaseError("Candidate already in application process for this job.", HttpStatusCode.CONFLICT_409);
+      const jobApplicationData: DbUserJobApplicationDto = existingUserJobApplicationQueryResponse[0];
+      if(jobApplicationData.matchingScore) {
+        return jobApplicationData;
+      } else {
+        /**
+         * @todo: 
+         *  1. Need to check with "Product Manager" about how to handle this case
+         */
+        throw new BaseError("Candidate already moved to application process without calculating matching score.", HttpStatusCode.CONFLICT_409);
+      }
     }
 
-    const existingFindMatchingScore: DbCandidateJobMatchingDto | undefined = await candidateJobMatchingServiceObj.getCandidateJobMatchingByEmailAndJobId(
-      candidateEmail,
-      jobId
-    );
-    if(existingFindMatchingScore) {
-      global.logger.error(`Failed to find matching score, Matching score already calculated`, { 
-        methodName: this.findMatchingScoreCandidateParsedCv.name, 
-        validatedReqBody,
-      });
-      throw new BaseError("Matching score already calculated.", HttpStatusCode.CONFLICT_409);
-    }
-
+    /**
+     * @todo:
+     *  1. Need to implement a feature like after `3` months the `corporate` should able to find the matching score again
+     */
     const createCandJobMatchDetails: DbCandidateJobMatchingDto | undefined = await candidateJobMatchingServiceObj.createCandidateJobMatching(
       candidateEmail,
       jobId,

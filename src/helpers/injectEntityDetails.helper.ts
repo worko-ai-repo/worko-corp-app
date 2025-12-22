@@ -1,3 +1,7 @@
+
+// Import google cloud firestore
+import { DocumentData, QueryDocumentSnapshot } from "@google-cloud/firestore";
+
 // Import models
 import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
 import { DbAgencyJobAssignmentDto } from "../db/gcp-firestore-models/AgencyJobAssignment.model";
@@ -5,11 +9,11 @@ import { DbAgencyUserSubmissionDto } from "../db/gcp-firestore-models/AgencyUser
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
 import { DbCorporateCandidateProfileDto } from "../db/gcp-firestore-models/CorporateCandidateProfile.model";
 import { DbCentralCandidateProfileDto } from "../db/gcp-firestore-models/CentralCandidateProfile.model";
+import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJobMatching.model";
 
 // Import services
 import { jobServiceObj } from "../services/Job.service";
 import { candidateParsedCvServiceObj } from "../services/CandidateParsedCv.service";
-
 
 class InjectEntityDetailsHelper {
   async injectEntityDetailsForAgencyJobAssignment(
@@ -218,10 +222,9 @@ class InjectEntityDetailsHelper {
     if (includeCandidateParsedCvDetails) {
       const uniqueCandidateParsedCvIds: string[] = Array.from(
         new Set(
-          corporateCandidateProfiles
-            .map(
-              (item: DbCorporateCandidateProfileDto) => item.candidateParsedCvId
-            )
+          corporateCandidateProfiles.map(
+            (item: DbCorporateCandidateProfileDto) => item.candidateParsedCvId
+          )
         )
       );
 
@@ -239,9 +242,9 @@ class InjectEntityDetailsHelper {
     if (includeJobDetails) {
       const uniqueJobIds: string[] = Array.from(
         new Set(
-          corporateCandidateProfiles.map(
-            (item: DbCorporateCandidateProfileDto) => item.jobId
-          ).filter((id: string | undefined): id is string => id !== undefined)
+          corporateCandidateProfiles
+            .map((item: DbCorporateCandidateProfileDto) => item.jobId)
+            .filter((id: string | undefined): id is string => id !== undefined)
         )
       );
 
@@ -264,11 +267,13 @@ class InjectEntityDetailsHelper {
                 eachCorporateCandidateProfile.candidateParsedCvId
               ),
             }),
-          
+
           // If includeJobDetails is true, inject job details
           ...(includeJobDetails &&
             eachCorporateCandidateProfile.jobId && {
-              jobDetails: jobDetailsMap.get(eachCorporateCandidateProfile.jobId),
+              jobDetails: jobDetailsMap.get(
+                eachCorporateCandidateProfile.jobId
+              ),
             }),
         };
 
@@ -317,10 +322,10 @@ class InjectEntityDetailsHelper {
     if (includeCandidateParsedCvDetails) {
       const uniqueCandidateParsedCvIds: string[] = Array.from(
         new Set(
-          centralCandidateProfiles
-            .map(
-              (item: DbCentralCandidateProfileDto) => item.latestCandidateParsedCvId
-            )
+          centralCandidateProfiles.map(
+            (item: DbCentralCandidateProfileDto) =>
+              item.latestCandidateParsedCvId
+          )
         )
       );
 

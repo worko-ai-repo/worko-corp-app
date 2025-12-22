@@ -240,20 +240,12 @@ class GcpFirestoreVectorLibrary {
     commonDbDetails: GcpFirestoreInteractionDto,
     queryText: string,
     filterOptions: GcpFirestoreVectorRecordListingFilterOptions
-  ): Promise<GcpFirestoreRecordListingResponseDTO<DbEntityDto[]>> {
-    global.logger.info("Getting documents by embedding", { 
-      queryText,
-      filterOptions
-     });
-
+  ): Promise<GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]>> {
     // Generate embedding for the query text with RETRIEVAL_QUERY task type
     const { embedding } = await gcpAiPlatformLibrary.generateEmbedding(
       queryText,
       "RETRIEVAL_QUERY"
     );
-    global.logger.debug("Generated embedding for query text length", { 
-      generatedEmbeddingLength: embedding.length
-    });
 
     // 1. Calculate how many documents to skip and how many to fetch
     const skip: number = (filterOptions.pageNumber - 1) * filterOptions.pageSize;
@@ -295,23 +287,22 @@ class GcpFirestoreVectorLibrary {
     // Manually skip the documents from previous pages
     const pageDocs: QueryDocumentSnapshot<DocumentData, DocumentData>[] = snapshot.docs.slice(skip, fetchLimit);
 
-    const data: DbEntityDto[] = pageDocs.map((doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => {
-      const eachData = doc.data() as DbEntityDto & { embeddingVector: { _values: number[] }, embeddingVectorDistance: number };
-      global.logger.debug("Calculated distance", {
-        calculatedCosineDistanceByFirestore: doc.data().embeddingVectorDistance,
-        givenDistanceThresholdInFilter: filterOptions?.distanceThreshold
-      })
-      return eachData;
-    });
-
     const pagination: GcpFirestoreRecordListingPaginationResponseDTO = {
-      count: data.length,
+      count: pageDocs.length,
       pageSize: filterOptions.pageSize,
       hasMore: snapshot.docs.length === fetchLimit,
     };
 
-    const response: GcpFirestoreRecordListingResponseDTO<DbEntityDto[]> = {
-      data,
+    /**
+     * @note 
+     *  1. Use below piece of code to get data from response
+     *     response.data.map((doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => doc.data())
+     *  2. We are not parsing the data here because it will be used differently in different places like if 
+     *     we want to attach some additional data to the response then double iteration will be needed, so 
+     *     to avoid that we are not parsing the data here.
+     */
+    const response: GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]> = {
+      data: pageDocs,
       pagination,
     };
 

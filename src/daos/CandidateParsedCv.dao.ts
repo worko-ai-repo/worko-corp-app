@@ -1,6 +1,6 @@
 
 // Import firestore package
-import { Firestore } from "@google-cloud/firestore";
+import { DocumentData, Firestore, QueryDocumentSnapshot } from "@google-cloud/firestore";
 
 // Import configs
 import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
@@ -69,7 +69,7 @@ class CandidateParsedCvDao implements BaseDao {
     companyId: string,
     searchByJobDescription?: string
   ): Promise<
-    GcpFirestoreRecordListingResponseDTO<DbCandidateParsedCvDto[]>
+    GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]>
   > {
     if(!companyId) throw new BaseError("You Can only list candidates for particular your company.", HttpStatusCode.BAD_REQUEST_400);
     if(!filterOptions.searchByPrompt && !searchByJobDescription) throw new BaseError("Search by prompt or job description is required.", HttpStatusCode.BAD_REQUEST_400);

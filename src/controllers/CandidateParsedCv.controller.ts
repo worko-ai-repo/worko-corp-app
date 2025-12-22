@@ -12,6 +12,7 @@ import { getActionByUserId } from "../helpers/user.helper";
 // Import models
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
 import { DbUserJobApplicationDto } from "../db/aws-dynamodb-models/UserJobApplication.model";
+import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJobMatching.model";
 
 // Import services
 import { candidateParsedCvServiceObj } from "../services/CandidateParsedCv.service";
@@ -134,17 +135,23 @@ class CandidateParsedCvController {
       }
       const response: {
         candidateJobMatchingId?: string
-      } = await candidateParsedCvServiceObj.findMatchingScoreCandidateParsedCv(
+      } | DbCandidateJobMatchingDto | DbUserJobApplicationDto = await candidateParsedCvServiceObj.findMatchingScoreCandidateParsedCv(
         validatedReqBody
       );
-      if(!response.candidateJobMatchingId) {
+      if("candidateJobMatchingId" in response) {
+        return res.status(HttpStatusCode.ACCEPTED_202).json({ 
+          candidateJobMatchingId: response.candidateJobMatchingId,
+          message: "Matching score process initiated." 
+        });
+      } else if("id" in response) {
+        return res.status(HttpStatusCode.OK_200).json(response);
+      } else {
+        global.logger.error(`Failed to find matching score [Controller].`, {
+          methodName: this.findMatchingScoreCandidateParsedCv.name,
+          response
+        });
         throw new BaseError("Failed to find matching score.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
       }
-
-      res.status(HttpStatusCode.ACCEPTED_202).json({ 
-        candidateJobMatchingId: response.candidateJobMatchingId,
-        message: "Matching score process initiated." 
-      });
     } catch (error) {
       global.logger.error(`Find Matching Score Candidate Parsed Cv [Controller]`, {
         methodName: this.findMatchingScoreCandidateParsedCv.name,
