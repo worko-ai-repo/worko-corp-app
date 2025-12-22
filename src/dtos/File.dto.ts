@@ -99,3 +99,34 @@ export interface AgencyUserSubmissionCvPsuToViewApiDto {
    */
   candidateCvAwsS3FileName: string;
 }
+
+/**
+ * AgencyBulkJdResumePreSignedUrlToUploadDto
+ */
+export interface AgencyBulkJdResumePreSignedUrlToUploadDto {
+  /**
+   * fileName
+   *
+   * Sample file name: "TestCV.pdf"
+   */
+  fileName: string;
+
+  /**
+   * fileMimeType
+   *
+   * Sample file mime type: "application/pdf"
+   */
+  fileMimeType: string;
+}
+
+export interface AgencyBulkCvsPreSignedUrlToUploadFileDto {
+  /**
+   * @reference "id" field of "AgencyBulkJd.model.ts"
+   */
+  agencyBulkJdId: string;
+
+  /**
+   * bulkCvs
+   */
+  bulkCvs: Array<AgencyBulkJdResumePreSignedUrlToUploadDto>;
+}

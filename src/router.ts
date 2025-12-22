@@ -6,6 +6,8 @@ import AgencyUserInviteRouter from "./routers/AgencyUserInvite.router";
 import AgencyJobAssignmentRouter from "./routers/AgencyJobAssignment.router";
 import AgencyUserSubmissionRouter from "./routers/AgencyUserSubmission.router";
 import AgencyUserRouter from "./routers/AgencyUser.router";
+import AgencyBulkJdRouter from "./routers/AgencyBulkJd.router";
+import AgencyBulkJdResumeRouter from "./routers/AgencyBulkJdResume.router";
 import CorporateCandidateProfileRouter from "./routers/CorporateCandidateProfile.router";
 import CentralCandidateProfileRouter from "./routers/CentralCandidateProfile.router";
 import CandidateParsedCvRouter from "./routers/CandidateParsedCv.router";
@@ -49,6 +51,20 @@ router.use("/agency-user-submission", AgencyUserSubmissionRouter);
  * Agency User Routers
  */
 router.use("/agency-user", AgencyUserRouter);
+
+/**
+ * AGENCY BULK JD ROUTERS
+ * 
+ * @authorisedRoles ["agency"]
+ */
+router.use("/agency-bulk-jd", AgencyBulkJdRouter);
+
+/**
+ * AGENCY BULK JD RESUME ROUTERS
+ * 
+ * @authorisedRoles ["agency"]
+ */
+router.use("/agency-bulk-jd-resume", AgencyBulkJdResumeRouter);
 
 /**
  * Corporate Candidate Profile Routers

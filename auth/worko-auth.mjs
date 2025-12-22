@@ -790,6 +790,12 @@ var isAgencyUrl = function (url, httpMethod) {
 
     // Corporate Candidate Profile Routers
     { path: "/corporate-candidate-profile/duplicate", method: HttpMethodsConstants.GET },
+
+    // Agency Bulk Jd Routers
+    { path: "/agency-bulk-jd*", method: HttpMethodsConstants.ANY },
+
+    // Agency Bulk Jd Resume Routers
+    { path: "/agency-bulk-jd-resume*", method: HttpMethodsConstants.ANY },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);

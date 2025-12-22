@@ -25,3 +25,24 @@ export interface EmailTemplatePlaceholderCAND_ACCOUNT_CHANGE_PASS_SIGNUP_REMINDE
   candidateLoginUrl: string;
   candidateTemporaryPassword: string;
 }
+
+/**
+ * @note
+ *  1. Below will be used if we want to send email to candidates for agency bulk cv check
+ */
+/*
+export interface EmailTemplatePlaceholderCAND_AGENCY_BULK_JD_RESUME_HIGH_MATCHING_SCORE extends EmailTemplatePlaceholderSOCIAL_PROFILE_DETAILS {
+  candidateName: string;
+  companyName: string;
+  jobTitle: string;
+  matchingScore: number;
+  signUpUrl: string;
+}
+
+export interface EmailTemplatePlaceholderCAND_AGENCY_BULK_JD_RESUME_LOW_MATCHING_SCORE extends EmailTemplatePlaceholderSOCIAL_PROFILE_DETAILS {
+  candidateName: string;
+  companyName: string;
+  jobTitle: string;
+  signUpUrl: string;
+}
+*/

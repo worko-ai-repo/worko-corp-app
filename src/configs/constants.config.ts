@@ -49,6 +49,7 @@ const APP_CONSTANTS = {
     USER_PROFILE_PIC: "users/{userId}/profilePics", // To upload the individual user's profile pics
     AGENCY_INVITE_CONTRACT_COPY: `companies/{companyId}/agency-invites/{agencyInviteId}/contract-copies`,
     AGENCY_SUBMIT_USER_CV: `agencies/{agencyUserId}/companies/{companyId}/jobs/{jobId}/user-profiles`,
+    AGENCY_BULK_CVS: `agencies/{agencyUserId}/bulk-cvs/{agencyBulkJdId}`
   },
 
   /**
@@ -120,6 +121,7 @@ const APP_CONSTANTS = {
   },
 
   FRONTEND_URLS: {
+    WORKO_SIGNUP_URL: `${process.env.APP_WORKO_FRONTEND_BASE_URL}/auth/signup`,
     WORKO_LOGIN_URL: `${process.env.APP_WORKO_FRONTEND_BASE_URL}/auth/login`,
 
     WORKO_AGENCY_LOGIN_URL: `${process.env.APP_WORKO_AGENCY_FRONTEND_BASE_URL}/auth/agency/login`,
@@ -128,6 +130,10 @@ const APP_CONSTANTS = {
      * @example "https://agency.worko.work/auth/agency/signup/01KA0Z4YZF598N7WA3ETMEWAV6"
      */
     WORKO_AGENCY_SIGNUP_URL: `${process.env.APP_WORKO_AGENCY_FRONTEND_BASE_URL}/auth/agency/signup/{agencyUserInviteId}`,
+  },
+
+  MATCHING_SCORES: {
+    AGENCY_BULK_JD_RESUME_MINIMUM_MATCHING_SCORE: 70,
   },
 
   SOURCE_EMAIL_ADDRESS: {

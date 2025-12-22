@@ -1,5 +1,6 @@
 
 
+
 # Existing bulk cv check in `corporate dashboard`
 1. 
 Request URL `https://api.dev.worko.work/corporate-bulk-jd/`
@@ -71,3 +72,52 @@ Request Method `POST`
     "bulkCvsStorageFailed": []
 }
 ```
+
+
+
+# Prompt
+```sh
+Understand the below apis and responses entirely entirely
+and understand the code from the api endpoint starting from `router.ts`, controllers, services, ... every code in api flow with dynamodb database
+
+We have `agency Dashboard` and below is schema in firestore:
+```ts
+{
+  /**
+   * @description It should be same as the "document ID" of the firestore document.
+   */
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  cognitoUserId: string;
+  email: string;
+  name: string;
+  phoneNumberDetails: AgencyUserDbPhoneNumberDto;
+
+  /**
+   * @reference `id` field of `AgencyUserInvite.model.ts`
+   */
+  inviteIds: string[];
+
+  /**
+   * @description If email is verified in cognito then this will be `true`, otherwise `false`
+   * @reference "Email verified" column in "Amazon Cognito > User pools > {YourUserPoolName} > Users"
+   */
+  isEmailVerified: boolean;
+}
+```
+
+now i want to implement this bulk cv check feature in agency dashboard, like agency will perform bulk cv check feature from different companies and
+in `corporate dashboard` they loggin with kind of attached company only, but agency will signin with email and
+we want to list only whatever the agency performed the bulk cv check
+
+and give me `composite indexes` in firestore accordingly and give me api design, db design, api call order flow, s3 paths, everything by comparing with existing `bulk cv check`
+```
+
+
+
+
+
+
+
+

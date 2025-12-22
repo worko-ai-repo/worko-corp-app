@@ -284,6 +284,34 @@ const serverlessConfiguration: AWS = {
     appScheduler: {
       handler: "dist/src/app-scheduler.handler",
     },
+
+    /**
+     * Event Trigger
+     *
+     * AWS Lambda Function Format:- {service}-{enviroment}-{functionName}
+     * Example:
+     *  1. `worko-corp-local-appeventtrigger`
+     *  2. `worko-corp-dev-appeventtrigger`
+     *  3. `worko-corp-prod-appeventtrigger`
+     */
+    /**
+     * @note
+     *  1. This will be used if we want to use SQS trigger
+     */
+    /*
+    appeventtrigger:{
+      handler: "dist/src/app-event-trigger.handler",
+      events: [
+        {
+          sqs: {
+            arn: "arn:aws:sqs:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:worko-corp-app-event-queue",
+            batchSize: 1,
+            maximumBatchingWindow: 0
+          }
+        }
+      ]
+    },
+    */
   },
 };
 

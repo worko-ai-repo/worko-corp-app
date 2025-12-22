@@ -9,7 +9,7 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsS3ClientLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
+import { AgencyBulkCvsPreSignedUrlToUploadFileDto, AgencyBulkJdResumePreSignedUrlToUploadDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
 
 // Import helpers
 import { getActionByAgencyUserIds, getActionByUserId } from "../helpers/user.helper";
@@ -37,6 +37,61 @@ import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
 
 class FileService {
+  async generatePsuToUploadAgencyBulkCvs(
+    agencyUserId: string,
+    psuToUploadBulkCvsParams: AgencyBulkCvsPreSignedUrlToUploadFileDto
+  ): Promise<PreSignedUrlToUploadFileResponseDto[]> {
+    global.logger.info(`Generate the Pre-signed URL to upload Agency bulk cvs`, {
+      methodName: this.generatePsuToUploadAgencyBulkCvs.name,
+      agencyBulkJdId: psuToUploadBulkCvsParams.agencyBulkJdId,
+    });
+
+    // Get the base path where the company job description file would be uploaded
+    const fileUploadPath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.AGENCY_BULK_CVS.strtr({
+        "{agencyUserId}": agencyUserId.toString(),
+        "{agencyBulkJdId}":
+          psuToUploadBulkCvsParams.agencyBulkJdId.toString(),
+      });
+
+    // Generate the Pre-signed URLs to upload the bulk cvs and return
+    return Promise.all(
+      psuToUploadBulkCvsParams.bulkCvs.map(
+        async (eachFileDetail: AgencyBulkJdResumePreSignedUrlToUploadDto) => {
+          // Get the given file extension
+          const fileExtension: string = eachFileDetail.fileName
+            .split(".")
+            .pop() as string; // Sample Output: "pdf"
+
+          // Prepare the given file name
+          const cloudFileName: string = `${UlidService.getUlidId()}.${fileExtension}`;
+
+          // Generate the AWS S3 Signed Url
+          const fileSignedUrl: string =
+            await awsS3ClientLibrary.getSignedUrlForUploadingObject(
+              process.env.APP_AWS_S3_BUCKET_WORKO_APP as string,
+              fileUploadPath + "/" + cloudFileName,
+              APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
+              {
+                ContentType: eachFileDetail.fileMimeType,
+              }
+            );
+
+          // Prepare the response object
+          const resObject: PreSignedUrlToUploadFileResponseDto = {
+            userFileName: eachFileDetail.fileName,
+            cloudFileName: cloudFileName,
+            fileMimeType: eachFileDetail.fileMimeType,
+            fileExtension: fileExtension,
+            awsS3SignedUrl: fileSignedUrl,
+          };
+
+          return resObject;
+        }
+      )
+    );
+  }
+
   private async validatePsuToUploadOrViewAgencyUserInviteContractCopy(
     requestBodyObject:
       | AgencyUserInviteContractCopyPsuToUploadApiDto
