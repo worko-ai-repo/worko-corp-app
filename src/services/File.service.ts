@@ -1,5 +1,3 @@
-// Import firestore
-import { DocumentData, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import dynamoose
 import { QueryResponse } from "dynamoose/dist/ItemRetriever";
@@ -21,7 +19,6 @@ import { DbCorporateUserDto } from "../db/aws-dynamodb-models/CorporateUser.mode
 import { DbCompanyJobDto } from "../db/aws-dynamodb-models/CompanyJob.model";
 import { DbAgencyUserDto } from "../db/gcp-firestore-models/AgencyUser.model";
 
-
 // Import services
 import { companyDetailServiceObj } from "./CompanyDetail.service";
 import { agencyUserInviteServiceObj } from "./AgencyUserInvite.service";
@@ -29,8 +26,6 @@ import { corporateUserServiceObj } from "./CorporateUser.service";
 import UlidService from "./Ulid.service";
 import { companyJobServiceObj } from "./CompanyJob.service";
 import { agencyUserServiceObj } from "./AgencyUser.service";
-import { agencyJobAssignmentServiceObj } from "./AgencyJobAssignment.service";
-
 
 // Import utils
 import { BaseError } from "../utils/errors.util";
@@ -396,20 +391,6 @@ class FileService {
       throw new BaseError(
         `Agency user details not found.`,
         HttpStatusCode.NOT_FOUND_404
-      );
-    }
-
-    // Check whether this `companyJob` is assigned to this `agency` or not by using `companyId` `agencyRegisteredEmail`,`jobId`
-    const reqBodyAgencyJobAssignmentDetails: QuerySnapshot<DocumentData, DocumentData> =
-      await agencyJobAssignmentServiceObj.getAgencyJobAssignmentByCompIdJobIdAndEmail(
-        reqBodyCompanyData.id,
-        jobId,
-        agencyUserDetails.email
-      );
-    if (reqBodyAgencyJobAssignmentDetails.empty) {
-      throw new BaseError(
-        `You are not allowed to perform action on this resource.`,
-        HttpStatusCode.FORBIDDEN_403
       );
     }
   }
