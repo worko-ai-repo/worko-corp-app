@@ -315,20 +315,6 @@ class FileService {
         HttpStatusCode.NOT_FOUND_404
       );
     }
-
-    // Check whether this `companyJob` is assigned to this `agency` or not by using `companyId` `agencyRegisteredEmail`,`jobId`
-    const reqBodyAgencyJobAssignmentDetails: QuerySnapshot<DocumentData, DocumentData> =
-      await agencyJobAssignmentServiceObj.getAgencyJobAssignmentByCompIdJobIdAndEmail(
-        reqBodyCompanyData.id,
-        jobId,
-        agencyUserDetails.email
-      );
-    if (reqBodyAgencyJobAssignmentDetails.empty) {
-      throw new BaseError(
-        `You are not allowed to perform action on this resource.`,
-        HttpStatusCode.FORBIDDEN_403
-      );
-    }
   }
 
   private async validatePsuToViewAgencyUserSubmissionCv(
