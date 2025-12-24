@@ -35,6 +35,7 @@ class CandidateJobMatchingService {
   async createCandidateJobMatching(
     candidateEmail: string,
     jobId: string,
+    companyId: string,
     additionalData: Partial<DbCandidateJobMatchingDto> 
   ): Promise<DbCandidateJobMatchingDto | undefined> {
     global.logger.info(`Create Candidate Job Matching [SERVICE]`, {
@@ -58,6 +59,7 @@ class CandidateJobMatchingService {
     const createData: DbCandidateJobMatchingDto = {
       id: documentId,
       candidateEmail,
+      companyId,
       jobId,
       createdAt: currentTimestamp,
       updatedAt: currentTimestamp,

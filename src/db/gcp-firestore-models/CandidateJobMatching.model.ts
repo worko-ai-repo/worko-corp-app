@@ -3,6 +3,7 @@ import { BaseFirestoreModel } from "./Base.model";
 
 interface DbCandidateJobMatchingDto extends BaseFirestoreModel {
   candidateEmail: string;
+  companyId: string;
   jobId: string;
 
   isFindMatchingScoreInProgress?: boolean;

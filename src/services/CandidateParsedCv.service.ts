@@ -614,6 +614,7 @@ class CandidateParsedCvService {
     const createCandJobMatchDetails: DbCandidateJobMatchingDto | undefined = await candidateJobMatchingServiceObj.createCandidateJobMatching(
       candidateEmail,
       jobId,
+      jobDetails.companyId as string,
       {
         createdByCorporateUserId: actionByCorporateUserId,
         createdByUserId: actionByUserId
