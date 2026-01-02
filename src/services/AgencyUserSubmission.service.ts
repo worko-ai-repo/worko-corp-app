@@ -53,7 +53,7 @@ import { DbAgencyJobAssignmentDto } from "../db/gcp-firestore-models/AgencyJobAs
 import { DbUserDetailDto } from "../db/aws-dynamodb-models/UserDetail.model";
 import { DbCorporateUserDto } from "../db/aws-dynamodb-models/CorporateUser.model";
 import { DbAgencyUserInviteDto } from "../db/gcp-firestore-models/AgencyUserInvite.model";
-import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
+import { DbGcpFirestoreJobDto } from "../db/gcp-firestore-models/GcpFirestoreJob.model";
 import { DbCentralCandidateProfileDto } from "../db/gcp-firestore-models/CentralCandidateProfile.model";
 import { DbUserJobApplicationDto } from "../db/aws-dynamodb-models/UserJobApplication.model";
 
@@ -581,7 +581,7 @@ class AgencyUserSubmissionService {
   ): Promise<
     GcpFirestoreRecordListingResponseDTO<
       (DbAgencyUserSubmissionDto & {
-        jobDetails?: DbJobAwsOpensearchDto;
+        jobDetails?: DbGcpFirestoreJobDto;
         candidateParsedCvDetails?: DbCandidateParsedCvDto;
       })[]
     >
@@ -707,7 +707,7 @@ class AgencyUserSubmissionService {
       await this.getAllAgencyUserSubmissionByFilterOptions(filterOptions);
 
     const agencyUserSubmissionsWithEntityDetails: (DbAgencyUserSubmissionDto & {
-      jobDetails?: DbJobAwsOpensearchDto;
+      jobDetails?: DbGcpFirestoreJobDto;
       candidateParsedCvDetails?: DbCandidateParsedCvDto;
     })[] =
       await injectEntityDetailsHelperObj.injectEntityDetailsForAgencyUserSubmission(
@@ -718,7 +718,7 @@ class AgencyUserSubmissionService {
 
     const finalResponse: GcpFirestoreRecordListingResponseDTO<
       (DbAgencyUserSubmissionDto & {
-        jobDetails?: DbJobAwsOpensearchDto;
+        jobDetails?: DbGcpFirestoreJobDto;
         candidateParsedCvDetails?: DbCandidateParsedCvDto;
       })[]
     > = {

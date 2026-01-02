@@ -36,18 +36,17 @@ import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsed
 
 // Import helpers
 import { getActionByUserId } from "../helpers/user.helper";
-import { injectEntityDetailsHelperObj } from "../helpers/injectEntityDetails.helper";
 
 // Import models
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
-import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
+import { DbGcpFirestoreJobDto } from "../db/gcp-firestore-models/GcpFirestoreJob.model";
 import { DbUserDetailDto } from "../db/aws-dynamodb-models/UserDetail.model";
 import { DbUserJobApplicationDto } from "../db/aws-dynamodb-models/UserJobApplication.model";
 import { DbCorporateUserDto } from "../db/aws-dynamodb-models/CorporateUser.model";
 import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJobMatching.model";
 
 // Import services
-import { jobServiceObj } from "./Job.service";
+import { gcpFirestoreJobServiceObj } from "./GcpFirestoreJob.service";
 import UserDetailService from "./UserDetail.service";
 import UlidService from "./Ulid.service";
 import { userJobApplicationServiceObj } from "./UserJobApplication.service";
@@ -234,7 +233,7 @@ class CandidateParsedCvService {
     let searchByJobDescription: string | undefined;
     if(filterOptions.searchByJobId) {
       // Get job description by job id
-      const jobDetails: DbJobAwsOpensearchDto | undefined = await jobServiceObj.getJobByIdFromAwsOpensearch(filterOptions.searchByJobId);
+      const jobDetails: DbGcpFirestoreJobDto | undefined = await gcpFirestoreJobServiceObj.getJobById(filterOptions.searchByJobId);
       if(!jobDetails) throw new BaseError("Job not found", HttpStatusCode.NOT_FOUND_404);
       if(!jobDetails.jobDescription) throw new BaseError("Job description not found", HttpStatusCode.NOT_FOUND_404);
       searchByJobDescription = jobDetails.jobDescription;
@@ -387,7 +386,7 @@ class CandidateParsedCvService {
         throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
       }
 
-      const reqBodyJobDetails: DbJobAwsOpensearchDto | undefined = await jobServiceObj.getJobByIdFromAwsOpensearch(validatedRequestBody.jobId);
+      const reqBodyJobDetails: DbGcpFirestoreJobDto | undefined = await gcpFirestoreJobServiceObj.getJobById(validatedRequestBody.jobId);
       if(!reqBodyJobDetails) {
         global.logger.error(`Failed to move to applicant, Job not found`, { methodName: this.moveToApplicantCandidateParsedCv.name, validatedRequestBody });
         throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
@@ -531,7 +530,7 @@ class CandidateParsedCvService {
       throw new BaseError("Failed to find matching score.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
     }
 
-    const jobDetails: DbJobAwsOpensearchDto | undefined = await jobServiceObj.getJobByIdFromAwsOpensearch(jobId);
+    const jobDetails: DbGcpFirestoreJobDto | undefined = await gcpFirestoreJobServiceObj.getJobById(jobId);
     if(!jobDetails) {
       global.logger.error(`Job not found.`, {
         methodName: this.findMatchingScoreCandidateParsedCv.name,

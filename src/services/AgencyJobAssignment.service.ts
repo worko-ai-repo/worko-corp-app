@@ -29,7 +29,7 @@ import { DbAgencyJobAssignmentDto } from "../db/gcp-firestore-models/AgencyJobAs
 import { DbCorporateUserDto } from "../db/aws-dynamodb-models/CorporateUser.model";
 import { DbUserDetailDto } from "../db/aws-dynamodb-models/UserDetail.model";
 import { DbAgencyUserInviteDto } from "../db/gcp-firestore-models/AgencyUserInvite.model";
-import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
+import { DbGcpFirestoreJobDto } from "../db/gcp-firestore-models/GcpFirestoreJob.model";
 import { DbAgencyUserDto } from "../db/gcp-firestore-models/AgencyUser.model";
 
 // Import services
@@ -376,7 +376,7 @@ class AgencyJobAssignmentService {
     filterOptions: AgencyJobAssignmentListingFilterOptions
   ): Promise<
     GcpFirestoreRecordListingResponseDTO<
-      (DbAgencyJobAssignmentDto & { jobDetails?: DbJobAwsOpensearchDto })[]
+      (DbAgencyJobAssignmentDto & { jobDetails?: DbGcpFirestoreJobDto })[]
     >
   > {
     global.logger.info(
@@ -454,7 +454,7 @@ class AgencyJobAssignmentService {
       );
 
     const agencyJobAssignmentsWithEntityDetails: (DbAgencyJobAssignmentDto & {
-      jobDetails?: DbJobAwsOpensearchDto;
+      jobDetails?: DbGcpFirestoreJobDto;
     })[] =
       await injectEntityDetailsHelperObj.injectEntityDetailsForAgencyJobAssignment(
         agencyJobAssignments,
@@ -463,7 +463,7 @@ class AgencyJobAssignmentService {
 
     const finalResponse: GcpFirestoreRecordListingResponseDTO<
       (DbAgencyJobAssignmentDto & {
-        jobDetails?: DbJobAwsOpensearchDto;
+        jobDetails?: DbGcpFirestoreJobDto;
       })[]
     > = {
       data: agencyJobAssignmentsWithEntityDetails,

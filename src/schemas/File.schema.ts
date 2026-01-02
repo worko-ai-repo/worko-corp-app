@@ -79,3 +79,14 @@ export const agencyUserSubmissionCvPsuToUploadApiDtoValidation =
       }),
     })
   );
+
+export const agencyBulkCvsPsuToViewApiDtoValidation = Joi.object({
+  agencyBulkJdId: Joi.string().required().messages({
+    "string.empty": "Agency bulk jd id is required",
+    "any.required": "Agency bulk jd id is required",
+  }),
+  bulkCvsAwsS3FileName: Joi.string().required().messages({
+    "string.empty": "Bulk cvs aws s3 file name is required",
+    "any.required": "Bulk cvs aws s3 file name is required",
+  }),
+})

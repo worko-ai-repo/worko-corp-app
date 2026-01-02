@@ -12,7 +12,7 @@ import { getActionByUserId } from "../helpers/user.helper";
 // Import models
 import { DbAgencyUserSubmissionDto } from "../db/gcp-firestore-models/AgencyUserSubmission.model";
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
-import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
+import { DbGcpFirestoreJobDto } from "../db/gcp-firestore-models/GcpFirestoreJob.model";
 
 // Import services
 import { agencyUserSubmissionServiceObj } from "../services/AgencyUserSubmission.service";
@@ -301,7 +301,7 @@ class AgencyUserSubmissionController {
       }
       const response: GcpFirestoreRecordListingResponseDTO<
         (DbAgencyUserSubmissionDto & {
-          jobDetails?: DbJobAwsOpensearchDto;
+          jobDetails?: DbGcpFirestoreJobDto;
           candidateParsedCvDetails?: DbCandidateParsedCvDto;
         })[]
       > =

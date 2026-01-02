@@ -6,14 +6,10 @@ import { SalaryRangeDto } from "../../dtos/Job.dto";
 import { JobSourcedFromEnum } from "../../enums/Common.enum";
 import { JobStatusEnum, JobWorkModeEnum } from "../../enums/Job.enum";
 
-/**
- * JobModel
- *
- * This is the model to store all the jobs in AWS OpenSearch
- *
- * @indexName `worko-jobs`
- */
-export interface DbJobAwsOpensearchDto {
+// Import models
+import { BaseFirestoreModel } from "./Base.model";
+
+interface DbGcpFirestoreJobDto extends BaseFirestoreModel {
   /**
    * id
    *
@@ -23,10 +19,10 @@ export interface DbJobAwsOpensearchDto {
    *  1. Whenever the job is created by worko admin or corporate user, then the
    *     job will be first created in aws dynamodb, then the `id` attribute
    *     which is generated and stored in the aws dynamodb will be used to
-   *     for the `id` attribute in aws opensearch.
+   *     for the `id` attribute in gcp firestore.
    *     @reference `id` attribute from `CompanyJob.model.ts`
    *  2. Whenever the job is retrieved from external source(ex:- fantastic jobs),
-   *     then backend will generate the `id` attribute and store in aws opensearch.
+   *     then backend will generate the `id` attribute and store in gcp firestore.
    */
   id: string;
 
@@ -286,3 +282,5 @@ export interface DbJobAwsOpensearchDto {
   brightDataJobPoster?: object;
   brightDataJobSeniorityLevel?: string; // "Entry level", "Mid senior level"
 }
+
+export { DbGcpFirestoreJobDto };

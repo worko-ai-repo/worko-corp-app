@@ -16,11 +16,11 @@ import { CountCompanyJobDbEntityTypeEnum } from "../enums/CountCompanyJob.enum";
 // Import models
 import { DbCountCompanyJobDto } from "../db/aws-dynamodb-models/CountCompanyJob.model";
 import { DbCompanyDetailDto } from "../db/aws-dynamodb-models/CompanyDetail.model";
-import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
+import { DbGcpFirestoreJobDto } from "../db/gcp-firestore-models/GcpFirestoreJob.model";
 
 // Import services
 import { companyDetailServiceObj } from "./CompanyDetail.service";
-import { jobServiceObj } from "./Job.service";
+import { gcpFirestoreJobServiceObj } from "./GcpFirestoreJob.service";
 
 // Import utils
 import { BaseError } from "../utils/errors.util";
@@ -96,8 +96,8 @@ class CountCompanyJobService {
 
     const companyData: DbCompanyDetailDto = companyDetailQueryResponse[0];
 
-    const jobDetailsFromOpensearch: DbJobAwsOpensearchDto | undefined =
-      await jobServiceObj.getJobByIdFromAwsOpensearch(jobId);
+    const jobDetailsFromOpensearch: DbGcpFirestoreJobDto | undefined =
+      await gcpFirestoreJobServiceObj.getJobById(jobId);
     if (!jobDetailsFromOpensearch) {
       throw new BaseError(
         "Job details not found.",

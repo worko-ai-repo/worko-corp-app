@@ -7,7 +7,7 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsS3ClientLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { AgencyBulkCvsPreSignedUrlToUploadFileDto, AgencyBulkJdResumePreSignedUrlToUploadDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
+import { AgencyBulkCvsPreSignedUrlToUploadFileDto, AgencyBulkCvsPsuToViewApiDto, AgencyBulkJdResumePreSignedUrlToUploadDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
 
 // Import helpers
 import { getActionByAgencyUserIds, getActionByUserId } from "../helpers/user.helper";
@@ -64,7 +64,7 @@ class FileService {
           // Generate the AWS S3 Signed Url
           const fileSignedUrl: string =
             await awsS3ClientLibrary.getSignedUrlForUploadingObject(
-              process.env.APP_AWS_S3_BUCKET_WORKO_APP as string,
+              process.env.APP_AWS_S3_BUCKET_WORKO_AGENCY_BULK_CVS as string,
               fileUploadPath + "/" + cloudFileName,
               APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
               {
@@ -395,6 +395,27 @@ class FileService {
     }
   }
 
+  private async validatePsuToViewAgencyBulkCvs(requestBodyObject: AgencyBulkCvsPsuToViewApiDto): Promise<{agencyUserId: string}> {
+    const {
+      convertedAgencyCognitoUserId
+    } = getActionByAgencyUserIds();
+
+    const agencyUserDetails: DbAgencyUserDto | undefined =
+      await agencyUserServiceObj.getAgencyUserById(
+        convertedAgencyCognitoUserId
+      );
+    if (!agencyUserDetails) {
+      throw new BaseError(
+        `We couldn’t verify your details. Please log out and sign in again to continue.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+
+    return {
+      agencyUserId: convertedAgencyCognitoUserId
+    }
+  }
+
   async generatePsuToUploadAgencyUserSubmissionCv(
     requestBodyObject: AgencyUserSubmissionCvPsuToUploadApiDto
   ): Promise<PreSignedUrlToUploadFileResponseDto> {
@@ -542,6 +563,50 @@ class FileService {
     const objectUrl: string = await awsS3ClientLibrary.generateObjectUrl(
       bucketName,
       `${filePath}/${candidateCvAwsS3FileName}`
+    );
+
+    return {
+      objectUrl: objectUrl,
+    };
+  }
+
+  async generatePsuToViewAgencyBulkCvs(requestBodyObject: AgencyBulkCvsPsuToViewApiDto) {
+    global.logger.info(
+      `Generating pre-signed url to view agency bulk cvs. [File Service]`,
+      {
+        methodName: this.generatePsuToViewAgencyBulkCvs.name,
+      }
+    );
+
+    const {
+      agencyUserId,
+    } = await this.validatePsuToViewAgencyBulkCvs(requestBodyObject);
+
+    const { bulkCvsAwsS3FileName, agencyBulkJdId } = requestBodyObject;
+
+    const filePath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.AGENCY_BULK_CVS.strtr({
+        "{agencyBulkJdId}": agencyBulkJdId,
+        "{agencyUserId}": agencyUserId,
+      });
+
+    const bucketName: string | undefined =
+      process.env.APP_AWS_S3_BUCKET_WORKO_AGENCY_BULK_CVS;
+    if (!bucketName) {
+      global.logger.error(`AWS S3 bucket name not found. [File Service]`, {
+        bucketName,
+        methodName: this.generatePsuToViewAgencyBulkCvs.name,
+      });
+
+      throw new BaseError(
+        `Internal server error.`,
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const objectUrl: string = await awsS3ClientLibrary.generateObjectUrl(
+      bucketName,
+      `${filePath}/${bulkCvsAwsS3FileName}`
     );
 
     return {

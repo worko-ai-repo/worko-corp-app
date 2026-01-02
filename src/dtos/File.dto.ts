@@ -130,3 +130,15 @@ export interface AgencyBulkCvsPreSignedUrlToUploadFileDto {
    */
   bulkCvs: Array<AgencyBulkJdResumePreSignedUrlToUploadDto>;
 }
+
+export interface AgencyBulkCvsPsuToViewApiDto {
+  /**
+   * @reference "id" field of "AgencyBulkJd.model.ts"
+   */
+  agencyBulkJdId: string;
+
+  /**
+   * @example "{ulidId}.pdf"
+   */
+  bulkCvsAwsS3FileName: string;
+}
