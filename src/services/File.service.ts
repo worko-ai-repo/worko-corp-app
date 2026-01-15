@@ -154,43 +154,46 @@ class FileService {
   }
 
   async generatePsuToViewCorpCandBulkCvUpload(requestBody: CorpCandBulkCvUploadPsuToViewApiDto) {
-    const { actionByCorporateUserId } = getActionByUserId();
-    if(!actionByCorporateUserId) {
-      throw new BaseError(
-        "Unauthorized.",
-        HttpStatusCode.UNAUTHORIZED_401
-      );
-    }
+    const { actionByCorporateUserId, actionByUserId } = getActionByUserId();
+    const cognitoUserGroups: string[] = global.requestLocalContext.cognitoUserGroups;
+    const {candCvAwsS3FileName, companyId} = requestBody;
+    if(actionByCorporateUserId) {
+      const corporateUserDetails: QueryResponse<DbCorporateUserDto> = await corporateUserServiceObj.getCorpUserById(actionByCorporateUserId);
+      if (!corporateUserDetails.count) {
+        throw new BaseError(
+          `Corporate User Details not found.`,
+          HttpStatusCode.NOT_FOUND_404
+        );
+      }
+      const corporateUserData: DbCorporateUserDto = corporateUserDetails[0];
 
-    const corporateUserDetails: QueryResponse<DbCorporateUserDto> = await corporateUserServiceObj.getCorpUserById(actionByCorporateUserId);
-    if (!corporateUserDetails.count) {
-      throw new BaseError(
-        `Corporate User Details not found.`,
-        HttpStatusCode.NOT_FOUND_404
-      );
-    }
-    const corporateUserData: DbCorporateUserDto = corporateUserDetails[0];
+      if(corporateUserData.isDeleted) {
+        throw new BaseError(
+          "Your account has been deleted, please contact support.",
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
 
-    if(corporateUserData.isDeleted) {
-      throw new BaseError(
-        "Your account has been deleted, please contact support.",
-        HttpStatusCode.FORBIDDEN_403
-      );
-    }
-
-    if(requestBody.companyId !== corporateUserData.companyId) {
-      global.logger.info(`Corporate user and company id in request mismatch.`, {
-        methodName: this.generatePsuToBulkCvUploadCorporateCandidateProfile.name,
+      if(requestBody.companyId !== corporateUserData.companyId) {
+        global.logger.info(`Corporate user and company id in request mismatch.`, {
+          methodName: this.generatePsuToBulkCvUploadCorporateCandidateProfile.name,
+        })
+        throw new BaseError(
+          "You are not allowed to access this resource",
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
+    } else if(actionByUserId && cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)) {
+      global.logger.info(`User is a worko admin.`, {
+        methodName: this.generatePsuToViewCorpCandBulkCvUpload.name
       })
-      throw new BaseError(
-        "You are not allowed to access this resource",
-        HttpStatusCode.FORBIDDEN_403
-      );
+    } else {
+      throw new BaseError("Unauthorized", HttpStatusCode.UNAUTHORIZED_401);
     }
 
     const filePath: string =
       APP_CONSTANTS.AWS_S3_DIR_PATHS.CORP_CAND_BULK_CV_UPLOAD.strtr({
-        "{companyId}": requestBody.companyId.toString(),
+        "{companyId}": companyId.toString(),
       });
 
     const bucketName: string | undefined = process.env.APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE;
@@ -203,7 +206,7 @@ class FileService {
 
     const objectUrl: string = await awsS3ClientLibrary.generateObjectUrl(
       bucketName,
-      `${filePath}/${requestBody.candCvAwsS3FileName}`
+      `${filePath}/${candCvAwsS3FileName}`
     );
 
     return {
