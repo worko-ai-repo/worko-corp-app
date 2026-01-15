@@ -8,6 +8,11 @@ const corporateCandidateProfileController = new CorporateCandidateProfileControl
 const CorporateCandidateProfileRouter = Router();
 
 /**
+ * @authorisedRoles ["corporate-admin", "corporate-recruiter"]
+ */
+CorporateCandidateProfileRouter.post("/resumes", corporateCandidateProfileController.generatePsuToBulkCvUploadCorporateCandidateProfile);
+
+/**
  * Create Corporate Candidate Profile
  * @authorisedRoles ["agency"]
  */

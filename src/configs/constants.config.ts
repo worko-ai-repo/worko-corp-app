@@ -49,7 +49,21 @@ const APP_CONSTANTS = {
     USER_PROFILE_PIC: "users/{userId}/profilePics", // To upload the individual user's profile pics
     AGENCY_INVITE_CONTRACT_COPY: `companies/{companyId}/agency-invites/{agencyInviteId}/contract-copies`,
     AGENCY_SUBMIT_USER_CV: `agencies/{agencyUserId}/companies/{companyId}/jobs/{jobId}/user-profiles`,
-    AGENCY_BULK_CVS: `agencies/{agencyUserId}/bulk-cvs/{agencyBulkJdId}`
+    AGENCY_BULK_CVS: `agencies/{agencyUserId}/bulk-cvs/{agencyBulkJdId}`,
+
+    /**
+     * @description
+     *  1. In `My database` page of `Corporate dashboard` whenever corporate upload bulk candidate cvs
+     *  we store in this path.
+     */
+    CORP_CAND_BULK_CV_UPLOAD: `companies/{companyId}/bulk-cvs`,
+
+    /**
+     * @description
+     *  1. In `My database` page of `Admin dashboard` whenever admin upload bulk candidate cvs 
+     *  we store in this path.
+     */
+    ADMIN_CAND_BULK_CV_UPLOAD: `bulk-cvs`
   },
 
   /**

@@ -24,3 +24,23 @@ export const centralCandidateProfileFilterDtoValidation = gcpFirestoreCommonSche
     }),
   })
 );
+
+export const centralCandidateProfileBulkCvPsuToUploadApiDtoValidation = Joi.object({
+  bulkCvs: Joi.array().items(
+    Joi.object({
+      fileName: Joi.string().required().messages({
+        "string.empty": "File name is required",
+        "any.required": "File name is required",
+      }),
+      fileMimeType: Joi.string().required().messages({
+        "string.empty": "File mime type is required",
+        "any.required": "File mime type is required",
+      }),
+    })
+  ).required().min(1).max(10).messages({
+    "array.base": "Bulk cvs should be an array",
+    "any.required": "Bulk cvs is required",
+    "array.min": "Bulk cvs should have at least 1 item",
+    "array.max": "Bulk cvs should have at most 10 items"
+  })
+})

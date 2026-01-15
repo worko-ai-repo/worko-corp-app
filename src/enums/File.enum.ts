@@ -15,4 +15,16 @@ export enum FileResourceKeyEnum {
   AGENCY_SUBMIT_USER_CV = "AGENCY_SUBMIT_USER_CV",
 
   AGENCY_BULK_CVS = "AGENCY_BULK_CVS",
+
+  /**
+   * @description
+   *  1. In `My database` page of `Corporate dashboard` whenever corporate upload bulk candidate cvs.
+   */
+  CORP_CAND_BULK_CV_UPLOAD = "CORP_CAND_BULK_CV_UPLOAD",
+
+  /**
+   * @description
+   *  1. In `My database` page of `Admin dashboard` whenever admin upload bulk candidate cvs
+   */
+  ADMIN_CAND_BULK_CV_UPLOAD = "ADMIN_CAND_BULK_CV_UPLOAD",
 }

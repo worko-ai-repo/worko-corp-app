@@ -10,6 +10,11 @@ const CentralCandidateProfileRouter = Router();
 /**
  * @authorisedRoles ["admin"]
  */
+CentralCandidateProfileRouter.post("/resumes", centralCandidateProfileController.generatePsuToBulkCvUploadCentralCandidateProfile);
+
+/**
+ * @authorisedRoles ["admin"]
+ */
 CentralCandidateProfileRouter.get("/", centralCandidateProfileController.getAllCentralCandidateProfileByFilterOptions);
 
 export default CentralCandidateProfileRouter;

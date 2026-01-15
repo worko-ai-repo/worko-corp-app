@@ -51,3 +51,27 @@ export const corporateCandidateProfileDuplicationRequestDtoValidation = Joi.obje
     "any.required": "Phone country code is required",
   }),
 });
+
+export const corporateCandidateProfileBulkCvPsuToUploadApiDtoValidation = Joi.object({
+  companyId: Joi.string().required().messages({
+    "string.empty": "Company id is required",
+    "any.required": "Company id is required",
+  }),
+  bulkCvs: Joi.array().items(
+    Joi.object({
+      fileName: Joi.string().required().messages({
+        "string.empty": "File name is required",
+        "any.required": "File name is required",
+      }),
+      fileMimeType: Joi.string().required().messages({
+        "string.empty": "File mime type is required",
+        "any.required": "File mime type is required",
+      }),
+    })
+  ).required().min(1).max(10).messages({
+    "array.base": "Bulk cvs should be an array",
+    "any.required": "Bulk cvs is required",
+    "array.min": "Bulk cvs should have at least 1 item",
+    "array.max": "Bulk cvs should have at most 10 items"
+  })
+});

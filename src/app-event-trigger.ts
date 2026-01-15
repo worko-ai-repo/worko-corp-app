@@ -1,9 +1,4 @@
-/**
- * @note  
- *  1. This will be used if we want to use SQS trigger
- */
 
-/*
 // Import aws lambda related types
 import { Context, SQSEvent } from "aws-lambda";
 
@@ -19,15 +14,18 @@ import "./configs/gcp-sdk.config";
 
 // Import dtos
 import {
-   SqsMsgAgencyBulkJdResumePostMatchingScoreReqDto,
-   SqsMsgBaseReqDto,
+  SqsMsgAdminCandProfileBulkUploadReqDto,
+   // SqsMsgAgencyBulkJdResumePostMatchingScoreReqDto,
+   SqsMsgCorporateCandProfileBulkUploadReqDto,
 } from "./dtos/SqsEvent.dto";
 
 // Import enums
 import { SqsMsgEventEnum } from "./enums/SqsEvent.enum";
 
 // Import services
-import { agencyBulkJdResumeServiceObj } from "./services/AgencyBulkJdResume.service";
+// import { agencyBulkJdResumeServiceObj } from "./services/AgencyBulkJdResume.service";
+import { corporateCandidateProfileServiceObj } from "./services/CorporateCandidateProfile.service";
+import { centralCandidateProfileServiceObj } from "./services/CentralCandidateProfile.service";
 
 // Import utils
 import { BaseError } from "./utils/errors.util";
@@ -46,7 +44,11 @@ const initDatabaseConfig = () => {
 // Initialize the database configuration
 initDatabaseConfig();
 
-
+/**
+ * @note This code will be used when we want to send email to candidates for agency bulk cv check,
+ * as of now we are not sending email to candidates
+ */
+/*
 const validateAgencyBulkJdResumePostMatchingScore = async (
   message: SqsMsgAgencyBulkJdResumePostMatchingScoreReqDto,
   event: SQSEvent,
@@ -92,7 +94,83 @@ const validateAgencyBulkJdResumePostMatchingScore = async (
     );
   }
 };
+*/
 
+const validateCorporateCandProfileBulkUpload  = async (
+  message: SqsMsgCorporateCandProfileBulkUploadReqDto,
+): Promise<object> => {
+  try {
+    const { companyId, candidateCvAwsS3FileName, cvExtractedParsed } = message;
+
+    const corpCandProfileActivityStatus: boolean = await corporateCandidateProfileServiceObj.validateCorporateCandidateProfileBulkUpload(
+      companyId,
+      candidateCvAwsS3FileName,
+      cvExtractedParsed
+    );
+
+    // Return success response if validation was successful
+    if (corpCandProfileActivityStatus) {
+      return responseHandlerUtilObj.sendSuccess(
+        HttpStatusCode.OK_200,
+        "Corporate candidate profile bulk upload validated successfully."
+      );
+    } else {
+      // Throw custom error if validation failed
+      throw new BaseError(
+        `Unable to validate Corporate candidate profile bulk upload."`,
+        HttpStatusCode.BAD_REQUEST_400
+      );
+    }
+  } catch (error:any) {
+    global.logger.error(`validateCorporateCandProfileBulkUpload error [Controller]`, {
+      methodName: "validateCorporateCandProfileBulkUpload",
+      error,
+    })
+    // Return error response if validation failed
+    return responseHandlerUtilObj.sendError(
+      error,
+      error?.errorMsg ?? error?.message
+    );
+  }
+};
+
+const validateAdminCandProfileBulkUpload = async (
+  message: SqsMsgAdminCandProfileBulkUploadReqDto
+): Promise<object> => {
+  try {
+    const { candidateCvAwsS3FileName, cvExtractedParsed } = message;
+
+    const adminCandProfileActivityStatus: boolean = await centralCandidateProfileServiceObj.validateCentralCandidateProfileBulkUpload(
+      candidateCvAwsS3FileName,
+      cvExtractedParsed
+    );
+
+    // Return success response if validation was successful
+    if (adminCandProfileActivityStatus) {
+      return responseHandlerUtilObj.sendSuccess(
+        HttpStatusCode.OK_200,
+        "Admin candidate profile bulk upload validated successfully."
+      );
+    } else {
+      // If duplicate candidate profile is found, it will return false
+      // Throw custom error if validation failed
+      throw new BaseError(
+        `Unable to validate Admin candidate profile bulk upload."`,
+        HttpStatusCode.BAD_REQUEST_400
+      );
+    }
+  } catch (error:any) {
+    global.logger.error(`validateCorporateCandProfileBulkUpload error [Controller]`, {
+      methodName: "validateCorporateCandProfileBulkUpload",
+      error,
+    })
+    // Return error response if validation failed
+    return responseHandlerUtilObj.sendError(
+      error,
+      error?.errorMsg ?? error?.message
+    );
+  }
+}
 
 export const handler = async (
   event: SQSEvent,
@@ -107,17 +185,25 @@ export const handler = async (
 
     // Extract message body from event
     let messageBody: string = event.Records[0].body;
-
-    global.logger.info(`App event trigger: messageBody: ${messageBody}`, {
+    global.logger.info("App event trigger: messageBody: ", {
       methodName: "handler",
-    });
+      messageBody: messageBody,
+    })
 
     // Convert message body to string if not already a string
     if (typeof messageBody !== "string") {
+      global.logger.info(
+        `Before converting messageBody to string:`,
+        {
+          messageBody: messageBody,
+          methodName: "handler",
+        }
+      )
       messageBody = JSON.stringify(messageBody);
       global.logger.info(
-        `App event trigger: messageBody (converted to string): ${messageBody}`,
+        `After converting messageBody to string:`,
         {
+          messageBody: messageBody,
           methodName: "handler",
         }
       );
@@ -125,35 +211,43 @@ export const handler = async (
 
     // Parse message body
     const parsedMessageBody = JSON.parse(messageBody);
+    const messageEvent: string = parsedMessageBody.event;
 
-    // Extract message and event type
-    const parsedMessage: SqsMsgBaseReqDto = parsedMessageBody;
-    const messageEvent: string = parsedMessage.event;
-
-    global.logger.info("App event trigger: parsedMessage and messageEvent: ", {
+    global.logger.info("App event trigger: parsedMessageBody and messageEvent: ", {
       methodName: "handler",
       parsedMessageBody: parsedMessageBody,
-      parsedMessage: parsedMessage,
       messageEvent: messageEvent,
     });
 
-    // Handle different event types
-    if (
+    switch (messageEvent) {
+      /*
       // After calculating matching score for resume this event is triggered
-      messageEvent === SqsMsgEventEnum.AGENCY_BULK_JD_RESUME_POST_MATCHING_SCORE
-    ) {
-      return validateAgencyBulkJdResumePostMatchingScore(
-        parsedMessage as SqsMsgAgencyBulkJdResumePostMatchingScoreReqDto,
-        event,
-        context
-      );
-    }
+      case SqsMsgEventEnum.AGENCY_BULK_JD_RESUME_POST_MATCHING_SCORE:
+        return validateAgencyBulkJdResumePostMatchingScore(
+          parsedMessageBody as SqsMsgAgencyBulkJdResumePostMatchingScoreReqDto,
+          event,
+          context
+        );
+      */
 
-    // Throw error if event type is invalid
-    throw new BaseError(
-      `The provided event ${messageEvent} is invalid, therefore it cannot be processed.`
-    );
+      case SqsMsgEventEnum.CORPORATE_CAND_PROFILE_BULK_UPLOAD:
+        return validateCorporateCandProfileBulkUpload(parsedMessageBody as SqsMsgCorporateCandProfileBulkUploadReqDto);
+
+      case SqsMsgEventEnum.ADMIN_CAND_PROFILE_BULK_UPLOAD:
+        return validateAdminCandProfileBulkUpload(parsedMessageBody as SqsMsgAdminCandProfileBulkUploadReqDto);
+
+      default:
+        // Throw error if event type is invalid
+        throw new BaseError(
+          `The provided event ${messageEvent} is invalid, therefore it cannot be processed.`
+        );
+    }
   } catch (error: any) {
+    global.logger.error("App event trigger: Error occurred: ", {
+      methodName: "handler",
+      error: error,
+    });
+
     // Return error response if an unexpected error occurred
     return responseHandlerUtilObj.sendError(
       error,
@@ -161,4 +255,3 @@ export const handler = async (
     );
   }
 };
-*/

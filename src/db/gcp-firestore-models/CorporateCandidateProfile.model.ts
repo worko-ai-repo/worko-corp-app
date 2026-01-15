@@ -22,10 +22,6 @@ interface DbCorporateCandidateProfileDto extends BaseFirestoreModel {
 
   candidateEmail: string;
 
-  /**
-   * @todo:
-   *  1. If "phoneNumberDetails" is updated by someone then we need to update it in other collections accordingly.
-   */
   phoneNumberDetails: CorporateCandidateProfileDbPhoneNumberDto;
 
   refereeType: CorporateCandidateProfileDbRefereeTypeEnum;

@@ -90,3 +90,21 @@ export const agencyBulkCvsPsuToViewApiDtoValidation = Joi.object({
     "any.required": "Bulk cvs aws s3 file name is required",
   }),
 })
+
+export const corpCandBulkCvUploadPsuToViewApiDtoValidation = Joi.object({
+  companyId: Joi.string().required().messages({
+    "string.empty": "Company id is required",
+    "any.required": "Company id is required",
+  }),
+  candCvAwsS3FileName: Joi.string().required().messages({
+    "string.empty": "Candidate cv aws s3 file name is required",
+    "any.required": "Candidate cv aws s3 file name is required",
+  }),
+})
+
+export const adminCandBulkCvUploadPsuToViewApiDtoValidation = Joi.object({
+  candCvAwsS3FileName: Joi.string().required().messages({
+    "string.empty": "Candidate cv aws s3 file name is required",
+    "any.required": "Candidate cv aws s3 file name is required",
+  }),
+});

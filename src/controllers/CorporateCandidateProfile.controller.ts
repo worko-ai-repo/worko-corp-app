@@ -5,8 +5,9 @@ import { Request, Response, NextFunction } from "express";
 import { DocumentData, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import dtos
-import { CorporateCandidateProfileDuplicationRequestDTO, CorporateCandidateProfileListingFilterOptions, CorporateCandidateProfileListingFilterRequestDTO } from "../dtos/CorporateCandidateProfile.dto";
+import { CorporateCandidateProfileBulkCvPsuToUploadApiDto, CorporateCandidateProfileDuplicationRequestDTO, CorporateCandidateProfileListingFilterOptions, CorporateCandidateProfileListingFilterRequestDTO } from "../dtos/CorporateCandidateProfile.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
+import { PreSignedUrlToUploadFileResponseDto } from "../dtos/File.dto";
 
 // Import helpers
 import { GcpFirestoreRequestHelper } from "../helpers/request.gcp-firestore.helper";
@@ -17,7 +18,7 @@ import { corporateCandidateProfileServiceObj } from "../services/CorporateCandid
 import { agencyUserServiceObj } from "../services/AgencyUser.service";
 
 // Import schemas
-import { corporateCandidateProfileDuplicationRequestDtoValidation, corporateCandidateProfileFilterDtoValidation } from "../schemas/CorporateCandidateProfile.schema";
+import { corporateCandidateProfileBulkCvPsuToUploadApiDtoValidation, corporateCandidateProfileDuplicationRequestDtoValidation, corporateCandidateProfileFilterDtoValidation } from "../schemas/CorporateCandidateProfile.schema";
 
 // Import models
 import { DbCorporateCandidateProfileDto } from "../db/gcp-firestore-models/CorporateCandidateProfile.model";
@@ -29,6 +30,31 @@ import HttpStatusCode from "../utils/http-codes.util";
 import { BaseError, RequestValidationError } from "../utils/errors.util";
 
 class CorporateCandidateProfileController {
+  generatePsuToBulkCvUploadCorporateCandidateProfile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const requestBody: CorporateCandidateProfileBulkCvPsuToUploadApiDto = req.body;
+      let { error, value: validatedRequestBody } = corporateCandidateProfileBulkCvPsuToUploadApiDtoValidation.validate(
+        requestBody,
+        { abortEarly: false }
+      );
+      if(error) {
+        throw new RequestValidationError(error);
+      }
+      const response: PreSignedUrlToUploadFileResponseDto[] = await corporateCandidateProfileServiceObj.generatePsuToBulkCvUploadCorporateCandidateProfile(
+        validatedRequestBody
+      );
+      res.status(HttpStatusCode.OK_200).json({
+        "bulkCvs": response
+      });
+    } catch (error) {
+      global.logger.error(`Generate PSU To Bulk Cv Upload Corporate Candidate Profile [Controller]`, {
+        methodName: this.generatePsuToBulkCvUploadCorporateCandidateProfile.name,
+        error,
+      })
+      next(error);
+    }
+  }
+
   getAllCorporateCandidateProfileByFilterOptions = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const corporateCandidateProfileListingFilterRequest: CorporateCandidateProfileListingFilterOptions =

@@ -21,4 +21,18 @@ export enum CandidateParsedCvAwsS3ResourceTypeEnum {
    *  3. Required request body: "corporateBulkJdId"
    */
   BULK_CVS = "BULK_CVS",
+
+  /**
+   * @description 
+   *  1. In `My database` page of `Corporate dashboard` whenever corporate upload bulk candidate cvs.
+   *  2. Required request body: "companyId", "candCvAwsS3FileName"
+   */
+  CORP_CAND_BULK_CV_UPLOAD = "CORP_CAND_BULK_CV_UPLOAD",
+
+  /**
+   * @description
+   *  1. In `My database` page of `Admin dashboard` whenever admin upload bulk candidate cvs
+   *  2. Required request body: "candCvAwsS3FileName"
+   */
+  ADMIN_CAND_BULK_CV_UPLOAD = "ADMIN_CAND_BULK_CV_UPLOAD"
 }

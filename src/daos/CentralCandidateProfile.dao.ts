@@ -51,6 +51,31 @@ class CentralCandidateProfileDao implements BaseDao {
     );
   }
 
+  async getDuplicateCentralCandidateProfile(candidateEmailId: string, phoneNumberDetails: CentralCandidateProfileDbPhoneNumberDto): Promise<QuerySnapshot<DocumentData, DocumentData>> {
+    const db: Firestore = await this.getCentralCandidateProfileFirestoreDatabase();
+
+    return db
+      .collection(this.collectionName)
+      .where(
+        Filter.or(
+          Filter.where("candidateEmail", "==", candidateEmailId),
+          Filter.and(
+            Filter.where(
+              "phoneNumberDetails.number",
+              "==",
+              phoneNumberDetails.number
+            ),
+            Filter.where(
+              "phoneNumberDetails.countryCode",
+              "==",
+              phoneNumberDetails.countryCode
+            )
+          )
+        )
+      )
+      .get();
+  }
+
   async getAllCentralCandidateProfileByFilterOptions(
     filterOptions: CentralCandidateProfileListingFilterOptions
   ): Promise<GcpFirestoreRecordListingResponseDTO<DbCentralCandidateProfileDto[]>> {

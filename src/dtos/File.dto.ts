@@ -142,3 +142,12 @@ export interface AgencyBulkCvsPsuToViewApiDto {
    */
   bulkCvsAwsS3FileName: string;
 }
+
+export interface CorpCandBulkCvUploadPsuToViewApiDto {
+  companyId: string // corporate registered companyId
+  candCvAwsS3FileName: string // "57RTFCG.pdf"
+}
+
+export interface AdminCandBulkCvUploadPsuToViewApiDto {
+  candCvAwsS3FileName: string
+}

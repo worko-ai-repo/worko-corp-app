@@ -1,10 +1,10 @@
 
 // Import firestore package
-import { Firestore, DocumentData, QueryDocumentSnapshot, VectorQuerySnapshot, FieldValue, Query, VectorQuery, VectorValue, WhereFilterOp, DocumentSnapshot } from "@google-cloud/firestore";
+import { Firestore, DocumentData, QueryDocumentSnapshot, VectorQuerySnapshot, FieldValue, Query, VectorQuery, VectorValue, WhereFilterOp } from "@google-cloud/firestore";
 
 // Import sdk configs
 import { 
-  gcpAiPlatformLibrary,
+  gcpAiPlatformEmbeddingLibrary,
   gcpFirestoreLibrary, 
 } from "../configs/gcp-sdk.config";
 
@@ -15,7 +15,6 @@ import { GcpFirestoreRecordListingResponseDTO, GcpFirestoreRecordListingPaginati
 
 // Import helpers
 import { dateHelperObj } from "../helpers/date.helper";
-import { gcpFirestoreBase64EncodeStrToLastKey, gcpFirestorelastKeyToBase64EncodeStr } from "../helpers/gcp-firestore.helper";
 
 // Import utils
 import { BaseError } from "../utils/errors.util";
@@ -28,12 +27,12 @@ import HttpStatusCode from "../utils/http-codes.util";
 class GcpFirestoreVectorLibrary {
   constructor() {
     if (
-      !process.env.APP_GCP_AI_PLATFORM_MODEL_NAME 
+      !process.env.APP_GCP_AI_PLATFORM_EMBEDDING_MODEL_NAME 
     ) {
       global.logger.error(
         `MODEL_NAME is not defined in .env file.`,
         {
-          modelName: process.env.APP_GCP_AI_PLATFORM_MODEL_NAME,
+          modelName: process.env.APP_GCP_AI_PLATFORM_EMBEDDING_MODEL_NAME,
         }
       );
       throw new BaseError(
@@ -42,7 +41,7 @@ class GcpFirestoreVectorLibrary {
       );
     }
   }
-  private readonly MODEL_NAME = process.env.APP_GCP_AI_PLATFORM_MODEL_NAME as string;
+  private readonly MODEL_NAME = process.env.APP_GCP_AI_PLATFORM_EMBEDDING_MODEL_NAME as string;
 
   /**
    * Store vector embeddings
@@ -54,7 +53,7 @@ class GcpFirestoreVectorLibrary {
     embeddingText: string
   ): Promise<DbEntityDto | undefined> {
     const { embedding, dimensions } =
-      await gcpAiPlatformLibrary.generateEmbedding(embeddingText);
+      await gcpAiPlatformEmbeddingLibrary.generateEmbedding(embeddingText);
 
     const documentWithEmbedding: DbEntityDto & {
       embeddingVector: VectorValue;
@@ -96,7 +95,7 @@ class GcpFirestoreVectorLibrary {
     // Note: Embeddings cannot be partially updated - they must be fully regenerated
     // when the source text changes to maintain semantic accuracy
     const { embedding, dimensions } =
-      await gcpAiPlatformLibrary.generateEmbedding(
+      await gcpAiPlatformEmbeddingLibrary.generateEmbedding(
         embeddingText,
         "RETRIEVAL_DOCUMENT",
         title
@@ -135,114 +134,13 @@ class GcpFirestoreVectorLibrary {
     >(commonDbDetails, id, updateData);
   }
 
-  /*
-  async getDocumentsByEmbedding<DbEntityDto>(
-    commonDbDetails: GcpFirestoreInteractionDto,
-    queryText: string,
-    options?: {
-      limit?: number;
-      page?: number;
-      additionalFilters?: {
-        field: string;
-        operator: FirebaseFirestore.WhereFilterOp;
-        value: any;
-      }[];
-      distanceThreshold?: number;
-    }
-  ): Promise<GcpFirestoreRecordListingResponseDTO<DbEntityDto[]>> {
-    const limit = options?.limit || 10;
-    const page = options?.page || 1;
-    const additionalFilters = options?.additionalFilters;
-    const distanceThreshold = options?.distanceThreshold;
-
-    // Generate embedding for the query text with RETRIEVAL_QUERY task type
-    const { embedding } = await gcpAiPlatformLibrary.generateEmbedding(
-      queryText,
-      "RETRIEVAL_QUERY"
-    );
-    const db: Firestore = await gcpFirestoreLibrary.getFirestoreDatabase(
-      commonDbDetails.databaseName
-    );
-
-    let query: Query = db.collection(
-      commonDbDetails.collectionName
-    );
-
-    // Apply additional filters if provided
-    if (additionalFilters && additionalFilters.length > 0) {
-      additionalFilters.forEach((filter) => {
-        query = query.where(filter.field, filter.operator, filter.value);
-      });
-    }
-
-    // Fetch more results than needed for pagination
-    // We need to fetch all results up to the current page to properly paginate
-    const fetchLimit = limit * page + 1; // +1 to check if there are more results
-
-    // Use Firestore's native vector search with findNearest (updated API)
-    const vectorQuery: VectorQuery<DocumentData, DocumentData> = query.findNearest({
-      vectorField: "embeddingVector",
-      queryVector: embedding,
-      limit: limit,
-      distanceMeasure: "COSINE",
-    });
-
-    const snapshot: VectorQuerySnapshot<DocumentData, DocumentData> = await vectorQuery.get();
-
-    const allResults: DbEntityDto[] = [];
-
-    snapshot.forEach(
-      (doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => {
-        const data = doc.data() as DbEntityDto & { embeddingVector: number[] };
-
-        // Calculate distance (lower distance = higher similarity = better match)
-        const distance: number = this.calculateCosineDistance(
-          embedding,
-          data.embeddingVector
-        );
-
-        // Calculate similarity score (0-100, higher is better)
-        // const score: number = Math.max(0, Math.min(100, (1 - distance) * 100));
-
-        // Apply distance threshold if provided
-        if (!distanceThreshold || distance <= distanceThreshold) {
-          allResults.push(data);
-        }
-      }
-    );
-
-    // Results are already sorted by distance (best matches first) from Firestore
-    // But we'll ensure they're sorted by score (descending) for clarity
-    // allResults.sort((a, b) => (a.score || 0) - (b.score || 0)).reverse();
-
-    // Calculate pagination
-    // const startIndex = (page - 1) * limit;
-    // const endIndex = startIndex + limit;
-    // const paginatedResults = allResults.slice(startIndex, endIndex);
-    // const hasMore = allResults.length > endIndex;
-
-    const pagination: GcpFirestoreRecordListingPaginationResponseDTO = {
-      count: allResults.length,
-      pageSize: limit,
-      hasMore: allResults.length === fetchLimit ? true : false,
-    };
-
-    const response: GcpFirestoreRecordListingResponseDTO<DbEntityDto[]> = {
-      data: allResults,
-      pagination,
-    };
-
-    return response;
-  }
-  */
-
   async getDocumentsByEmbedding<DbEntityDto>(
     commonDbDetails: GcpFirestoreInteractionDto,
     queryText: string,
     filterOptions: GcpFirestoreVectorRecordListingFilterOptions
   ): Promise<GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]>> {
     // Generate embedding for the query text with RETRIEVAL_QUERY task type
-    const { embedding } = await gcpAiPlatformLibrary.generateEmbedding(
+    const { embedding } = await gcpAiPlatformEmbeddingLibrary.generateEmbedding(
       queryText,
       "RETRIEVAL_QUERY"
     );

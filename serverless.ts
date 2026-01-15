@@ -78,6 +78,11 @@ const serverlessConfiguration: AWS = {
       APP_AWS_WORKO_COGNITO_USER_POOL_ID: "${env:APP_AWS_WORKO_COGNITO_USER_POOL_ID}",
       APP_AWS_SECRETS_MANAGER_GCP_FIRESTORE_ARN_SECRET: "${env:APP_AWS_SECRETS_MANAGER_GCP_FIRESTORE_ARN_SECRET}",
       APP_AWS_SECRETS_MANAGER_GCP_AI_PLATFORM_ARN_SECRET: "${env:APP_AWS_SECRETS_MANAGER_GCP_AI_PLATFORM_ARN_SECRET}",
+      APP_AWS_S3_BUCKET_WORKO_CORPORATE: "${env:APP_AWS_S3_BUCKET_WORKO_CORPORATE}",
+      APP_AWS_S3_BUCKET_WORKO_APP: "${env:APP_AWS_S3_BUCKET_WORKO_APP}",
+      APP_AWS_S3_BUCKET_WORKO_AGENCY_BULK_CVS: "${env:APP_AWS_S3_BUCKET_WORKO_AGENCY_BULK_CVS}",
+      APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE: "${env:APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE}",
+      APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE: "${env:APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE}",
     },
     awsLambdaFunctions: {
       APP_AWS_SCHEDULER_HANDLER_LAMBDA_ARN: "arn:aws:lambda:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-corp-${self:custom.app.STAGE}-appScheduler",
@@ -164,7 +169,18 @@ const serverlessConfiguration: AWS = {
       {
         Effect: "Allow",
         Action: ["s3:PutObject", "s3:GetObject", "s3:ListBucket"],
-        Resource: ["arn:aws:s3:::worko-app-*", "arn:aws:s3:::*/*"],
+        Resource: [
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_CORPORATE}",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_CORPORATE}/*",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_APP}",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_APP}/*",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_AGENCY_BULK_CVS}",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_AGENCY_BULK_CVS}/*",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE}",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE}/*",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE}",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE}/*",
+        ],
       },
 
       {
@@ -227,7 +243,18 @@ const serverlessConfiguration: AWS = {
           "arn:aws:secretsmanager:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:secret:${self:custom.aws.APP_AWS_SECRETS_MANAGER_GCP_FIRESTORE_ARN_SECRET}",
           "arn:aws:secretsmanager:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:secret:${self:custom.aws.APP_AWS_SECRETS_MANAGER_GCP_AI_PLATFORM_ARN_SECRET}"
         ] 
-      }
+      },
+  
+      {
+        Effect: "Allow",
+        Action: [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+        ],
+        Resource:
+          "arn:aws:sqs:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:worko-corp-app-event-queue",
+      },
     ],
   },
 
@@ -294,11 +321,6 @@ const serverlessConfiguration: AWS = {
      *  2. `worko-corp-dev-appeventtrigger`
      *  3. `worko-corp-prod-appeventtrigger`
      */
-    /**
-     * @note
-     *  1. This will be used if we want to use SQS trigger
-     */
-    /*
     appeventtrigger:{
       handler: "dist/src/app-event-trigger.handler",
       events: [
@@ -311,7 +333,6 @@ const serverlessConfiguration: AWS = {
         }
       ]
     },
-    */
   },
 };
 
