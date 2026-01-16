@@ -16,6 +16,11 @@ const CandidateParsedCvRouter = Router();
 CandidateParsedCvRouter.get("/search-in-db/corp-action", candidateParsedCvController.getAllCandidateParsedCvByCorpEmbeddingFilterOptions);
 
 /**
+ * @authorisedRoles ["worko-admin"]
+ */
+CandidateParsedCvRouter.get("/search-in-db/admin-action", candidateParsedCvController.getAllCandidateParsedCvByAdminEmbeddingFilterOptions);
+
+/**
  * @authorisedRoles ["evaluator"]
  */
 CandidateParsedCvRouter.get("/:id", candidateParsedCvController.getCandidateParsedCvById);

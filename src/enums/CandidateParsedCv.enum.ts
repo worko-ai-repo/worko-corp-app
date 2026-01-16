@@ -30,6 +30,12 @@ export enum CandidateParsedCvAwsS3ResourceTypeEnum {
   CORP_CAND_BULK_CV_UPLOAD = "CORP_CAND_BULK_CV_UPLOAD",
 
   /**
+   * @description 
+   *  1. Whenever "corporate-admin" submits a referral email and whatever cvs recieved to that email will be parsed and this event will be triggered.
+   */
+  CORP_CAND_REFERRAL_CV = "CORP_CAND_REFERRAL_CV",
+
+  /**
    * @description
    *  1. In `My database` page of `Admin dashboard` whenever admin upload bulk candidate cvs
    *  2. Required request body: "candCvAwsS3FileName"

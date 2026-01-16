@@ -17,6 +17,7 @@ import {
   SqsMsgAdminCandProfileBulkUploadReqDto,
    // SqsMsgAgencyBulkJdResumePostMatchingScoreReqDto,
    SqsMsgCorporateCandProfileBulkUploadReqDto,
+   SqsMsgCorporateCandProfileReferralSourceReqDto,
 } from "./dtos/SqsEvent.dto";
 
 // Import enums
@@ -102,6 +103,18 @@ const validateCorporateCandProfileBulkUpload  = async (
   try {
     const { companyId, candidateCvAwsS3FileName, cvExtractedParsed } = message;
 
+    if(!companyId || !candidateCvAwsS3FileName || !cvExtractedParsed){
+      global.logger.error(`Missing companyId or candidateCvAwsS3FileName or cvExtractedParsed [Controller]`, {
+        candidateCvAwsS3FileName,
+        cvExtractedParsed,
+        companyId
+      })
+      throw new BaseError(
+        `Unable to validate Corporate candidate profile bulk upload."`,
+        HttpStatusCode.BAD_REQUEST_400
+      );
+    }
+
     const corpCandProfileActivityStatus: boolean = await corporateCandidateProfileServiceObj.validateCorporateCandidateProfileBulkUpload(
       companyId,
       candidateCvAwsS3FileName,
@@ -140,6 +153,17 @@ const validateAdminCandProfileBulkUpload = async (
   try {
     const { candidateCvAwsS3FileName, cvExtractedParsed } = message;
 
+    if(!candidateCvAwsS3FileName || !cvExtractedParsed){
+      global.logger.error(`Missing candidateCvAwsS3FileName or cvExtractedParsed [Controller]`, {
+        candidateCvAwsS3FileName,
+        cvExtractedParsed
+      });
+      throw new BaseError(
+        `Unable to validate Admin candidate profile bulk upload."`,
+        HttpStatusCode.BAD_REQUEST_400
+      );
+    }
+
     const adminCandProfileActivityStatus: boolean = await centralCandidateProfileServiceObj.validateCentralCandidateProfileBulkUpload(
       candidateCvAwsS3FileName,
       cvExtractedParsed
@@ -162,6 +186,56 @@ const validateAdminCandProfileBulkUpload = async (
   } catch (error:any) {
     global.logger.error(`validateCorporateCandProfileBulkUpload error [Controller]`, {
       methodName: "validateCorporateCandProfileBulkUpload",
+      error,
+    })
+    // Return error response if validation failed
+    return responseHandlerUtilObj.sendError(
+      error,
+      error?.errorMsg ?? error?.message
+    );
+  }
+}
+
+const validateCorporateCandProfileReferralSource = async (
+  message: SqsMsgCorporateCandProfileReferralSourceReqDto
+) => {
+  try {
+    const { companyId, candidateCvAwsS3FileName, cvExtractedParsed } = message;
+
+    if(!companyId || !candidateCvAwsS3FileName || !cvExtractedParsed){
+      global.logger.error(`Missing companyId or candidateCvAwsS3FileName or cvExtractedParsed [Controller]`, {
+        candidateCvAwsS3FileName,
+        cvExtractedParsed,
+        companyId
+      });
+      throw new BaseError(
+        `Unable to validate Corporate candidate profile referral source."`,
+        HttpStatusCode.BAD_REQUEST_400
+      );
+    }
+
+    const corpCandProfileActivityStatus: boolean = await corporateCandidateProfileServiceObj.validateCorporateCandProfileReferralSource(
+      companyId,
+      candidateCvAwsS3FileName,
+      cvExtractedParsed
+    );
+
+    // Return success response if validation was successful
+    if (corpCandProfileActivityStatus) {
+      return responseHandlerUtilObj.sendSuccess(
+        HttpStatusCode.OK_200,
+        "Corporate candidate profile referral source validated successfully."
+      );
+    } else {
+      // Throw custom error if validation failed
+      throw new BaseError(
+        `Unable to validate Corporate candidate profile referral source."`,
+        HttpStatusCode.BAD_REQUEST_400
+      );
+    }
+  } catch (error:any) {
+    global.logger.error(`validateCorporateCandProfileReferralSource error [Controller]`, {
+      methodName: "validateCorporateCandProfileReferralSource",
       error,
     })
     // Return error response if validation failed
@@ -235,6 +309,9 @@ export const handler = async (
 
       case SqsMsgEventEnum.ADMIN_CAND_PROFILE_BULK_UPLOAD:
         return validateAdminCandProfileBulkUpload(parsedMessageBody as SqsMsgAdminCandProfileBulkUploadReqDto);
+        
+      case SqsMsgEventEnum.CORPORATE_CAND_PROFILE_REFERRAL_SOURCE: 
+        return validateCorporateCandProfileReferralSource(parsedMessageBody as SqsMsgCorporateCandProfileReferralSourceReqDto);
 
       default:
         // Throw error if event type is invalid

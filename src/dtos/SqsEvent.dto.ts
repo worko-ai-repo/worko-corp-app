@@ -53,3 +53,9 @@ export interface SqsMsgAdminCandProfileBulkUploadReqDto extends SqsMsgBaseReqDto
   candidateCvAwsS3FileName: string;
   cvExtractedParsed: SqsMsgCvExtractedParsedDto;
 }
+
+export interface SqsMsgCorporateCandProfileReferralSourceReqDto extends SqsMsgBaseReqDto {
+  companyId: string;
+  candidateCvAwsS3FileName: string;
+  cvExtractedParsed: SqsMsgCvExtractedParsedDto;
+}

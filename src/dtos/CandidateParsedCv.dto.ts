@@ -8,38 +8,28 @@ import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsed
 
 export interface CandidateParsedCvDbPhoneNumberDto extends CommonPhoneNumberDto {}
 
+export interface CandidateParsedCvAdminEmbeddingListingFilterOptions extends GcpFirestoreRecordListingFilterOptions {
+   pageNumber: number;
+   searchByPrompt?: string;
+   searchByJobId?: string;
+}
+
+export interface CandidateParsedCvAdminEmbeddingListingFilterRequestDTO extends GcpFirestoreRecordListingFilterRequestDTO {
+   pageNumber: number;
+   searchByPrompt?: string;
+   searchByJobId?: string;
+}
+
 export interface CandidateParsedCvCorpEmbeddingListingFilterOptions extends GcpFirestoreRecordListingFilterOptions {
    pageNumber: number;
    searchByPrompt?: string;
    searchByJobId?: string;
-   jobId?: string;
-   currentCompany?: string;
-   currentDesignation?: string;
-   totalYOE?: number;
-   relevantYOE?: number;
-   currentCTC?: number;
-   expectedCTC?: number;
-   noticePeriod?: number;
-   location?: string;
-   readyToRelocate?: boolean;
-   isNoticePeriodNegotiable?: boolean;
 }
 
 export interface CandidateParsedCvCorpEmbeddingListingFilterRequestDTO extends GcpFirestoreRecordListingFilterRequestDTO {
    pageNumber: number;
    searchByPrompt?: string;
    searchByJobId?: string;
-   jobId?: string;
-   currentCompany?: string;
-   currentDesignation?: string;
-   totalYOE?: number;
-   relevantYOE?: number;
-   currentCTC?: number;
-   expectedCTC?: number;
-   noticePeriod?: number;
-   location?: string;
-   readyToRelocate?: boolean;
-   isNoticePeriodNegotiable?: boolean;
 }
 
 export interface CandidateParsedCvAwsS3FileTrackerDto {

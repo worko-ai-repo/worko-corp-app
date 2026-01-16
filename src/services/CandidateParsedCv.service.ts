@@ -19,7 +19,7 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsClientCognitoIdentityProviderLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import daos
@@ -217,7 +217,7 @@ class CandidateParsedCvService {
     );
   }
 
-  async performGetAllCandidateParsedCvByCorporateActivities(
+  async performGetAllCandidateParsedCvByCorpEmbeddingActivities(
     filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions
   ): Promise<GcpFirestoreRecordListingResponseDTO<DbCandidateParsedCvDto[]>> {
     if(filterOptions.searchByJobId && filterOptions.searchByPrompt) throw new BaseError("Search by prompt and search by job description both are not allowed at the same time.", HttpStatusCode.BAD_REQUEST_400);
@@ -273,6 +273,49 @@ class CandidateParsedCvService {
     return dataWithPagination;
   }
 
+  async performGetAllCandidateParsedCvByAdminEmbeddingActivities(filterOptions: CandidateParsedCvAdminEmbeddingListingFilterOptions) {
+    if(filterOptions.searchByJobId && filterOptions.searchByPrompt) throw new BaseError("Search by prompt and search by job description both are not allowed at the same time.", HttpStatusCode.BAD_REQUEST_400);
+
+    let searchByJobDescription: string | undefined;
+    if(filterOptions.searchByJobId) {
+      // Get job description by job id
+      const jobDetails: DbGcpFirestoreJobDto | undefined = await gcpFirestoreJobServiceObj.getJobById(filterOptions.searchByJobId);
+      if(!jobDetails) throw new BaseError("Job not found", HttpStatusCode.NOT_FOUND_404);
+      if(!jobDetails.jobDescription) throw new BaseError("Job description not found", HttpStatusCode.NOT_FOUND_404);
+      searchByJobDescription = jobDetails.jobDescription;
+    }
+
+    let response: GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]> = await this.getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
+      filterOptions, 
+      0.4,
+      searchByJobDescription
+    );
+    if(response.data.length === 0) {
+      global.logger.info(`Candidates for "0.4" distance threshold not found, trying "0.5"`);
+      response = await this.getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
+        filterOptions, 
+        0.5,
+        searchByJobDescription,
+      );
+      if(response.data.length === 0) {
+        global.logger.info(`Candidates for "0.5" distance threshold not found, trying "0.6"`);
+        response = await this.getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
+          filterOptions,
+          0.6,
+          searchByJobDescription
+        );
+      }
+    }
+    const data: DbCandidateParsedCvDto[] = response.data.map((doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => doc.data() as DbCandidateParsedCvDto);
+    const dataWithPagination: GcpFirestoreRecordListingResponseDTO<
+      DbCandidateParsedCvDto[]
+    > = {
+      data,
+      pagination: response.pagination
+    }
+    return dataWithPagination;
+  }
+
   async getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
     filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions,
     distanceThreshold: number,
@@ -285,6 +328,20 @@ class CandidateParsedCvService {
       filterOptions,
       distanceThreshold,
       companyId,
+      searchByJobDescription
+    );
+  }
+
+  async getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
+    filterOptions: CandidateParsedCvAdminEmbeddingListingFilterOptions,
+    distanceThreshold: number,
+    searchByJobDescription?: string
+  ): Promise<
+    GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]>
+  > {
+    return candidateParsedCvDaoObj.getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
+      filterOptions,
+      distanceThreshold,
       searchByJobDescription
     );
   }

@@ -16,4 +16,10 @@ export enum SqsMsgEventEnum {
    *    sent in this sqs event
    */
   ADMIN_CAND_PROFILE_BULK_UPLOAD = "ADMIN_CAND_PROFILE_BULK_UPLOAD",
+
+  /**
+   * @description 
+   *    1. Whenever "corporate-admin" submits a referral email and whatever cvs recieved to that email will be parsed and this event will be triggered
+   */
+  CORPORATE_CAND_PROFILE_REFERRAL_SOURCE = "CORPORATE_CAND_PROFILE_REFERRAL_SOURCE"
 }

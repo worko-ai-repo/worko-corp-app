@@ -60,6 +60,12 @@ const APP_CONSTANTS = {
 
     /**
      * @description
+     *  1. Whenever "corporate-admin" submits a referral email and whatever cvs recieved to that email will be parsed and path will be used.
+     */
+    CORP_CAND_REFERRAL_CV: `companies/{companyId}/referral-source-cvs`,
+
+    /**
+     * @description
      *  1. In `My database` page of `Admin dashboard` whenever admin upload bulk candidate cvs 
      *  we store in this path.
      */

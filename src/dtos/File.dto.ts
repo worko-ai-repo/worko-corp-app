@@ -148,6 +148,11 @@ export interface CorpCandBulkCvUploadPsuToViewApiDto {
   candCvAwsS3FileName: string // "57RTFCG.pdf"
 }
 
+export interface CorpCandReferralCvPsuToViewApiDto {
+  companyId: string // corporate registered companyId
+  candCvAwsS3FileName: string // "57RTFCG.pdf"
+}
+
 export interface AdminCandBulkCvUploadPsuToViewApiDto {
   candCvAwsS3FileName: string
 }

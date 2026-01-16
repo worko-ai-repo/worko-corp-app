@@ -581,6 +581,10 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
       path: "/file/gsu2v/CORP_CAND_BULK_CV_UPLOAD",
       method: HttpMethodsConstants.POST,
     },
+    {
+      path: "/file/gsu2v/CORP_CAND_REFERRAL_CV",
+      method: HttpMethodsConstants.POST,
+    },
 
     // Agency User Submission Routers
     { path: "/agency-user-submission*", method: HttpMethodsConstants.GET },
@@ -723,6 +727,10 @@ var isCorporateAdminUrl = function (url, httpMethod) {
       path: "/file/gsu2v/CORP_CAND_BULK_CV_UPLOAD",
       method: HttpMethodsConstants.POST,
     },
+    {
+      path: "/file/gsu2v/CORP_CAND_REFERRAL_CV",
+      method: HttpMethodsConstants.POST,
+    },
 
     // User Interview Routers
     {
@@ -749,6 +757,9 @@ var isCorporateAdminUrl = function (url, httpMethod) {
 
     // Candidate Job Matching Routers
     { path: "/candidate-job-matching/:id", method: HttpMethodsConstants.GET },
+
+    // Referral Source Type Activation Routers
+    { path: "/referral-sourcetype-activation/", method: HttpMethodsConstants.POST },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
@@ -910,6 +921,14 @@ var isAdminUrl = function (url, httpMethod) {
       path: "/file/gsu2v/ADMIN_CAND_BULK_CV_UPLOAD",
       method: HttpMethodsConstants.POST,
     },
+    {
+      path: "/file/gsu2v/CORP_CAND_BULK_CV_UPLOAD",
+      method: HttpMethodsConstants.POST,
+    },
+    {
+      path: "/file/gsu2v/CORP_CAND_REFERRAL_CV",
+      method: HttpMethodsConstants.POST,
+    },
 
     // Request evaluation routers
     { path: "/request-evaluation/", method: HttpMethodsConstants.POST },
@@ -982,7 +1001,10 @@ var isAdminUrl = function (url, httpMethod) {
       path: "/central-candidate-profile*",
       method: HttpMethodsConstants.GET,
     },
-    { path: "/central-candidate-profile/resumes", method: HttpMethodsConstants.POST }
+    { path: "/central-candidate-profile/resumes", method: HttpMethodsConstants.POST },
+
+    // Candidate parsed cvs
+    { path: "/candidate-parsed-cv/search-in-db/admin-action*", method: HttpMethodsConstants.GET },
   ];
 
   const result = checkMatchingPattern(url, adminUrlList, httpMethod);

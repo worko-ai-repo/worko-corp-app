@@ -68,10 +68,10 @@ export const corporateCandidateProfileBulkCvPsuToUploadApiDtoValidation = Joi.ob
         "any.required": "File mime type is required",
       }),
     })
-  ).required().min(1).max(10).messages({
+  ).required().min(1).max(50).messages({
     "array.base": "Bulk cvs should be an array",
     "any.required": "Bulk cvs is required",
     "array.min": "Bulk cvs should have at least 1 item",
-    "array.max": "Bulk cvs should have at most 10 items"
+    "array.max": "Bulk cvs should have at most 50 items"
   })
 });

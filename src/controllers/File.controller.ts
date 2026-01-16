@@ -2,13 +2,13 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { AdminCandBulkCvUploadPsuToViewApiDto, AgencyBulkCvsPsuToViewApiDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, CorpCandBulkCvUploadPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
+import { AdminCandBulkCvUploadPsuToViewApiDto, AgencyBulkCvsPsuToViewApiDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, CorpCandBulkCvUploadPsuToViewApiDto, CorpCandReferralCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
 
 // Import enums
 import { FileResourceKeyEnum } from "../enums/File.enum";
 
 // Import schemas
-import { adminCandBulkCvUploadPsuToViewApiDtoValidation, agencyBulkCvsPsuToViewApiDtoValidation, agencyUserInviteContractCopyPsuToUploadApiDtoValidation, agencyUserInviteContractCopyPsuToViewApiDtoValidation, agencyUserSubmissionCvPsuToUploadApiDtoValidation, agencyUserSubmissionCvPsuToViewApiDtoValidation, corpCandBulkCvUploadPsuToViewApiDtoValidation } from "../schemas/File.schema";
+import { adminCandBulkCvUploadPsuToViewApiDtoValidation, agencyBulkCvsPsuToViewApiDtoValidation, agencyUserInviteContractCopyPsuToUploadApiDtoValidation, agencyUserInviteContractCopyPsuToViewApiDtoValidation, agencyUserSubmissionCvPsuToUploadApiDtoValidation, agencyUserSubmissionCvPsuToViewApiDtoValidation, corpCandBulkCvUploadPsuToViewApiDtoValidation, corpCandReferralCvPsuToViewApiDtoValidation } from "../schemas/File.schema";
 
 // Import services
 import { fileServiceObj } from "../services/File.service";
@@ -144,6 +144,34 @@ class FileController {
         await fileServiceObj.generatePsuToViewCorpCandBulkCvUpload(reqBody);
 
       return res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(
+        `Error at catch block in while generating pre-signed url to view file. [File Controller]`,
+      )
+      next(error);
+    }
+  }
+
+  generatePsuToViewCorpCandReferralCv = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const reqBody: CorpCandReferralCvPsuToViewApiDto = req.body;
+      const { error } = corpCandReferralCvPsuToViewApiDtoValidation.validate(
+        reqBody,
+        {
+          abortEarly: false,
+        }
+      );
+      if (error) {
+        throw new RequestValidationError(error);
+      }
+
+      const response: PreSignedUrlToViewFileResponseDto = await fileServiceObj.generatePsuToViewCorpCandReferralCv(reqBody);
+
+      return res.status(HttpStatusCode.OK_200).json({});
     } catch (error) {
       global.logger.error(
         `Error at catch block in while generating pre-signed url to view file. [File Controller]`,
@@ -339,6 +367,10 @@ class FileController {
 
         case FileResourceKeyEnum.CORP_CAND_BULK_CV_UPLOAD:
           await this.generatePsuToViewCorpCandBulkCvUpload(req, res, next);
+          break;
+
+        case FileResourceKeyEnum.CORP_CAND_REFERRAL_CV:
+          await this.generatePsuToViewCorpCandReferralCv(req, res, next);
           break;
 
         case FileResourceKeyEnum.ADMIN_CAND_BULK_CV_UPLOAD:

@@ -7,7 +7,7 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsS3ClientLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { AdminCandBulkCvUploadPsuToViewApiDto, AgencyBulkCvsPreSignedUrlToUploadFileDto, AgencyBulkCvsPsuToViewApiDto, AgencyBulkJdResumePreSignedUrlToUploadDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, CorpCandBulkCvUploadPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
+import { AdminCandBulkCvUploadPsuToViewApiDto, AgencyBulkCvsPreSignedUrlToUploadFileDto, AgencyBulkCvsPsuToViewApiDto, AgencyBulkJdResumePreSignedUrlToUploadDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, CorpCandBulkCvUploadPsuToViewApiDto, CorpCandReferralCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
 import { CorporateCandidateProfileBulkCvPsuToUploadApiDto } from "../dtos/CorporateCandidateProfile.dto";
 import { CentralCandidateProfileBulkCvPsuToUploadApiDto } from "../dtos/CentralCandidateProfile.dto";
 
@@ -197,6 +197,67 @@ class FileService {
       });
 
     const bucketName: string | undefined = process.env.APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE;
+    if(!bucketName) {
+      throw new BaseError(
+        "AWS S3 bucket name not found",
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const objectUrl: string = await awsS3ClientLibrary.generateObjectUrl(
+      bucketName,
+      `${filePath}/${candCvAwsS3FileName}`
+    );
+
+    return {
+      objectUrl: objectUrl,
+    };
+  }
+
+  async generatePsuToViewCorpCandReferralCv(requestBody: CorpCandReferralCvPsuToViewApiDto) {
+    const { actionByCorporateUserId, actionByUserId } = getActionByUserId();
+    const cognitoUserGroups: string[] = global.requestLocalContext.cognitoUserGroups;
+    const {candCvAwsS3FileName, companyId} = requestBody;
+    if(actionByCorporateUserId) {
+      const corporateUserDetails: QueryResponse<DbCorporateUserDto> = await corporateUserServiceObj.getCorpUserById(actionByCorporateUserId);
+      if (!corporateUserDetails.count) {
+        throw new BaseError(
+          `Corporate User Details not found.`,
+          HttpStatusCode.NOT_FOUND_404
+        );
+      }
+      const corporateUserData: DbCorporateUserDto = corporateUserDetails[0];
+
+      if(corporateUserData.isDeleted) {
+        throw new BaseError(
+          "Your account has been deleted, please contact support.",
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
+
+      if(requestBody.companyId !== corporateUserData.companyId) {
+        global.logger.info(`Corporate user and company id in request mismatch.`, {
+          methodName: this.generatePsuToBulkCvUploadCorporateCandidateProfile.name,
+        })
+        throw new BaseError(
+          "You are not allowed to access this resource",
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
+    } else if(actionByUserId && cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)) {
+      global.logger.info(`User is a worko admin.`, {
+        methodName: this.generatePsuToViewCorpCandBulkCvUpload.name
+      })
+    } else {
+      throw new BaseError("Unauthorized", HttpStatusCode.UNAUTHORIZED_401);
+    }
+
+    const filePath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.CORP_CAND_REFERRAL_CV.strtr({
+        "{companyId}": companyId.toString(),
+      });
+
+    const bucketName: string | undefined = process.env.APP_AWS_S3_BUCKET_WORKO_CORPORATE_REFERRAL_SOURCE_CV;
     if(!bucketName) {
       throw new BaseError(
         "AWS S3 bucket name not found",

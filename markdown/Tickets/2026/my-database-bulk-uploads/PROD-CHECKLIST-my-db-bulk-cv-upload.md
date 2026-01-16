@@ -48,7 +48,7 @@
     }
 ]
 ```
-5. create `worko-corp-app-event-queue`
+5. create `worko-corp-app-event-queue` in sqs
 
 
 # Deployments

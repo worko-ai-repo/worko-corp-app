@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterRequestDTO, CandidateParsedCvFindMatchingScoreApiDto, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvAdminEmbeddingListingFilterRequestDTO, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterRequestDTO, CandidateParsedCvFindMatchingScoreApiDto, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import helpers
@@ -18,7 +18,7 @@ import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJ
 import { candidateParsedCvServiceObj } from "../services/CandidateParsedCv.service";
 
 // Import schemas
-import { candidateParsedCvCorpEmbeddingFilterDtoValidation, candidateParsedCvFindMatchingScoreApiValidationDto, moveToApplicantCandidateParsedCvCreateApiDtoValidation } from "../schemas/CandidateParsedCv.schema";
+import { candidateParsedCvAdminEmbeddingFilterDtoValidation, candidateParsedCvCorpEmbeddingFilterDtoValidation, candidateParsedCvFindMatchingScoreApiValidationDto, moveToApplicantCandidateParsedCvCreateApiDtoValidation } from "../schemas/CandidateParsedCv.schema";
 
 // import utils
 import HttpStatusCode from "../utils/http-codes.util";
@@ -66,7 +66,7 @@ class CandidateParsedCvController {
       }
       const response: GcpFirestoreRecordListingResponseDTO<
         DbCandidateParsedCvDto[]
-      > = await candidateParsedCvServiceObj.performGetAllCandidateParsedCvByCorporateActivities(
+      > = await candidateParsedCvServiceObj.performGetAllCandidateParsedCvByCorpEmbeddingActivities(
          validatedRequestBody
       );
       res.status(HttpStatusCode.OK_200).json(response);
@@ -82,6 +82,47 @@ class CandidateParsedCvController {
       next(error);
     }
   };
+
+  getAllCandidateParsedCvByAdminEmbeddingFilterOptions = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const candidateParsedCvListingFilterRequest: CandidateParsedCvAdminEmbeddingListingFilterOptions =
+        GcpFirestoreRequestHelper.parseFilterOptions<
+          CandidateParsedCvAdminEmbeddingListingFilterRequestDTO,
+          CandidateParsedCvAdminEmbeddingListingFilterOptions
+        >(
+          req.query as unknown as CandidateParsedCvAdminEmbeddingListingFilterRequestDTO
+        );
+
+      let { error, value: validatedRequestBody } =
+        candidateParsedCvAdminEmbeddingFilterDtoValidation.validate(
+          candidateParsedCvListingFilterRequest,
+          { abortEarly: false }
+        );
+      if (error) {
+        throw new RequestValidationError(error);
+      }
+      const response: GcpFirestoreRecordListingResponseDTO<
+        DbCandidateParsedCvDto[]
+      > = await candidateParsedCvServiceObj.performGetAllCandidateParsedCvByAdminEmbeddingActivities(
+         validatedRequestBody
+      );
+      res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(
+        `Get All Candidate Parsed Cv By Admin embedding Filter Options [Controller]`,
+        {
+          methodName: this.getAllCandidateParsedCvByAdminEmbeddingFilterOptions.name,
+          error,
+        }
+      );
+
+      next(error);
+    }
+  }
 
   moveToApplicantCandidateParsedCv = async (req: Request, res: Response, next: NextFunction) => {
     try {

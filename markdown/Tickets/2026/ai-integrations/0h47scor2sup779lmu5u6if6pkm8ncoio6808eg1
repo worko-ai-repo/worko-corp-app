@@ -1,0 +1,95 @@
+Return-Path: <forwarding-noreply@google.com>
+Received: from mail-qk1-f174.google.com (mail-qk1-f174.google.com [209.85.222.174])
+ by inbound-smtp.ap-south-1.amazonaws.com with SMTP id 0h47scor2sup779lmu5u6if6pkm8ncoio6808eg1
+ for SWIGGY@referral.worko.work;
+ Tue, 13 Jan 2026 12:53:05 +0000 (UTC)
+X-SES-Spam-Verdict: PASS
+X-SES-Virus-Verdict: PASS
+Received-SPF: pass (spfCheck: domain of google.com designates 209.85.222.174 as permitted sender) client-ip=209.85.222.174; envelope-from=forwarding-noreply@google.com; helo=mail-qk1-f174.google.com;
+Authentication-Results: amazonses.com;
+ spf=pass (spfCheck: domain of google.com designates 209.85.222.174 as permitted sender) client-ip=209.85.222.174; envelope-from=forwarding-noreply@google.com; helo=mail-qk1-f174.google.com;
+ dkim=pass header.i=@google.com;
+ dmarc=pass header.from=google.com;
+X-SES-RECEIPT: AEFBQUFBQUFBQUFFc2tUUUQzcUdOU0pTSExhbXZ3SEJHb2g3UlZPNjlFb2w0blFpanFxNzB4THZQSEdzcFRlYlA5QXJrRmp1aWNUUDBCVHh5MC9OTjRDVVcxakJZNE52dkpCU0dOSFJVckVXb01aTkU0d2ZEYU9zWmI0dWRtYjhTUlg1SHp0UDZKb2liSTBTMVJHUWJIWmtsdTRGVitHa2lGQlV3dE1MSllxVndQU2tZdzR6WjJ0bi93RnNhcGhzaFVZZXFHN2NNdk9wMW1xSGdrSUJGWmF2bE9xQjJBYkdkZ3VuMnhpTUxXR1BWNm4xSUU0WWxXMFJBalIzUWZxZUloZlNVNTE0ZnFtYmJrQWhUY2RTNGpRdEVxTXgwQkxBbWpqcHlQMDVJRUVnRTJEVU5Hd1JiZFE9PQ==
+X-SES-DKIM-SIGNATURE: a=rsa-sha256; q=dns/txt; b=r1la80xypBZ91AuLz2B9T8Bt+cEVvHkcbTrX91z5/0fiQL/8gFglXVCzYU1q+Eg8AhKmidLhP8kwuFO8XopQx5MLyP9YaTAqVr7VNC5xR4v8x+aMWBTQPWsprS8lJ1O4coayh1q8Z+Zm8TmCvq1AZZoMG15qyLxJ7AQEJgI3g2g=; c=relaxed/simple; s=dvogjbaa3ou3tduyzvyu4rj5tkuzdi4h; d=amazonses.com; t=1768308786; v=1; bh=dZCIaVcEVunnVgsvjJ8pbenQSLt5dkrdHkG9ay1xBiI=; h=From:To:Cc:Bcc:Subject:Date:Message-ID:MIME-Version:Content-Type:X-SES-RECEIPT;
+Received: by mail-qk1-f174.google.com with SMTP id af79cd13be357-8c15e8b2f1aso769625685a.0
+        for <SWIGGY@referral.worko.work>; Tue, 13 Jan 2026 04:53:05 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20230601; t=1768308783; x=1768913583; darn=referral.worko.work;
+        h=to:from:subject:message-id:date:mime-version:from:to:cc:subject
+         :date:message-id:reply-to;
+        bh=dZCIaVcEVunnVgsvjJ8pbenQSLt5dkrdHkG9ay1xBiI=;
+        b=mqGNpDcQGRt1NEDZSfwTJRJoc1Tjx5iTrcqITQp+tZxdORu53knRcCAlFhAqL5xJTS
+         mfzKMr87apfZGsEtVQYiLohcJgEbsYb4ZD8FNwEnZyhr2/5YlFNHMGYnCJnfM2+9DV8E
+         uhvIJWAYOfjdns9r8xxdk3yZysG3ARhiNoGVa36T+8op6NECCYFas1+vEw9rTbxP1dw+
+         DBt9KHPz2N8ZIwrnzrc9/M1zGADuTIx6vMUArYrNa0gLsu+GHQrtBQFmGlszITzE+UMq
+         7MI+hRcAQ6ZINHg99S/FUysDZi47ObfNkimt2iI5+PC31rh/4SCtYObtJjumj51oozQu
+         wTRw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1768308783; x=1768913583;
+        h=to:from:subject:message-id:date:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=dZCIaVcEVunnVgsvjJ8pbenQSLt5dkrdHkG9ay1xBiI=;
+        b=Be4knxmvrptiutGP/KPxFtsRd3SgmfGGENoGDZvuiPKp7Su+myiEBw7BrRoEwhWWs4
+         KUde6QUCVn4pm6QJwl49nLhQnDTa+wj03vM8lp90gx2qz+nbQzHZrCCraLu9JVdZeJFe
+         IgNreU9VytFKrcYVJLKiDV2fU4RwCF4k9UDBm9jrAJRHovXzkvZ9NWED2J3Kw6mM17jx
+         nD4BRQ/BIAdNPsqgVsvX1mdUnpPtQNJTt8WJKCPqzR19GuxTIhgPDWqWvknLgzEmy7+7
+         TWuNEr1E5az7miwvBrs7/8wYlU2A6YPLq4t+dWWPd4aPDG9GP3Q9C2PIKJWjXG1nYAz9
+         OzvA==
+X-Gm-Message-State: AOJu0YzRrFqokQw/s65chmqqCo+RferEtdC/OUgm4j2P4TcJJgdngD5A
+	hpNr2s5TmDe/lxiionV1yxiV464Tb9hF2lhUq0N6lVszMV65DpJgmUOeeeYgDysQDsoYH8zBSvg
+	4Kb7Cpl2rS4bjwk+lXzS6Rfxblbsiv+j/LqBYKk/ZfplEto9QIzxdtXyWbj6of8D82w==
+X-Gm-Gg: AY/fxX5gYBbUuWy1LjWXMGs5d1n1U0/lI8D/Mf0ZKgWZhLJme8p4j+JJoAIzc6jhcdF
+	M+UKDLP1iSuybTuqjosIZS8/ONbFh3Taj/zW52WQFojiAwcDL0iHsWcjfyvUfhKfBj5O4uOemZi
+	iRrpI8EVxEJ69BZXbnXeVNFB7sgTBkbcfI4Iht/GmGZPEe6Mze243YGj1O37G6lmrh9U5DuKnPm
+	UWbKHNbW7TkJjqaeyO1FsO0+8DSEpQVn5y4wSAk4kREGWECghbFZZXEASTtq7za5J8Lp9YIQtEh
+	a2YQo7Q=
+X-Google-Smtp-Source: AGHT+IHG30kgIsMiNYC2LxF8z0Sw+jP9CqeDhc4UFNSi1FdErNLbne52iIU7dTMY3+98uCDN9lMCeDg0u7PxSpHFPM5gyXWaQaZVdw==
+MIME-Version: 1.0
+X-Received: by 2002:a05:620a:1a96:b0:8b2:e4f0:74c6 with SMTP id
+ af79cd13be357-8c38943283fmr2732279085a.79.1768308783219; Tue, 13 Jan 2026
+ 04:53:03 -0800 (PST)
+X-Google-Address-Confirmation: t3ulvsjbJDZXjD2lb9ZjpRoObho
+Date: Tue, 13 Jan 2026 18:23:03 +0530
+X-Gm-Features: AZwV_Qg2Cs9KiMk5590kqVkwoMPO_LmSonYirXeLt4mPX5yzKmPujyVpL1rDpQk
+Message-ID: <CAHWZb-MoGVBV9EmPrLSdDSpW6yfN4+iKY5mS8dDsE9wD+kTbcw@mail.gmail.com>
+Subject: (Gmail Forwarding Confirmation - Receive Mail from rohithappala999@gmail.com
+From: Gmail Team <forwarding-noreply@google.com>
+To: SWIGGY@referral.worko.work
+Content-Type: text/plain; charset="UTF-8"
+
+rohithappala999@gmail.com has requested to automatically forward mail
+to your email
+address SWIGGY@referral.worko.work.
+
+To allow rohithappala999@gmail.com to automatically forward mail to
+your address,
+please click the link below to confirm the request:
+
+https://mail-settings.google.com/mail/vf-%5BANGjdJ_aY9DbzldvCdipX__GY3kL6rsL2LE9z2X7-RjHj_mHd1cMyxp06Cv4RaqHPYRWKfoJjxW20LmQpBEVpLL2reIGEJNVckwcKv6BNg%5D-8i1-Oh-qsDhpQLc9-HmRV1HaXU8
+
+If you click the link and it appears to be broken, please copy and paste it
+into a new browser window.
+
+Thanks for using Gmail!
+
+Sincerely,
+
+The Gmail Team
+
+If you do not approve of this request, no further action is required.
+rohithappala999@gmail.com cannot automatically forward messages to
+your email address
+unless you confirm the request by clicking the link above. If you accidentally
+clicked the link, but you do not want to allow rohithappala999@gmail.com to
+automatically forward messages to your address, click this link to cancel this
+verification:
+https://mail-settings.google.com/mail/uf-%5BANGjdJ_6NtJiSsAM2c4LPlYd0lzeSJMoqrmP1BKRI1T6FVcmhliBRcBuDEx6R64EyLYXNTANxqeqqbDKReQQ5v8W7fO2Dtyoe-1Qow6rXA%5D-8i1-Oh-qsDhpQLc9-HmRV1HaXU8
+
+To learn more about why you might have received this message, please
+visit: http://support.google.com/mail/bin/answer.py?answer=184973.
+
+Please do not respond to this message. If you'd like to contact the
+Google.com Team, please log in to your account and click 'Help' at
+the top of any page. Then, click 'Contact Us' along the bottom of the
+Help Center.

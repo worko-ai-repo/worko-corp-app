@@ -415,6 +415,190 @@ class CorporateCandidateProfileService {
       }
     }
   }
+
+  async validateCorporateCandProfileReferralSource(companyId: string, candidateCvAwsS3FileName: string, cvExtractedParsed: SqsMsgCvExtractedParsedDto): Promise<boolean> {
+    const companyDetails: QueryResponse<DbCompanyDetailDto> =
+      await companyDetailServiceObj.getCompanyDetailById(companyId);
+    if (!companyDetails.count) {
+      throw new BaseError(
+        `Company details not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+    const companyData: DbCompanyDetailDto = companyDetails[0];
+
+    const {
+      candidateNumber,
+      candidatePhoneCountryCode,
+      candidateName,
+      candidateNoticePeriod,
+      isNoticePeriodNegotiable,
+      candidateEmail,
+      candidateLocation,
+      candidateCurrentCompany,
+      candidateCurrentDesignation,
+      candidateRelevantYOE,
+      candidateTotalYOE,
+      candidateExpectedCTC,
+      candidateCurrentCTC,
+      candidateReadyToRelocate,
+      coreSkills,
+      technicalSkills,
+      userPreferredDepartments,
+      userPreferredIndustries,
+      userPreferredlocations,
+      userPreferredRoles
+    } = cvExtractedParsed;
+
+    const existingCorporateCandidateProfile: QuerySnapshot<DocumentData, DocumentData> = await this.getDuplicateCorporateCandidateProfile(
+      companyId,
+      candidateEmail,
+      {
+        number: candidateNumber,
+        countryCode: candidatePhoneCountryCode
+      }
+    );
+    const currentDate: string = dateHelperObj.getISODate();
+    if(!existingCorporateCandidateProfile.empty) {
+      global.logger.info(`Duplicate candidate profile found.`, {
+        methodName: this.validateCorporateCandProfileReferralSource.name,
+        existingCorporateCandidateProfileLength: existingCorporateCandidateProfile.docs.length,
+      });
+      return false;
+    } else {
+      // Prepare Create candidate parsed CV
+      const candidateParsedCvCreateData: DbCandidateParsedCvDto = {
+        id: UlidService.getUlidId(),
+        createdAt: currentDate,
+        updatedAt: currentDate,
+        name: candidateName.toLowerCase(),
+        email: candidateEmail.toLowerCase(),
+        phoneNumberDetails: {
+          number: candidateNumber,
+          countryCode: candidatePhoneCountryCode
+        },
+        currentCompany: candidateCurrentCompany,
+        currentDesignation: candidateCurrentDesignation,
+        totalYOE: candidateTotalYOE,
+        relevantYOE: candidateRelevantYOE,
+        currentCTC: candidateCurrentCTC,
+        expectedCTC: candidateExpectedCTC,
+        noticePeriod: candidateNoticePeriod,
+        location: candidateLocation?.toLowerCase(),
+        readyToRelocate: candidateReadyToRelocate,
+        coreSkills: coreSkills,
+        technicalSkills: technicalSkills,
+        userPreferredDepartments: userPreferredDepartments,
+        userPreferredIndustries: userPreferredIndustries,
+        userPreferredlocations: userPreferredlocations,
+        userPreferredRoles: userPreferredRoles,
+        cvAwsS3ResourceType: CandidateParsedCvAwsS3ResourceTypeEnum.CORP_CAND_REFERRAL_CV,
+        cvAwsS3BucketName: process.env.APP_AWS_S3_BUCKET_WORKO_CORPORATE_REFERRAL_SOURCE_CV as string,
+        cvAwsS3FilePath: APP_CONSTANTS.AWS_S3_DIR_PATHS.CORP_CAND_REFERRAL_CV.strtr({
+          "{companyId}": companyId,
+        }),
+        cvAwsS3FileName: candidateCvAwsS3FileName,
+        cvAwsS3FileTracker: [
+          {
+            actionDate: currentDate,
+            resourceType: CandidateParsedCvAwsS3ResourceTypeEnum.CORP_CAND_REFERRAL_CV,
+            bucketName: process.env.APP_AWS_S3_BUCKET_WORKO_CORPORATE_REFERRAL_SOURCE_CV as string,
+            filePath: APP_CONSTANTS.AWS_S3_DIR_PATHS.CORP_CAND_REFERRAL_CV.strtr({
+              "{companyId}": companyId,
+            }),
+            fileName: candidateCvAwsS3FileName
+          }
+        ],
+        isNoticePeriodNegotiable,
+        companyId: companyId,
+      };
+
+      // Prepare Create corporate candidate profile
+      const corporateCandidateProfileCreateData: DbCorporateCandidateProfileDto = {
+        id: UlidService.getUlidId(),
+        createdAt: currentDate,
+        updatedAt: currentDate,
+        companyId: companyId,
+        candidateEmail: candidateEmail,
+        refereeType: CorporateCandidateProfileDbRefereeTypeEnum.REFERRAL,
+        phoneNumberDetails: {
+          number: candidateNumber,
+          countryCode: candidatePhoneCountryCode
+        },
+        candidateParsedCvId: candidateParsedCvCreateData.id, 
+      };
+
+      candidateParsedCvCreateData.corporateCandidateProfileId = corporateCandidateProfileCreateData.id;
+
+      // Get existing candidate data from `CentralCandidateProfile` model
+      const existingCentralCandidateProfile: DbCentralCandidateProfileDto | undefined =
+        await centralCandidateProfileServiceObj.getCentralCandidateProfileById(
+          candidateEmail
+        );
+
+      let createOrUpdateCentralCandidateProfile: Promise<DbCentralCandidateProfileDto | undefined>;
+
+      if(existingCentralCandidateProfile) {
+        createOrUpdateCentralCandidateProfile = centralCandidateProfileServiceObj.updateCentralCandidateProfileById(
+          candidateEmail,
+          {
+            updatedAt: currentDate,
+            candidateProfileInCompanies: [
+              ...(existingCentralCandidateProfile?.candidateProfileInCompanies ?? []),
+              {
+                companyId: companyId,
+                companyName: companyData.name.toUpperCase(),
+              }
+            ],
+            corporateCandidateProfileIds: [
+              ...(existingCentralCandidateProfile?.corporateCandidateProfileIds ?? []),
+              corporateCandidateProfileCreateData.id
+            ],
+          }
+        )
+      } else {
+        corporateCandidateProfileCreateData.candidateParsedCvId = candidateParsedCvCreateData.id;
+
+        let createCentralCandidateProfileData: DbCentralCandidateProfileDto = {
+          id: candidateEmail,
+          createdAt: currentDate,
+          updatedAt: currentDate,
+          candidateEmail: candidateEmail,
+          phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
+          refereeType: CentralCandidateProfileDbRefereeTypeEnum.REFERRAL,
+          candidateProfileInCompanies: [
+            {
+              companyId: companyId,
+              companyName: companyData.name.toUpperCase(),
+            },
+          ],
+          corporateCandidateProfileIds: [corporateCandidateProfileCreateData.id],
+          candidateParsedCvIds: [candidateParsedCvCreateData.id],
+          latestCandidateParsedCvId: candidateParsedCvCreateData.id,
+        };
+        createOrUpdateCentralCandidateProfile = centralCandidateProfileServiceObj.createCentralCandidateProfile(createCentralCandidateProfileData);
+      }
+
+      const candProfilePromises = [
+        corporateCandidateProfileServiceObj.createCorporateCandidateProfile(corporateCandidateProfileCreateData),
+        createOrUpdateCentralCandidateProfile,
+        candidateParsedCvServiceObj.createCandidateParsedCvWithEmbedding(candidateParsedCvCreateData)
+      ]
+
+      const candidateProfileResult: (
+        DbCentralCandidateProfileDto | 
+        DbCorporateCandidateProfileDto | 
+        DbCandidateParsedCvDto | 
+        undefined
+      )[] = await Promise.all(candProfilePromises);
+
+      if(candidateProfileResult.length) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
 }
 
 const corporateCandidateProfileServiceObj = new CorporateCandidateProfileService();

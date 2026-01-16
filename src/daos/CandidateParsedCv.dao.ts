@@ -8,7 +8,7 @@ import APP_CONSTANTS from "../configs/constants.config";
 
 // Import dtos
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
-import { CandidateParsedCvCorpEmbeddingListingFilterOptions } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterOptions } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import daos
@@ -60,6 +60,26 @@ class CandidateParsedCvDao implements BaseDao {
     return gcpFirestoreLibrary.getAllDocumentsByIdsWithoutPagination<DbCandidateParsedCvDto>(
       this.getCandidateParsedCvModelDetails(),
       candidateParsedCvIds
+    );
+  }
+
+  async getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
+    filterOptions: CandidateParsedCvAdminEmbeddingListingFilterOptions,
+    distanceThreshold: number,
+    searchByJobDescription?: string
+  ) {
+    if(!filterOptions.searchByPrompt && !searchByJobDescription) throw new BaseError("Search by prompt or job description is required.", HttpStatusCode.BAD_REQUEST_400);
+
+    let searchPrompt: string = searchByJobDescription ? searchByJobDescription : (filterOptions.searchByPrompt as string);
+
+    return gcpFirestoreVectorLibrary.getDocumentsByEmbedding<DbCandidateParsedCvDto>(
+      candidateParsedCvDaoObj.getCandidateParsedCvModelDetails(),
+      searchPrompt,
+      {
+        pageSize: filterOptions.pageSize,
+        pageNumber: filterOptions.pageNumber,
+        distanceThreshold,
+      },
     );
   }
 

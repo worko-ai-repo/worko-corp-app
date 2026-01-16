@@ -20,49 +20,25 @@ export const candidateParsedCvCorpEmbeddingFilterDtoValidation =
         .messages({
           "string.base": "Search by job id should be a string",
         }),
-      jobId: Joi.string().optional().allow(null, "").messages({
-        "string.base": "Job id should be a string",
+    })
+  ); 
+
+export const candidateParsedCvAdminEmbeddingFilterDtoValidation =
+  gcpFirestoreCommonSchema.concat(
+    Joi.object({
+      pageNumber: Joi.number().required().min(1).messages({
+        "number.base": "Page number should be a number",
+        "any.required": "Page number is required",
+        "number.min": "Page number should be at least 1",
       }),
-      currentCompany: Joi.string()
+      searchByPrompt: Joi.string().optional().allow(null).messages({
+        "string.base": "Search by prompt should be a string",
+      }),
+      searchByJobId: Joi.string()
         .optional()
-        .uppercase()
-        .allow(null, "")
+        .allow(null)
         .messages({
-          "string.base": "Current company should be a string",
-        }),
-      currentDesignation: Joi.string()
-        .optional()
-        .lowercase()
-        .allow(null, "")
-        .messages({
-          "string.base": "Current designation should be a string",
-        }),
-      totalYOE: Joi.number().optional().allow(null, "").messages({
-        "number.base": "Total YOE should be a number",
-      }),
-      relevantYOE: Joi.number().optional().allow(null, "").messages({
-        "number.base": "Relevant YOE should be a number",
-      }),
-      currentCTC: Joi.number().optional().allow(null, "").messages({
-        "number.base": "Current CTC should be a number",
-      }),
-      expectedCTC: Joi.number().optional().allow(null, "").messages({
-        "number.base": "Expected CTC should be a number",
-      }),
-      noticePeriod: Joi.number().optional().allow(null, "").messages({
-        "number.base": "Notice period should be a number",
-      }),
-      location: Joi.string().optional().lowercase().allow(null, "").messages({
-        "string.base": "Location should be a string",
-      }),
-      readyToRelocate: Joi.boolean().optional().allow(null, "").messages({
-        "boolean.base": "Ready to relocate should be a boolean",
-      }),
-      isNoticePeriodNegotiable: Joi.boolean()
-        .optional()
-        .allow(null, "")
-        .messages({
-          "boolean.base": "Is notice period negotiable should be a boolean",
+          "string.base": "Search by job id should be a string",
         }),
     })
   ); 
