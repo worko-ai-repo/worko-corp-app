@@ -1,6 +1,6 @@
 
 // Import firestore package
-import { DocumentData, Firestore, Query, QuerySnapshot } from "@google-cloud/firestore";
+import { DocumentData, FieldPath, Firestore, Query, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import configs
 import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
@@ -52,7 +52,11 @@ class AgencyUserSubmissionDao implements BaseDao {
       methodName: this.getAllAgencyUserSubmissionByFilterOptions.name,
     });
 
-    const { companyId, jobId, agencyRegisteredEmail, candidateEmail, agencyName, agencyJobAssignedByCorporateUserId } =
+    const { 
+      companyId, jobId, agencyRegisteredEmail, 
+      candidateEmail, agencyName, agencyJobAssignedByCorporateUserId,
+      sortOrder
+    } =
       filterOptions;
 
     const db: Firestore = await this.getAgencyUserSubmissionFirestoreDatabase();
@@ -60,9 +64,15 @@ class AgencyUserSubmissionDao implements BaseDao {
       this.collectionName
     );
 
-    // If no filter options are provided, order by createdAt in specific order
-    if(!companyId && !jobId && !agencyRegisteredEmail && !candidateEmail && !agencyName && !agencyJobAssignedByCorporateUserId) {
-      baseQuery = baseQuery.orderBy("createdAt", filterOptions.sortOrder);
+    if(
+      !companyId &&
+      !jobId &&
+      !agencyRegisteredEmail &&
+      !candidateEmail &&
+      !agencyName &&
+      !agencyJobAssignedByCorporateUserId
+    ) {
+      baseQuery = baseQuery.orderBy("createdAt", sortOrder)
     } else {
       if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
       if (jobId)
@@ -76,6 +86,8 @@ class AgencyUserSubmissionDao implements BaseDao {
       if (candidateEmail) baseQuery = baseQuery.where("candidateEmail", "==", candidateEmail);
       if (agencyName) baseQuery = baseQuery.where("agencyName", "==", filterOptions.agencyName);
       if (agencyJobAssignedByCorporateUserId) baseQuery = baseQuery.where("agencyJobAssignedByCorporateUserId", "==", agencyJobAssignedByCorporateUserId);
+
+      if(sortOrder) baseQuery = baseQuery.orderBy(FieldPath.documentId(), sortOrder);
     }
 
     return gcpFirestoreUtilObj.paginateGcpFirestore<

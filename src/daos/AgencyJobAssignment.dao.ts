@@ -1,5 +1,5 @@
 // Import firestore package
-import { DocumentData, Firestore, Query, QuerySnapshot } from "@google-cloud/firestore";
+import { DocumentData, FieldPath, Firestore, Query, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import configs
 import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
@@ -77,33 +77,35 @@ class AgencyJobAssignmentDao implements BaseDao {
       }
     );
 
-    const { status, agencyRegisteredEmail, companyId, searchText, assignedByCorporateUserId } = filterOptions;
+    const { 
+      status, agencyRegisteredEmail, companyId, 
+      searchText, assignedByCorporateUserId,
+      sortOrder
+    } = filterOptions;
 
     const db: Firestore = await this.getAgencyJobAssignmentFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db.collection(
       this.collectionName
     );
 
-    if(!status && !agencyRegisteredEmail && !companyId && !searchText && !assignedByCorporateUserId) {
-      baseQuery = baseQuery.orderBy("createdAt", filterOptions.sortOrder);
-    } else {
-      if (status) baseQuery = baseQuery.where("status", "==", status);
-      if (agencyRegisteredEmail)
-        baseQuery = baseQuery.where(
-          "agencyRegisteredEmail",
-          "==",
-          agencyRegisteredEmail
-        );
-      if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
-      if (assignedByCorporateUserId) baseQuery = baseQuery.where("assignedByCorporateUserId", "==", assignedByCorporateUserId);
-      if (searchText) {
-        const searchLower = searchText.toLowerCase();
-        baseQuery = baseQuery.where("jobTitle", "==", searchLower);
-        // baseQuery = baseQuery
-        //   .where("jobTitle", ">=", searchLower)
-        //   .where("jobTitle", "<=", searchLower + '\uf8ff');
-      }
+    if (status) baseQuery = baseQuery.where("status", "==", status);
+    if (agencyRegisteredEmail)
+      baseQuery = baseQuery.where(
+        "agencyRegisteredEmail",
+        "==",
+        agencyRegisteredEmail
+      );
+    if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
+    if (assignedByCorporateUserId) baseQuery = baseQuery.where("assignedByCorporateUserId", "==", assignedByCorporateUserId);
+    if (searchText) {
+      const searchLower = searchText.toLowerCase();
+      baseQuery = baseQuery.where("jobTitle", "==", searchLower);
+      // baseQuery = baseQuery
+      //   .where("jobTitle", ">=", searchLower)
+      //   .where("jobTitle", "<=", searchLower + '\uf8ff');
     }
+
+    if(sortOrder) baseQuery = baseQuery.orderBy(FieldPath.documentId(), sortOrder);
 
     return gcpFirestoreUtilObj.paginateGcpFirestore<
       AgencyJobAssignmentListingFilterOptions,

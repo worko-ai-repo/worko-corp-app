@@ -49,7 +49,8 @@
 ]
 ```
 5. create `worko-corp-app-event-queue` in sqs
-
+6. `centralCandidateProfiles` collection in `worko-corp-db-prod` database
+   - refereeType + createdAt
 
 # Deployments
 1. `worko-auth` aws lambda

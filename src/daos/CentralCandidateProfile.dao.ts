@@ -1,5 +1,5 @@
 // Import firestore package
-import { DocumentData, Filter, Firestore, Query, QuerySnapshot } from "@google-cloud/firestore";
+import { DocumentData, FieldPath, Filter, Firestore, Query, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import configs
 import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
@@ -79,18 +79,27 @@ class CentralCandidateProfileDao implements BaseDao {
   async getAllCentralCandidateProfileByFilterOptions(
     filterOptions: CentralCandidateProfileListingFilterOptions
   ): Promise<GcpFirestoreRecordListingResponseDTO<DbCentralCandidateProfileDto[]>> {
-    const { refereeType, candidateEmail } = filterOptions;
+    const { refereeType, candidateEmail, sortOrder } = filterOptions;
 
     const db: Firestore = await this.getCentralCandidateProfileFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db.collection(
       this.collectionName
     );
 
-    if(!refereeType && !candidateEmail) {
-      baseQuery = baseQuery.orderBy("createdAt", filterOptions.sortOrder);
+    if(candidateEmail) {
+      const candProfileById: DbCentralCandidateProfileDto | undefined = await this.getCentralCandidateProfileById(candidateEmail);
+      const candProfileResponse: GcpFirestoreRecordListingResponseDTO<DbCentralCandidateProfileDto[]> = {
+        data: candProfileById ? [candProfileById] : [],
+        pagination: {
+          count: candProfileById ? 1 : 0,
+          pageSize: filterOptions.pageSize,
+          sortOrder: sortOrder,
+        }
+      }
+      return candProfileResponse;
     } else {
       if (refereeType) baseQuery = baseQuery.where("refereeType", "==", refereeType);
-      if (candidateEmail) baseQuery = baseQuery.where("candidateEmail", "==", candidateEmail);
+      if (sortOrder) baseQuery = baseQuery.orderBy("createdAt", sortOrder);
     }
 
     return gcpFirestoreUtilObj.paginateGcpFirestore<
