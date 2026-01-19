@@ -79,7 +79,7 @@ class AgencyUserInviteDao implements BaseDao {
     );
 
     if(
-      !companyId || !invitedByCorporateUserId || !inviteStatus || !agencyEmail
+      !companyId && !invitedByCorporateUserId && !inviteStatus && !agencyEmail
     ) {
       baseQuery = baseQuery.orderBy("createdAt", sortOrder)
     } else {
@@ -95,7 +95,6 @@ class AgencyUserInviteDao implements BaseDao {
       if (agencyEmail) baseQuery = baseQuery.where("email", "==", agencyEmail);
 
       if(sortOrder) baseQuery = baseQuery.orderBy(FieldPath.documentId(), sortOrder);
-
     }
     
     return gcpFirestoreUtilObj.paginateGcpFirestore<
