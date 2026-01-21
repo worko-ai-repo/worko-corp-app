@@ -2,7 +2,7 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvAdminEmbeddingListingFilterRequestDTO, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterRequestDTO, CandidateParsedCvFindMatchingScoreApiDto, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvAdminEmbeddingListingFilterRequestDTO, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterRequestDTO, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvUpdateApiDto, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import helpers
@@ -18,7 +18,7 @@ import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJ
 import { candidateParsedCvServiceObj } from "../services/CandidateParsedCv.service";
 
 // Import schemas
-import { candidateParsedCvAdminEmbeddingFilterDtoValidation, candidateParsedCvCorpEmbeddingFilterDtoValidation, candidateParsedCvFindMatchingScoreApiValidationDto, moveToApplicantCandidateParsedCvCreateApiDtoValidation } from "../schemas/CandidateParsedCv.schema";
+import { candidateParsedCvAdminEmbeddingFilterDtoValidation, candidateParsedCvCorpEmbeddingFilterDtoValidation, candidateParsedCvFindMatchingScoreApiValidationDto, candidateParsedCvUpdateApiValidationDto, moveToApplicantCandidateParsedCvCreateApiDtoValidation } from "../schemas/CandidateParsedCv.schema";
 
 // import utils
 import HttpStatusCode from "../utils/http-codes.util";
@@ -198,6 +198,31 @@ class CandidateParsedCvController {
         methodName: this.findMatchingScoreCandidateParsedCv.name,
         error,
       })
+      next(error);
+    }
+  }
+
+  updateCandidateParsedCvById = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const reqBody: CandidateParsedCvUpdateApiDto = req.body;
+      const { error: reqBodyError, value: validatedReqBody } =
+        candidateParsedCvUpdateApiValidationDto.validate(reqBody, {
+          abortEarly: false,
+        });
+      if (reqBodyError) {
+        throw new RequestValidationError(reqBodyError);
+      }
+      const response: DbCandidateParsedCvDto = await candidateParsedCvServiceObj.performUpdateCandidateParsedCv(
+        req.params.id,
+        validatedReqBody
+      );
+      res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(`Update Candidate Parsed Cv By Id [Controller]`, {
+        methodName: this.updateCandidateParsedCvById.name,
+        error
+      })
+
       next(error);
     }
   }

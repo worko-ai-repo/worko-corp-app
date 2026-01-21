@@ -23,4 +23,9 @@ CorporateCandidateProfileRouter.get("/duplicate", corporateCandidateProfileContr
  */
 CorporateCandidateProfileRouter.get("/", corporateCandidateProfileController.getAllCorporateCandidateProfileByFilterOptions);
 
+/**
+ * @authorisedRoles ["corporate-admin", "corporate-recruiter"]
+ */
+CorporateCandidateProfileRouter.patch("/blacklist/bulk", corporateCandidateProfileController.blacklistBulkCorporateCandidateProfile);
+
 export default CorporateCandidateProfileRouter;

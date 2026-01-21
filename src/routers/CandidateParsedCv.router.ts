@@ -41,4 +41,9 @@ CandidateParsedCvRouter.post(
   candidateParsedCvController.findMatchingScoreCandidateParsedCv
 );
 
+/**
+ * @authorisedRoles ["corporate-admin", "corporate-recruiter", "admin"]
+ */
+CandidateParsedCvRouter.patch("/:id", candidateParsedCvController.updateCandidateParsedCvById);
+
 export default CandidateParsedCvRouter;

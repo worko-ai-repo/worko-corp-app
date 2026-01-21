@@ -52,7 +52,7 @@ class CandidateParsedCvDao implements BaseDao {
     return gcpFirestoreVectorLibrary.createDocumentWithEmbedding<DbCandidateParsedCvDto>(
       this.getCandidateParsedCvModelDetails(),
       createData,
-      embeddingText
+      embeddingText,
     );
   }
 
@@ -119,6 +119,31 @@ class CandidateParsedCvDao implements BaseDao {
       this.getCandidateParsedCvModelDetails(),
       id
     );
+  }
+
+  async updateCandidateParsedCvById(
+    id: string,
+    updateData: Partial<DbCandidateParsedCvDto>,
+  ): Promise<DbCandidateParsedCvDto | undefined> {
+    return gcpFirestoreLibrary.updateDocumentById<
+      Partial<DbCandidateParsedCvDto>,
+      DbCandidateParsedCvDto
+    >(this.getCandidateParsedCvModelDetails(), id, updateData);
+  }
+
+  async updateCandidateParsedCvWithEmbedding(
+    id: string,
+    updateData: Partial<DbCandidateParsedCvDto>,
+    embeddingText: string,
+  ): Promise<DbCandidateParsedCvDto | undefined> {
+    global.logger.info(`Update Candidate Parsed CV with Embedding [DAO]`, {
+      methodName: this.updateCandidateParsedCvWithEmbedding.name,
+    });
+
+    return gcpFirestoreVectorLibrary.updateDocumentWithEmbedding<
+      Partial<DbCandidateParsedCvDto>,
+      DbCandidateParsedCvDto
+    >(this.getCandidateParsedCvModelDetails(), id, updateData, embeddingText);
   }
 }
 

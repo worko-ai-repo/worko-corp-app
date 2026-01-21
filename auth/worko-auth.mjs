@@ -608,6 +608,7 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
     { path: "/candidate-parsed-cv/search-in-db/corp-action*", method: HttpMethodsConstants.GET },
     { path: "/candidate-parsed-cv/move-to-applicant", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/find-matching-score", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/:id", method: HttpMethodsConstants.PATCH },
 
     // Candidate Job Matching Routers
     { path: "/candidate-job-matching/:id", method: HttpMethodsConstants.GET },
@@ -651,6 +652,8 @@ var isCorporateAdminUrl = function (url, httpMethod) {
     // corporate user routes
     { path: "/corporate-user/*", method: HttpMethodsConstants.GET },
     { path: "/corporate-user/:id/delete", method: HttpMethodsConstants.PATCH },
+    { path: "/corporate-user/request-otp/referral-sourcetype", method: HttpMethodsConstants.POST },
+    { path: "/corporate-user/verify-otp/referral-sourcetype", method: HttpMethodsConstants.POST },
 
     // corporate invite routes
     { path: "/corporate-invite/", method: HttpMethodsConstants.POST },
@@ -754,12 +757,14 @@ var isCorporateAdminUrl = function (url, httpMethod) {
     { path: "/candidate-parsed-cv/search-in-db/corp-action*", method: HttpMethodsConstants.GET },
     { path: "/candidate-parsed-cv/move-to-applicant", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/find-matching-score", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/:id", method: HttpMethodsConstants.PATCH },
 
     // Candidate Job Matching Routers
     { path: "/candidate-job-matching/:id", method: HttpMethodsConstants.GET },
 
     // Referral Source Type Activation Routers
     { path: "/referral-sourcetype-activation/", method: HttpMethodsConstants.POST },
+    { path: "/referral-sourcetype-activation/company/:companyId", method: HttpMethodsConstants.GET },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
@@ -1005,6 +1010,7 @@ var isAdminUrl = function (url, httpMethod) {
 
     // Candidate parsed cvs
     { path: "/candidate-parsed-cv/search-in-db/admin-action*", method: HttpMethodsConstants.GET },
+    { path: "/candidate-parsed-cv/:id", method: HttpMethodsConstants.PATCH },
   ];
 
   const result = checkMatchingPattern(url, adminUrlList, httpMethod);

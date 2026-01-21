@@ -50,6 +50,7 @@
 ]
 ```
 8. Check whether `worko-corp-app-event-queue` in sqs is created or not
+9. Check with backend developer about creating email template for `verifying` referral source type email template
 
 # Deployments
 1. `worko-auth` aws lambda

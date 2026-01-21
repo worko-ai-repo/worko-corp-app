@@ -85,3 +85,37 @@ export interface CandidateParsedCvFindMatchingScoreApiDto {
   candidateParsedCvId: string;
   jobId: string;
 }
+
+export interface CandidateParsedCvUpdateApiDto {
+  name?: string;
+  currentCompany?: string;
+  currentDesignation?: string;
+  totalYOE?: number;
+  relevantYOE?: number;
+  currentCTC?: number;
+  expectedCTC?: number;
+  noticePeriod?: number;
+  location?: string;
+  readyToRelocate?: boolean;
+  isNoticePeriodNegotiable?: boolean;
+  coreSkills?: {
+    skillName: string;
+    years: number;
+    timestamps?: {
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
+  technicalSkills?: {
+    skillName: string;
+    years: number;
+    timestamps?: {
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
+  userPreferredDepartments?: string[];
+  userPreferredIndustries?: string[];
+  userPreferredlocations?: string[];
+  userPreferredRoles?: string[];
+}

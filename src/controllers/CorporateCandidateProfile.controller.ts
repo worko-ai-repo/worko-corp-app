@@ -5,7 +5,7 @@ import { Request, Response, NextFunction } from "express";
 import { DocumentData, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import dtos
-import { CorporateCandidateProfileBulkCvPsuToUploadApiDto, CorporateCandidateProfileDuplicationRequestDTO, CorporateCandidateProfileListingFilterOptions, CorporateCandidateProfileListingFilterRequestDTO } from "../dtos/CorporateCandidateProfile.dto";
+import { CorporateCandidateProfileBlacklistBulkApiDTO, CorporateCandidateProfileBulkCvPsuToUploadApiDto, CorporateCandidateProfileDuplicationRequestDTO, CorporateCandidateProfileListingFilterOptions, CorporateCandidateProfileListingFilterRequestDTO } from "../dtos/CorporateCandidateProfile.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 import { PreSignedUrlToUploadFileResponseDto } from "../dtos/File.dto";
 
@@ -18,7 +18,7 @@ import { corporateCandidateProfileServiceObj } from "../services/CorporateCandid
 import { agencyUserServiceObj } from "../services/AgencyUser.service";
 
 // Import schemas
-import { corporateCandidateProfileBulkCvPsuToUploadApiDtoValidation, corporateCandidateProfileDuplicationRequestDtoValidation, corporateCandidateProfileFilterDtoValidation } from "../schemas/CorporateCandidateProfile.schema";
+import { corporateCandidateProfileBlacklistBulkApiDtoValidation, corporateCandidateProfileBulkCvPsuToUploadApiDtoValidation, corporateCandidateProfileDuplicationRequestDtoValidation, corporateCandidateProfileFilterDtoValidation } from "../schemas/CorporateCandidateProfile.schema";
 
 // Import models
 import { DbCorporateCandidateProfileDto } from "../db/gcp-firestore-models/CorporateCandidateProfile.model";
@@ -128,6 +128,30 @@ class CorporateCandidateProfileController {
     } catch (error) {
       global.logger.error(`Get Duplicate Corporate Candidate Profile [Controller]`, {
         methodName: this.getDuplicateCorporateCandidateProfile.name,
+        error,
+      })
+      next(error);
+    }
+  }
+
+  blacklistBulkCorporateCandidateProfile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const requestBody: CorporateCandidateProfileBlacklistBulkApiDTO =
+        req.body;
+      const { error, value: validatedRequestBody } = corporateCandidateProfileBlacklistBulkApiDtoValidation.validate(
+        requestBody,
+        { abortEarly: false }
+      );
+      if (error) {
+        throw new RequestValidationError(error);
+      }
+      const response: boolean = await corporateCandidateProfileServiceObj.blacklistBulkCorporateCandidateProfile(requestBody);
+      res.status(HttpStatusCode.OK_200).json({
+        isSuccess: response
+      });
+    } catch (error) {
+      global.logger.error(`Blacklist Bulk Corporate Candidate Profile [Controller]`, {
+        methodName: this.blacklistBulkCorporateCandidateProfile.name,
         error,
       })
       next(error);

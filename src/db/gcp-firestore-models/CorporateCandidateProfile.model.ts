@@ -3,6 +3,7 @@ import { CorporateCandidateProfileDbPhoneNumberDto } from "../../dtos/CorporateC
 
 // Import enums
 import { CorporateCandidateProfileDbRefereeTypeEnum } from "../../enums/CorporateCandidateProfile.enum";
+import { HiringEligibilityStatusEnum } from "../../enums/Common.enum";
 
 // Import models
 import { BaseFirestoreModel } from "./Base.model";
@@ -30,6 +31,13 @@ interface DbCorporateCandidateProfileDto extends BaseFirestoreModel {
    * @reference "id" field of "CandidateParsedCv.model.ts"
    */
   candidateParsedCvId: string;
+
+  updatedByCorporateUserId?: string;
+
+  hiringEligibilityStatus?: HiringEligibilityStatusEnum;
+
+  reasonForBlacklisting?: string;
+  detailedReasonForBlacklisting?: string;
 
   /**
    * @description

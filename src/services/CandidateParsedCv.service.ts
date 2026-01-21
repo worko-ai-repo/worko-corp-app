@@ -19,7 +19,7 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsClientCognitoIdentityProviderLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvUpdateApiDto, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import daos
@@ -57,6 +57,7 @@ import { candidateJobMatchingServiceObj } from "./CandidateJobMatching.service";
 // Import utils
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
+import { dateHelperObj } from "../helpers/date.helper";
 
 class CandidateParsedCvService {
   /**
@@ -719,6 +720,60 @@ class CandidateParsedCvService {
         candidateJobMatchingId: undefined
       };
     }
+  }
+
+  async updateCandidateParsedCvById(id: string, updateDto: Partial<DbCandidateParsedCvDto>): Promise<DbCandidateParsedCvDto | undefined> {
+    return candidateParsedCvDaoObj.updateCandidateParsedCvById(id, updateDto);
+  }
+
+  async updateCandidateParsedCvWithEmbedding(
+    id: string,
+    updateData: Partial<DbCandidateParsedCvDto>
+  ): Promise<DbCandidateParsedCvDto | undefined> {
+    global.logger.info(`Update Candidate Parsed CV with Embedding [Service]`, {
+      methodName: this.updateCandidateParsedCvWithEmbedding.name,
+    });
+
+    const existingData: DbCandidateParsedCvDto | undefined = await candidateParsedCvDaoObj.getCandidateParsedCvById(id);
+    if (!existingData) {
+      throw new BaseError(
+        "Candidate Parsed CV does not exist",
+        HttpStatusCode.NOT_FOUND_404
+      )
+    };
+
+    const mergedData: DbCandidateParsedCvDto = { ...existingData, ...updateData };
+    const embeddingText: string = this.createSearchOptimizedCandidateParsedCvEmbeddingText(mergedData);
+
+    return candidateParsedCvDaoObj.updateCandidateParsedCvWithEmbedding(id, updateData, embeddingText);
+  }
+
+  async performUpdateCandidateParsedCv(
+    id: string,
+    updateDto: CandidateParsedCvUpdateApiDto
+  ): Promise<DbCandidateParsedCvDto> {
+    const {actionByUserId, actionByCorporateUserId} = getActionByUserId();
+    
+    const updatedAt: string = dateHelperObj.getISODate();
+    const updatedCandidateParsedCv: DbCandidateParsedCvDto | undefined = await this.updateCandidateParsedCvWithEmbedding(
+      id,
+      {
+        ...updateDto,
+        updatedByUserId:actionByUserId,
+        updatedByCorporateUserId:actionByCorporateUserId,
+        updatedAt,
+      }
+    );
+    if (!updatedCandidateParsedCv) {
+      global.logger.error(`Failed to update candidate parsed cv.`, {
+        methodName: this.performUpdateCandidateParsedCv.name,
+        id,
+        updateDto,
+      });
+      throw new BaseError("Failed to update candidate parsed cv.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    return updatedCandidateParsedCv;
   }
 }
 

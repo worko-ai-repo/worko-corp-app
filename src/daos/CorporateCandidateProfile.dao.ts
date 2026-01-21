@@ -77,7 +77,7 @@ class CorporateCandidateProfileDao implements BaseDao {
   async getAllCorporateCandidateProfileByFilterOptions(
     filterOptions: CorporateCandidateProfileListingFilterOptions
   ): Promise<GcpFirestoreRecordListingResponseDTO<DbCorporateCandidateProfileDto[]>> {
-    const { refereeType, companyId, candidateEmail, sortOrder } = filterOptions;
+    const { refereeType, companyId, candidateEmail, sortOrder, hiringEligibilityStatus } = filterOptions;
 
     const db: Firestore = await this.getCorporateCandidateProfileFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db.collection(
@@ -87,15 +87,19 @@ class CorporateCandidateProfileDao implements BaseDao {
     if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
     if (refereeType) baseQuery = baseQuery.where("refereeType", "==", refereeType);
     if (candidateEmail) baseQuery = baseQuery.where("candidateEmail", "==", candidateEmail);
-
-    if (sortOrder) {
-      baseQuery = baseQuery.orderBy(FieldPath.documentId(), sortOrder);
-    }
+    if (hiringEligibilityStatus) baseQuery = baseQuery.where("hiringEligibilityStatus", "==", hiringEligibilityStatus);
+      if (sortOrder) {
+        baseQuery = baseQuery.orderBy(FieldPath.documentId(), sortOrder);
+      }
 
     return gcpFirestoreUtilObj.paginateGcpFirestore<
       CorporateCandidateProfileListingFilterOptions,
       DbCorporateCandidateProfileDto
     >(db, this.collectionName, baseQuery, filterOptions);
+  }
+
+  async updateBulkCorporateCandidateProfileByIds(ids: string[], updateData: Partial<DbCorporateCandidateProfileDto>) {
+    return gcpFirestoreLibrary.bulkUpdateDocumentByIds<Partial<DbCorporateCandidateProfileDto>>(this.getCorporateCandidateProfileModelDetails(), ids, updateData);
   }
 }
 

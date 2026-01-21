@@ -11,7 +11,7 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { corporateCandidateProfileDaoObj } from "../daos/CorporateCandidateProfile.dao";
 
 // Import dtos
-import { CorporateCandidateProfileBulkCvPsuToUploadApiDto, CorporateCandidateProfileDbPhoneNumberDto, CorporateCandidateProfileListingFilterOptions } from "../dtos/CorporateCandidateProfile.dto";
+import { CorporateCandidateProfileBlacklistBulkApiDTO, CorporateCandidateProfileBulkCvPsuToUploadApiDto, CorporateCandidateProfileDbPhoneNumberDto, CorporateCandidateProfileListingFilterOptions } from "../dtos/CorporateCandidateProfile.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 import { PreSignedUrlToUploadFileResponseDto } from "../dtos/File.dto";
 import { SqsMsgCvExtractedParsedDto } from "../dtos/SqsEvent.dto";
@@ -20,6 +20,7 @@ import { SqsMsgCvExtractedParsedDto } from "../dtos/SqsEvent.dto";
 import { CentralCandidateProfileDbRefereeTypeEnum } from "../enums/CentralCandidateProfile.enum";
 import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
 import { CorporateCandidateProfileDbRefereeTypeEnum } from "../enums/CorporateCandidateProfile.enum";
+import { HiringEligibilityStatusEnum } from "../enums/Common.enum";
 
 // Import helpers
 import { getActionByUserId } from "../helpers/user.helper";
@@ -598,6 +599,50 @@ class CorporateCandidateProfileService {
         return false;
       }
     }
+  }
+
+  async updateBulkCorporateCandidateProfileByIds(ids: string[], updateData: Partial<DbCorporateCandidateProfileDto>): Promise<boolean> {
+    return corporateCandidateProfileDaoObj.updateBulkCorporateCandidateProfileByIds(ids, updateData);
+  }
+
+  async blacklistBulkCorporateCandidateProfile(requestBody: CorporateCandidateProfileBlacklistBulkApiDTO) {
+    const {
+      actionByCorporateUserId
+    } = getActionByUserId();
+    if(!actionByCorporateUserId) {
+      throw new BaseError(
+        "Unauthorized.",
+        HttpStatusCode.UNAUTHORIZED_401
+      );
+    }
+
+    const corporateUserDetails: QueryResponse<DbCorporateUserDto> = await corporateUserServiceObj.getCorpUserById(actionByCorporateUserId);
+    if (!corporateUserDetails.count) {
+      throw new BaseError(
+        `Corporate User Details not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+    const corporateUserData: DbCorporateUserDto = corporateUserDetails[0];
+
+    if(corporateUserData.isDeleted) {
+      global.logger.error(`Account has been deleted [Service]`, {
+        methodName: this.blacklistBulkCorporateCandidateProfile.name,
+        actionByCorporateUserId,
+        corporateUserData
+      });
+      throw new BaseError(
+        "Your account has been deleted, please contact support.",
+        HttpStatusCode.FORBIDDEN_403
+      );
+    }
+
+    return this.updateBulkCorporateCandidateProfileByIds(requestBody.corporateCandidateProfileIds, { 
+      hiringEligibilityStatus: HiringEligibilityStatusEnum.BLACK_LISTED,
+      updatedByCorporateUserId: actionByCorporateUserId,
+      updatedAt: dateHelperObj.getISODate(),
+      reasonForBlacklisting: requestBody.reasonForBlacklisting
+    });
   }
 }
 

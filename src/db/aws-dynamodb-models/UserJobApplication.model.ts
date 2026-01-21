@@ -146,6 +146,20 @@ class DbUserJobApplicationDto extends BaseDbDto {
   rejectionAwsScheduleId?: string;
 
   /**
+   * rejectionBlacklistedAwsScheduleId
+   *
+   * @description
+   *  1. This attribute is just stored as of now whenever the candidate is blacklisted
+   *     by `corporate` for his company and still candidate applies for this company job
+   *     then we will create a schedule to update the status to `REJECTED`.
+   *  2. As of now this attribute is not being used anywhere but just stored for future use.
+   * @reference
+   *  1. `id` attribute of `ScheduleJob.model.ts`
+   *  2. `Schedule name` in [Amazon EventBridge > Scheduler > Schedules > Schedule name]
+   */
+  rejectionBlacklistedAwsScheduleId?: boolean;
+
+  /**
    * isEvaluatorResponded
    *
    * If the evaluator has responded to the job application then this attribute will be set to `true`.
@@ -589,6 +603,10 @@ const UserJobApplicationSchema: Schema = new dynamoose.Schema(
       required: false,
     },
     rejectionAwsScheduleId: {
+      type: String,
+      required: false,
+    },
+    rejectionBlacklistedAwsScheduleId: {
       type: String,
       required: false,
     },
