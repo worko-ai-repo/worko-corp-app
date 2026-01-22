@@ -171,7 +171,7 @@ class FileController {
 
       const response: PreSignedUrlToViewFileResponseDto = await fileServiceObj.generatePsuToViewCorpCandReferralCv(reqBody);
 
-      return res.status(HttpStatusCode.OK_200).json({});
+      return res.status(HttpStatusCode.OK_200).json(response);
     } catch (error) {
       global.logger.error(
         `Error at catch block in while generating pre-signed url to view file. [File Controller]`,
