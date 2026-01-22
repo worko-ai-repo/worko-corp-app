@@ -83,6 +83,7 @@ const serverlessConfiguration: AWS = {
       APP_AWS_S3_BUCKET_WORKO_AGENCY_BULK_CVS: "${env:APP_AWS_S3_BUCKET_WORKO_AGENCY_BULK_CVS}",
       APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE: "${env:APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE}",
       APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE: "${env:APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE}",
+      APP_AWS_S3_BUCKET_WORKO_CORPORATE_REFERRAL_SOURCE_CV: "${env:APP_AWS_S3_BUCKET_WORKO_CORPORATE_REFERRAL_SOURCE_CV}",
     },
     awsLambdaFunctions: {
       APP_AWS_SCHEDULER_HANDLER_LAMBDA_ARN: "arn:aws:lambda:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-corp-${self:custom.app.STAGE}-appScheduler",
@@ -180,6 +181,8 @@ const serverlessConfiguration: AWS = {
           "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE}/*",
           "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE}",
           "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE}/*",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_CORPORATE_REFERRAL_SOURCE_CV}",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_CORPORATE_REFERRAL_SOURCE_CV}/*",
         ],
       },
 
