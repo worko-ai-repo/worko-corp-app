@@ -371,6 +371,10 @@ class CorporateCandidateProfileService {
               ...(existingCentralCandidateProfile?.corporateCandidateProfileIds ?? []),
               corporateCandidateProfileCreateData.id
             ],
+            candidateParsedCvIds: [
+              ...(existingCentralCandidateProfile?.candidateParsedCvIds ?? []),
+              candidateParsedCvCreateData.id
+            ]
           }
         )
       } else {
@@ -555,6 +559,10 @@ class CorporateCandidateProfileService {
               ...(existingCentralCandidateProfile?.corporateCandidateProfileIds ?? []),
               corporateCandidateProfileCreateData.id
             ],
+            candidateParsedCvIds: [
+              ...(existingCentralCandidateProfile?.candidateParsedCvIds ?? []),
+              candidateParsedCvCreateData.id
+            ]
           }
         )
       } else {
