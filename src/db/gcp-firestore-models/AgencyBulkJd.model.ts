@@ -1,5 +1,12 @@
+
+// import google cloud firestore
+import { FieldValue } from "@google-cloud/firestore";
+
 // import dtos
 import { MinMaxRange } from "../../dtos/Common.dto";
+
+// import enums
+import { AgencyBulkJdProcessingStatusEnum } from "../../enums/AgencyBulkJd.enum";
 
 // import models
 import { BaseFirestoreModel } from "./Base.model";
@@ -32,4 +39,21 @@ export interface DbAgencyBulkJdDto extends BaseFirestoreModel {
   industryPreferences?: string[];
   experienceRange?: MinMaxRange;
   resumesCount: number;
+
+  /**
+   * @description Total number of resumes for which processing is finished (success or failure)
+   */
+  totalResumesProcessed?: number | FieldValue;
+
+  /**
+   * @description Total number of resumes for which a matching score was successfully generated
+   */
+  totalResumesSucceeded?: number | FieldValue;
+
+  /**
+   * @description Total number of resumes for which a matching score was not successfully generated
+   */
+  totalResumesFailed?: number | FieldValue;
+
+  processingStatus?: AgencyBulkJdProcessingStatusEnum;
 }

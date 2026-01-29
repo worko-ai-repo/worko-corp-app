@@ -69,6 +69,44 @@ export const agencyUserSubmissionCreateApiValidationDto = Joi.object({
     "boolean.base": "Is Notice Period Negotiable is required",
     "any.required": "Is Notice Period Negotiable is required",
   }),
+  about: Joi.string().optional().messages({
+    "string.base": "About must be a string",
+  }),
+  education: Joi.array()
+    .items(
+      Joi.object({
+        degree: Joi.string().required().lowercase().messages({
+          "string.empty": "Degree is required",
+          "any.required": "Degree is required",
+        }),
+
+        collage: Joi.string().required().lowercase().messages({
+          "string.empty": "College is required",
+          "any.required": "College is required",
+        }),
+
+        startedYear: Joi.number().optional().messages({
+          "number.base": "Started Year is required",
+          "any.required": "Started Year is required",
+        }),
+
+        passingYear: Joi.number().required().messages({
+          "number.base": "Passing Year is required",
+          "any.required": "Passing Year is required",
+        }),
+
+        grade: Joi.string().optional().messages({
+          "string.empty": "Grade is required",
+          "any.required": "Grade is required",
+        }),
+        field: Joi.string().optional().messages({
+          "string.empty": "Field is required",
+          "any.required": "Field is required",
+        }),
+      }),
+    )
+    .optional(),
+
   location: Joi.string().required().lowercase().messages({
     "string.empty": "Location is required",
     "any.required": "Location is required",

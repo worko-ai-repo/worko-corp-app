@@ -13,6 +13,11 @@ import CentralCandidateProfileRouter from "./routers/CentralCandidateProfile.rou
 import CandidateParsedCvRouter from "./routers/CandidateParsedCv.router";
 import CandidateJobMatchingRouter from "./routers/CandidateJobMatching.router";
 import FileRouter from "./routers/File.router";
+import AgencyCvRechargePackageRouter from "./routers/AgencyCvRechargePackage.router";
+import AgencyCvWalletRouter from "./routers/AgencyCvWallet.router";
+import AgencyCvCreditTransactionRouter from "./routers/AgencyCvCreditTransaction.router";
+import AgencyCvDebitTransactionRouter from "./routers/AgencyCvDebitTransaction.router";
+import AgencyCvRechargeOrderRouter from "./routers/AgencyCvRechargeOrder.router";
 
 // Router that contains all the routes/endpoints in the application
 const router = Router();
@@ -65,6 +70,36 @@ router.use("/agency-bulk-jd", AgencyBulkJdRouter);
  * @authorisedRoles ["agency"]
  */
 router.use("/agency-bulk-jd-resume", AgencyBulkJdResumeRouter);
+
+/**
+ * Agency Cv Recharge Package Routers
+ * 
+ * @authorisedRoles ["agency", "admin"]
+ */
+router.use("/agency-cv-recharge-package", AgencyCvRechargePackageRouter);
+
+/**
+ * Agency Cv Recharge Order Routers
+ * 
+ * @authorisedRoles ["agency"]
+ */
+router.use("/agency-cv-recharge-order", AgencyCvRechargeOrderRouter);
+
+/**
+ * Agency Cv Wallet Routers
+ * @authorisedRoles ["agency"]
+ */
+router.use("/agency-cv-wallet", AgencyCvWalletRouter);
+
+/**
+ * @authorisedRoles ["agency"]
+ */
+router.use("/agency-cv-credit-transaction", AgencyCvCreditTransactionRouter);
+
+/**
+ * @authorisedRoles ["agency"]
+ */
+router.use("/agency-cv-debit-transaction", AgencyCvDebitTransactionRouter);
 
 /**
  * Corporate Candidate Profile Routers

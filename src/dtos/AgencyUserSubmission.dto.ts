@@ -27,6 +27,15 @@ export interface AgencyUserSubmissionCandidateParseCvResponseDto {
   noticePeriod: number;
   location: string;
   readyToRelocate: boolean;
+  about?: string;
+  education?: {
+    collage: string;
+    degree: string;
+    startedYear?: number;
+    passingYear: number;
+    grade?: string;
+    field?: string;
+  }[];
   coreSkills?: {
     skillName: string;
     years: number;
@@ -61,6 +70,15 @@ export interface AgencyUserSubmissionCreateApiDto {
   expectedCTC: number;
   noticePeriod: number;
   isNoticePeriodNegotiable: boolean;
+  about?: string;
+  education?: {
+    collage: string;
+    degree: string;
+    startedYear?: number;
+    passingYear: number;
+    grade?: string;
+    field?: string;
+  }[];
   location: string;
   readyToRelocate: boolean;
   coreSkills?: {

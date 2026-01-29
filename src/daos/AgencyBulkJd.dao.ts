@@ -14,6 +14,9 @@ import {
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
+// Import enums
+import { AgencyBulkJdProcessingStatusEnum } from "../enums/AgencyBulkJd.enum";
+
 // Import helpers
 import { dateHelperObj } from "../helpers/date.helper";
 
@@ -68,7 +71,7 @@ class AgencyBulkJdDao {
       id: agencyBulkJdId,
       createdAt: currentTimestamp,
       updatedAt: currentTimestamp,
-      resumesCount: 0,
+      processingStatus: AgencyBulkJdProcessingStatusEnum.PROCESSING,
       ...agencyBulkJdDto,
     };
 

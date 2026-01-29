@@ -251,6 +251,8 @@ class CorporateCandidateProfileService {
       candidateNoticePeriod,
       isNoticePeriodNegotiable,
       candidateEmail,
+      about,
+      education,
       candidateLocation,
       candidateCurrentCompany,
       candidateCurrentDesignation,
@@ -294,6 +296,8 @@ class CorporateCandidateProfileService {
           number: candidateNumber,
           countryCode: candidatePhoneCountryCode
         },
+        about,
+        education,
         currentCompany: candidateCurrentCompany,
         currentDesignation: candidateCurrentDesignation,
         totalYOE: candidateTotalYOE,

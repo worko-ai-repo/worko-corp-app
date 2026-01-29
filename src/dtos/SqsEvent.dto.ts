@@ -20,6 +20,15 @@ export interface SqsMsgCvExtractedParsedDto {
   candidateLocation?: string; // "Hyderabad, Telangana";
   candidateReadyToRelocate?: boolean; // false;
   isNoticePeriodNegotiable?: boolean; // false;
+  about?: string;
+  education?: {
+    collage: string;
+    degree: string;
+    startedYear?: number;
+    passingYear: number;
+    grade?: string;
+    field?: string;
+  }[];
 
   coreSkills?: {
     skillName: string;
@@ -58,4 +67,11 @@ export interface SqsMsgCorporateCandProfileReferralSourceReqDto extends SqsMsgBa
   companyId: string;
   candidateCvAwsS3FileName: string;
   cvExtractedParsed: SqsMsgCvExtractedParsedDto;
+}
+
+export interface SqsMsgAgencyBulkJdResumePostMatchingScoreReqDto extends SqsMsgBaseReqDto {
+  /**
+   * @reference "id" field of AgencyBulkJdResume.model.ts
+   */
+  agencyBulkJdResumeId: string;
 }

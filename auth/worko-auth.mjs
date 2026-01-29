@@ -826,6 +826,21 @@ var isAgencyUrl = function (url, httpMethod) {
 
     // Agency Bulk Jd Resume Routers
     { path: "/agency-bulk-jd-resume*", method: HttpMethodsConstants.ANY },
+
+    // Agency Cv Recharge Package routers
+    { path: "/agency-cv-recharge-package*", method: HttpMethodsConstants.GET },
+
+    { path: "/agency-cv-recharge-order/create", method: HttpMethodsConstants.POST },
+    { path: "/agency-cv-recharge-order/verify-payment", method: HttpMethodsConstants.POST },
+
+    // Agency Cv Wallet Routers
+    { path: "/agency-cv-wallet/:agencyUserId", method: HttpMethodsConstants.GET },
+
+    // Agency cv credit transaction routers
+    { path: "/agency-cv-credit-transaction*", method: HttpMethodsConstants.GET },
+
+    // Agency Cv Debit Transaction Routers
+    { path: "/agency-cv-debit-transaction*", method: HttpMethodsConstants.GET },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
@@ -1011,6 +1026,9 @@ var isAdminUrl = function (url, httpMethod) {
     // Candidate parsed cvs
     { path: "/candidate-parsed-cv/search-in-db/admin-action*", method: HttpMethodsConstants.GET },
     { path: "/candidate-parsed-cv/:id", method: HttpMethodsConstants.PATCH },
+
+    // Agency Cv Recharge Package routers
+    { path: "/agency-cv-recharge-package*", method: HttpMethodsConstants.ANY },
   ];
 
   const result = checkMatchingPattern(url, adminUrlList, httpMethod);

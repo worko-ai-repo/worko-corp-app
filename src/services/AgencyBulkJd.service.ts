@@ -12,9 +12,11 @@ import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firesto
 // import models
 import { DbAgencyBulkJdDto } from "../db/gcp-firestore-models/AgencyBulkJd.model";
 import { DbAgencyUserDto } from "../db/gcp-firestore-models/AgencyUser.model";
+import { DbAgencyCvWalletDto } from "../db/gcp-firestore-models/AgencyCvWallet.model";
 
 // import services
 import { agencyUserServiceObj } from "./AgencyUser.service";
+import { agencyCvWalletServiceObj } from "./AgencyCvWallet.service";
 
 // import utils
 import { BaseError } from "../utils/errors.util";
@@ -38,11 +40,35 @@ class AgencyBulkJdService {
       );
     }
 
+    const agencyCvWallet: DbAgencyCvWalletDto | undefined = await agencyCvWalletServiceObj.getAgencyCvWalletById(agencyUserDetails.id);
+    if(!agencyCvWallet) {
+      global.logger.error(`Agency Cv Wallet not found. [CONTROLLER]`, {
+        methodName: this.createAgencyBulkJd.name,
+        requestBody,
+        agencyCvWallet,
+      });
+      throw new BaseError(
+        "Insufficient CV credits. Please recharge your wallet to continue.",
+        HttpStatusCode.PAYMENT_REQUIRED_402
+      );
+    }
+
+    if(agencyCvWallet.totalAvailableCvCount < requestBody.resumesCount) {
+      global.logger.error(`Insufficient CV credits. [CONTROLLER]`, {
+        methodName: this.createAgencyBulkJd.name,
+        requestBody,
+        agencyCvWallet,
+      });
+      throw new BaseError(
+        "Insufficient CV credits. Please recharge your wallet to continue.",
+        HttpStatusCode.PAYMENT_REQUIRED_402
+      );
+    }
+
     const createData: AgencyBulkJdCreateDto = {
       ...requestBody,
       agencyRegisteredEmail: agencyUserDetails.email,
       createdByAgencyUserId: agencyUserDetails.id,
-
     };
     return this.createAgencyBulkJd(createData);
   }

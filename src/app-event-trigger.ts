@@ -14,8 +14,8 @@ import "./configs/gcp-sdk.config";
 
 // Import dtos
 import {
-  SqsMsgAdminCandProfileBulkUploadReqDto,
-   // SqsMsgAgencyBulkJdResumePostMatchingScoreReqDto,
+   SqsMsgAdminCandProfileBulkUploadReqDto,
+   SqsMsgAgencyBulkJdResumePostMatchingScoreReqDto,
    SqsMsgCorporateCandProfileBulkUploadReqDto,
    SqsMsgCorporateCandProfileReferralSourceReqDto,
 } from "./dtos/SqsEvent.dto";
@@ -24,7 +24,7 @@ import {
 import { SqsMsgEventEnum } from "./enums/SqsEvent.enum";
 
 // Import services
-// import { agencyBulkJdResumeServiceObj } from "./services/AgencyBulkJdResume.service";
+import { agencyBulkJdResumeServiceObj } from "./services/AgencyBulkJdResume.service";
 import { corporateCandidateProfileServiceObj } from "./services/CorporateCandidateProfile.service";
 import { centralCandidateProfileServiceObj } from "./services/CentralCandidateProfile.service";
 
@@ -45,11 +45,6 @@ const initDatabaseConfig = () => {
 // Initialize the database configuration
 initDatabaseConfig();
 
-/**
- * @note This code will be used when we want to send email to candidates for agency bulk cv check,
- * as of now we are not sending email to candidates
- */
-/*
 const validateAgencyBulkJdResumePostMatchingScore = async (
   message: SqsMsgAgencyBulkJdResumePostMatchingScoreReqDto,
   event: SQSEvent,
@@ -67,7 +62,7 @@ const validateAgencyBulkJdResumePostMatchingScore = async (
     );
 
     // Retrieve the necessary information from the message
-    const { agencyBulkJdResumeId } = message.context;
+    const { agencyBulkJdResumeId } = message;
 
     const isAgencyBulkJdResumePostMatchingScoreValid: boolean =
       await agencyBulkJdResumeServiceObj.validateAgencyBulkJdResumePostMatchingScore(
@@ -95,7 +90,6 @@ const validateAgencyBulkJdResumePostMatchingScore = async (
     );
   }
 };
-*/
 
 const validateCorporateCandProfileBulkUpload  = async (
   message: SqsMsgCorporateCandProfileBulkUploadReqDto,
@@ -294,7 +288,6 @@ export const handler = async (
     });
 
     switch (messageEvent) {
-      /*
       // After calculating matching score for resume this event is triggered
       case SqsMsgEventEnum.AGENCY_BULK_JD_RESUME_POST_MATCHING_SCORE:
         return validateAgencyBulkJdResumePostMatchingScore(
@@ -302,7 +295,6 @@ export const handler = async (
           event,
           context
         );
-      */
 
       case SqsMsgEventEnum.CORPORATE_CAND_PROFILE_BULK_UPLOAD:
         return validateCorporateCandProfileBulkUpload(parsedMessageBody as SqsMsgCorporateCandProfileBulkUploadReqDto);

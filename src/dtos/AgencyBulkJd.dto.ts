@@ -17,6 +17,8 @@ export interface AgencyBulkJdCreateApiDto {
    */
   companyId?: string;
 
+  resumesCount: number;
+
   jobDescription: string;
   jobTitle: string;
   jobLocation?: string;

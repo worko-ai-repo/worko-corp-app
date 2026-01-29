@@ -1,9 +1,5 @@
-
-// import dynamoose
-import { QueryResponse } from "dynamoose/dist/ItemRetriever";
-
-// import configs
-import APP_CONSTANTS from "../configs/constants.config";
+// import google cloud firestore
+import { FieldValue } from "@google-cloud/firestore";
 
 // import daos
 import { agencyBulkJdResumeDaoObj } from "../daos/AgencyBulkJdResume.dao";
@@ -15,10 +11,14 @@ import { AgencyBulkJdResumeProcessingStatusEnum } from "../enums/AgencyBulkJdRes
 import {
   AgencyBulkJdResumeCreateApiDto,
   AgencyBulkJdResumeCreateResponseDto,
+  AgencyBulkJdResumeDbCvExtractedParsedDto,
   AgencyBulkJdResumeFilterOptions,
 } from "../dtos/AgencyBulkJdResume.dto";
 import { AgencyBulkCvsPreSignedUrlToUploadFileDto, PreSignedUrlToUploadFileResponseDto } from "../dtos/File.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
+
+// import enums
+import { AgencyBulkJdProcessingStatusEnum } from "../enums/AgencyBulkJd.enum";
 
 // Import helpers
 import { dateHelperObj } from "../helpers/date.helper";
@@ -27,11 +27,15 @@ import { dateHelperObj } from "../helpers/date.helper";
 import { DbAgencyBulkJdResumeDto } from "../db/gcp-firestore-models/AgencyBulkJdResume.model";
 import { DbAgencyUserDto } from "../db/gcp-firestore-models/AgencyUser.model";
 import { DbAgencyBulkJdDto } from "../db/gcp-firestore-models/AgencyBulkJd.model";
+import { DbAgencyCvWalletDto } from "../db/gcp-firestore-models/AgencyCvWallet.model";
+import { DbAgencyCvDebitTransactionDto } from "../db/gcp-firestore-models/AgencyCvDebitTransaction.model";
 
 // import services
 import { agencyUserServiceObj } from "./AgencyUser.service";
 import { agencyBulkJdServiceObj } from "./AgencyBulkJd.service";
 import { fileServiceObj } from "./File.service";
+import { agencyCvDebitTransactionServiceObj } from "./AgencyCvDebitTransaction.service";
+import { agencyCvWalletServiceObj } from "./AgencyCvWallet.service";
 
 // import utils
 import { BaseError } from "../utils/errors.util";
@@ -96,31 +100,6 @@ class AgencyBulkJdResumeService {
       throw new BaseError(
         "You are not authorized to upload resumes for this job description.",
         HttpStatusCode.FORBIDDEN_403
-      );
-    }
-
-    // Update resume count in corporate bulk jd model
-    const updatedBulkJd: DbAgencyBulkJdDto | undefined = await agencyBulkJdServiceObj.updateAgencyBulkJdById(
-      agencyBulkJdId,
-      {
-        resumesCount:
-          (agencyBulkJd.resumesCount ?? 0) +
-          validatedRequestBody.bulkCvs.length,
-      }
-    );
-    if (!updatedBulkJd) {
-      global.logger.error(
-        "Failed to update the resumes count in the bulk job description. [SERVICE]",
-        {
-          methodName: this.createAgencyBulkJdResumes.name,
-          createdByAgencyUserId,
-          agencyBulkJd,
-          agencyUserDetails
-        }
-      )
-      throw new BaseError(
-        "Failed to update the resumes count in the bulk job description.",
-        HttpStatusCode.INTERNAL_SERVER_ERROR_500
       );
     }
 
@@ -206,12 +185,104 @@ class AgencyBulkJdResumeService {
     return agencyBulkJdResumeDaoObj.getAgencyBulkJdResumeById(resumeId);
   }
 
-  /**
-   * @note
-   *  1. This code will be used when we want to send email to candidates for agency bulk cv check,
-   *  as of now we are not sending email to candidates
-   */
-  /*
+  private async validateUpdateAgencyCvDebit(
+    agencyBulkJdDetails: DbAgencyBulkJdDto,
+    agencyBulkJdResumeDetails: DbAgencyBulkJdResumeDto,
+    isSuccess: boolean
+  ): Promise<boolean> {
+    const updateAgencyBulkJdDto: Partial<DbAgencyBulkJdDto> = {
+      totalResumesProcessed: FieldValue.increment(1),
+    }
+    if(isSuccess) {
+      updateAgencyBulkJdDto.totalResumesSucceeded = FieldValue.increment(1);
+    } else {
+      updateAgencyBulkJdDto.totalResumesFailed = FieldValue.increment(1);
+    }
+    const updateAgencyBulkJd: DbAgencyBulkJdDto | undefined = await agencyBulkJdServiceObj.updateAgencyBulkJdById(
+      agencyBulkJdDetails.id,
+      updateAgencyBulkJdDto
+    );
+
+    if(!updateAgencyBulkJd) {
+      global.logger.error(
+        `Failed to update the agency bulk jd details. [SERVICE]`,
+        {
+          methodName:
+            this
+              .validateUpdateAgencyCvDebit
+              .name,
+          agencyBulkJdResumeDetails
+        }
+      )
+      return false;
+    }
+
+    if(updateAgencyBulkJd.totalResumesProcessed === updateAgencyBulkJd.resumesCount) {
+      const updateAgencyBulkJdStatus = agencyBulkJdServiceObj.updateAgencyBulkJdById(
+        updateAgencyBulkJd.id,
+        {
+          processingStatus: AgencyBulkJdProcessingStatusEnum.COMPLETED
+        }
+      );
+
+      const createAgencyCvDebitTransaction = agencyCvDebitTransactionServiceObj.createAgencyCvDebitTransaction(
+        {
+          agencyUserId: updateAgencyBulkJd.createdByAgencyUserId,
+          agencyBulkJdId: updateAgencyBulkJd.id,
+          cvUsed: updateAgencyBulkJd.totalResumesSucceeded as number,
+          agencyRegisteredEmail: agencyBulkJdResumeDetails.agencyRegisteredEmail
+        }
+      );
+
+      const completionPromises: (
+        Promise<DbAgencyBulkJdDto | undefined> |
+        Promise<DbAgencyCvDebitTransactionDto | undefined> |
+        Promise<DbAgencyCvWalletDto | undefined>
+      )[] = [updateAgencyBulkJdStatus, createAgencyCvDebitTransaction];
+
+      if(isSuccess) {
+        const existingAgencyCvWallet: DbAgencyCvWalletDto | undefined = await agencyCvWalletServiceObj.getAgencyCvWalletById(updateAgencyBulkJd.createdByAgencyUserId);
+        if(!existingAgencyCvWallet) {
+          global.logger.error(`Agency Cv Wallet not found. [SERVICE]`, {
+            methodName: this.validateUpdateAgencyCvDebit.name,
+            updateAgencyBulkJd,
+          });
+          return false;
+        }
+        const updateAgencyCvWallet = agencyCvWalletServiceObj.updateAgencyCvWalletById(
+          updateAgencyBulkJd.createdByAgencyUserId,
+          {
+            totalAvailableCvCount: existingAgencyCvWallet.totalAvailableCvCount - (updateAgencyBulkJd.totalResumesSucceeded as number),
+            totalUsedCvCount: existingAgencyCvWallet.totalUsedCvCount + (updateAgencyBulkJd.totalResumesSucceeded as number),
+            lastCvDeductionDate: dateHelperObj.getISODate(),
+          }
+        )
+
+        completionPromises.push(updateAgencyCvWallet);
+      }
+
+      const result = await Promise.all(
+        completionPromises
+      );
+      if(!result) {
+        global.logger.error(
+          `Failed to update the agency bulk jd details. [SERVICE]`,
+          {
+            methodName:
+              this
+                .validateUpdateAgencyCvDebit
+                .name,
+            result
+          }
+        )
+        return false;
+      }
+      return true;
+    }
+
+    return true;
+  }
+
   async validateAgencyBulkJdResumePostMatchingScore(agencyBulkJdResumeId: string): Promise<boolean> {
     const agencyBulkJdResumeDetails: DbAgencyBulkJdResumeDto | undefined = await this.getAgencyBulkJdResumeById(agencyBulkJdResumeId);
     if (!agencyBulkJdResumeDetails) {
@@ -222,75 +293,16 @@ class AgencyBulkJdResumeService {
           agencyBulkJdResumeId,
         }
       );
-      return false;
-    }
-
-    // Get CV Extracted Parsed details
-    const cvExtractedParsed: AgencyBulkJdResumeDbCvExtractedParsedDto | undefined =
-      agencyBulkJdResumeDetails.cvExtractedParsed;
-    if(!cvExtractedParsed) {
-      global.logger.error(
-        `CV Extracted Parsed Not found, So Email and Whatsapp notification not sent. [SERVICE]`,
-        {
-          methodName:
-            this
-              .validateAgencyBulkJdResumePostMatchingScore
-              .name,
-          agencyBulkJdResumeId,
-          agencyBulkJdResumeDetails
-        }
-      )
-      return false;
-    }
-
-    if(!cvExtractedParsed.candidateEmail) {
-      global.logger.info(
-        `Candidate Email Not found, So Email and Whatsapp notification not sent. [SERVICE]`,
-        {
-          methodName:
-            this
-              .validateAgencyBulkJdResumePostMatchingScore
-              .name,
-          agencyBulkJdResumeId,
-          agencyBulkJdResumeDetails
-        }
-      )
 
       return false;
     }
-
-    // Get Company Details By company Id
-    const companyDetailResponse: QueryResponse<DbCompanyDetailDto> =
-      await companyDetailServiceObj.getCompanyDetailById(
-        agencyBulkJdResumeDetails.companyId
-      );
-    if (!companyDetailResponse.count) {
-      global.logger.info(
-        `Company Details Not found, So Email and Whatsapp notification not sent. [SERVICE]`,
-        {
-          filePath: __filename,
-          methodName:
-            this
-              .validateAgencyBulkJdResumePostMatchingScore
-              .name,
-          agencyBulkJdResumeId,
-          agencyBulkJdResumeDetails
-        }
-      );
-
-      // Return false if not found
-      return false;
-    }
-
-    // Get Compny Details
-    const companyDetails: DbCompanyDetailDto = companyDetailResponse[0];
 
     const agencyBulkJdDetails: DbAgencyBulkJdDto | undefined = await agencyBulkJdServiceObj.getAgencyBulkJdById(
       agencyBulkJdResumeDetails.agencyBulkJdId
     );
     if (!agencyBulkJdDetails) {
       global.logger.info(
-        `Agency Bulk JD Details Not found, So Email and Whatsapp notification not sent. [SERVICE]`,
+        `Agency Bulk JD Details Not found. [SERVICE]`,
         {
           filePath: __filename,
           methodName:
@@ -307,68 +319,67 @@ class AgencyBulkJdResumeService {
       return false;
     }
 
-    // Construct the email address object
-    const toAddress: EmailSourceDestinationAddress = {
-      email: cvExtractedParsed.candidateEmail,
-      fullName: cvExtractedParsed.candidateName,
-    };
-
-    // Initialize email promise
-    let emailPromise: Promise<{
-      awsMessageId: string | null;
-      systemLogId: string | null;
-    }>;
-
-    // Check if the matching score is greater than given threshold
-    if (
-      agencyBulkJdResumeDetails.matchingScore &&
-      agencyBulkJdResumeDetails.matchingScore >=
-      APP_CONSTANTS.MATCHING_SCORES
-        .AGENCY_BULK_JD_RESUME_MINIMUM_MATCHING_SCORE
-    ) {
-      // Construct the email placeholders object
-      const emailPlaceholders: EmailTemplatePlaceholderCAND_AGENCY_BULK_JD_RESUME_HIGH_MATCHING_SCORE =
+    // Get CV Extracted Parsed details
+    const cvExtractedParsed: AgencyBulkJdResumeDbCvExtractedParsedDto | undefined =
+      agencyBulkJdResumeDetails.cvExtractedParsed;
+    if(!cvExtractedParsed) {
+      global.logger.error(
+        `CV Extracted Parsed Not found. [SERVICE]`,
         {
-          candidateName: cvExtractedParsed.candidateName.toTitleCase(),
-          companyName: companyDetails.name.toTitleCase(),
-          jobTitle: agencyBulkJdDetails.jobTitle.toTitleCase(),
-          matchingScore: agencyBulkJdResumeDetails.matchingScore,
-          signUpUrl: APP_CONSTANTS.FRONTEND_URLS.WORKO_SIGNUP_URL,
-          ...APP_CONSTANTS.GET_WORKO_SOCIAL_PROFILES_TO_SEND_EMAIL,
-        };
+          methodName:
+            this
+              .validateAgencyBulkJdResumePostMatchingScore
+              .name,
+          agencyBulkJdResumeId,
+          agencyBulkJdResumeDetails
+        }
+      )
 
-      // Send email to the candidate
-      emailPromise = emailLibrary.sendEmail(
-        EmailTemplateEnum.CAND_AGENCY_BULK_JD_RESUME_HIGH_MATCHING_SCORE,
-        toAddress,
-        emailPlaceholders
-      );
-    } else {
-      // Construct the email placeholders object
-      const emailPlaceholders: EmailTemplatePlaceholderCAND_AGENCY_BULK_JD_RESUME_LOW_MATCHING_SCORE =
-        {
-          candidateName: cvExtractedParsed.candidateName.toTitleCase(),
-          companyName: companyDetails.name.toTitleCase(),
-          jobTitle: agencyBulkJdDetails.jobTitle.toTitleCase(),
-          signUpUrl: APP_CONSTANTS.FRONTEND_URLS.WORKO_SIGNUP_URL,
-          ...APP_CONSTANTS.GET_WORKO_SOCIAL_PROFILES_TO_SEND_EMAIL,
-        };
+      await this.validateUpdateAgencyCvDebit(agencyBulkJdDetails, agencyBulkJdResumeDetails, false);
 
-      // Send email to the candidate
-      emailPromise = emailLibrary.sendEmail(
-        EmailTemplateEnum.CAND_AGENCY_BULK_JD_RESUME_LOW_MATCHING_SCORE,
-        toAddress,
-        emailPlaceholders
-      );
+      return false;
     }
 
-    await Promise.all([
-      emailPromise, 
-    ]);
+    if(!cvExtractedParsed.candidateEmail) {
+      global.logger.info(
+        `Candidate Email Not found. [SERVICE]`,
+        {
+          methodName:
+            this
+              .validateAgencyBulkJdResumePostMatchingScore
+              .name,
+          agencyBulkJdResumeId,
+          agencyBulkJdResumeDetails
+        }
+      )
+
+      await this.validateUpdateAgencyCvDebit(agencyBulkJdDetails, agencyBulkJdResumeDetails, false);
+
+      return false;
+    }
+
+    if(!agencyBulkJdResumeDetails.matchingScore) {
+      global.logger.info(
+        `Matching Score Not found. [SERVICE]`,
+        {
+          methodName:
+            this
+              .validateAgencyBulkJdResumePostMatchingScore
+              .name,
+          agencyBulkJdResumeId,
+          agencyBulkJdResumeDetails
+        }
+      )
+
+      await this.validateUpdateAgencyCvDebit(agencyBulkJdDetails, agencyBulkJdResumeDetails, false);
+
+      return false;
+    }
+
+    await this.validateUpdateAgencyCvDebit(agencyBulkJdDetails, agencyBulkJdResumeDetails, true);
 
     return true;
   }
-  */
 }
 
 // Create an instance of the AgencyBulkJdResumeService class and export it

@@ -19,6 +19,13 @@ export const agencyBulkJdDTOValidation = Joi.object<AgencyBulkJdCreateApiDto>({
     "any.type": "The Company id field must be a string.",
   }),
 
+  resumesCount: Joi.number().integer().min(1).max(10).required().messages({
+    "number.base": "The Resumes count field must be a number.",
+    "number.integer": "The Resumes count field must be an integer.",
+    "number.min": "The Resumes count field must be at least 1.",
+    "any.required": "The Resumes count field is required.",
+  }),
+
   jobTitle: Joi.string().required().lowercase().messages({
     "any.type": "The Job title field must be a string.",
     "string.empty": "The Job title field should not be empty.",

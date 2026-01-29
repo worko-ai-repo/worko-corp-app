@@ -21,13 +21,11 @@ import { awsClientCognitoIdentityProviderLibrary } from "../configs/aws-sdk.conf
 // Import dtos
 import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvUpdateApiDto, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
+import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
+import { UserJobApplicationMoveToApplicantCreateApiDTO } from "../dtos/UserJobApplication.dto";
 
 // Import daos
 import { candidateParsedCvDaoObj } from "../daos/CandidateParsedCv.dao";
-
-// Import dtos
-import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
-import { UserJobApplicationMoveToApplicantCreateApiDTO } from "../dtos/UserJobApplication.dto";
 
 // Import enums
 import { JobApplicationStatus } from "../enums/UserJobApplication.enum";
@@ -36,6 +34,7 @@ import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsed
 
 // Import helpers
 import { getActionByUserId } from "../helpers/user.helper";
+import { dateHelperObj } from "../helpers/date.helper";
 
 // Import models
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
@@ -44,6 +43,7 @@ import { DbUserDetailDto } from "../db/aws-dynamodb-models/UserDetail.model";
 import { DbUserJobApplicationDto } from "../db/aws-dynamodb-models/UserJobApplication.model";
 import { DbCorporateUserDto } from "../db/aws-dynamodb-models/CorporateUser.model";
 import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJobMatching.model";
+import { DbCentralCandidateProfileDto } from "../db/gcp-firestore-models/CentralCandidateProfile.model";
 
 // Import services
 import { gcpFirestoreJobServiceObj } from "./GcpFirestoreJob.service";
@@ -53,11 +53,11 @@ import { userJobApplicationServiceObj } from "./UserJobApplication.service";
 import { corporateUserServiceObj } from "./CorporateUser.service";
 import InvokeLambdaService from "./InvokeLambda.service";
 import { candidateJobMatchingServiceObj } from "./CandidateJobMatching.service";
+import { centralCandidateProfileServiceObj } from "./CentralCandidateProfile.service";
 
 // Import utils
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
-import { dateHelperObj } from "../helpers/date.helper";
 
 class CandidateParsedCvService {
   /**
@@ -771,6 +771,44 @@ class CandidateParsedCvService {
         updateDto,
       });
       throw new BaseError("Failed to update candidate parsed cv.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    if(actionByCorporateUserId) {
+      const existingCentralCandProfile: DbCentralCandidateProfileDto | undefined = await centralCandidateProfileServiceObj.getCentralCandidateProfileById(
+        updatedCandidateParsedCv.email
+      );
+      if(!existingCentralCandProfile) {
+        global.logger.error(`Failed to update candidate parsed cv, Central Candidate Profile not found`, {
+          methodName: this.performUpdateCandidateParsedCv.name,
+          id,
+          updateDto,
+        });
+        throw new BaseError("Internal Server Error.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+      }
+
+      if(existingCentralCandProfile.latestCandidateParsedCvId !== updatedCandidateParsedCv.id) {
+        const updateCentralProfileData: Partial<DbCentralCandidateProfileDto> = {
+          updatedAt: updatedAt,
+          latestCandidateParsedCvId: updatedCandidateParsedCv.id
+        }
+
+        // add candidate parsed cv id if not present
+        if(!existingCentralCandProfile.candidateParsedCvIds.includes(updatedCandidateParsedCv.id)) {
+          updateCentralProfileData.candidateParsedCvIds = [...existingCentralCandProfile.candidateParsedCvIds, updatedCandidateParsedCv.id];
+        }
+        const updatedCentralCandProfile: DbCentralCandidateProfileDto | undefined = await centralCandidateProfileServiceObj.updateCentralCandidateProfileById(
+          existingCentralCandProfile.id,
+          updateCentralProfileData
+        );
+        if(!updatedCentralCandProfile) {
+          global.logger.error(`Failed to update candidate parsed cv, Central Candidate Profile not found`, {
+            methodName: this.performUpdateCandidateParsedCv.name,
+            id,
+            updateDto,
+          });
+          throw new BaseError("Internal Server Error.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+        }
+      }
     }
 
     return updatedCandidateParsedCv;

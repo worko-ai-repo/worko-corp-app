@@ -37,6 +37,7 @@
     "express": "^4.21.2",
     "joi": "^17.13.3",
     "luxon": "^3.7.2",
+    "razorpay": "^2.9.6",
     "serverless": "^3.40.0",
     "serverless-http": "^3.2.0",
     "ulidx": "^2.4.1",

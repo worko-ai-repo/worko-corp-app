@@ -68,3 +68,7 @@ export enum HiringEligibilityStatusEnum {
   */
   BLACK_LISTED = "BLACK_LISTED",
 }
+
+export enum PaymentGatewayProviderEnum {
+  RAZORPAY = "RAZORPAY", // Razorpay payment gateway provider
+}

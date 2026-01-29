@@ -18,8 +18,16 @@ export enum SqsMsgEventEnum {
   ADMIN_CAND_PROFILE_BULK_UPLOAD = "ADMIN_CAND_PROFILE_BULK_UPLOAD",
 
   /**
-   * @description 
+   * @description
    *    1. Whenever "corporate-admin" submits a referral email and whatever cvs recieved to that email will be parsed and this event will be triggered
    */
-  CORPORATE_CAND_PROFILE_REFERRAL_SOURCE = "CORPORATE_CAND_PROFILE_REFERRAL_SOURCE"
+  CORPORATE_CAND_PROFILE_REFERRAL_SOURCE = "CORPORATE_CAND_PROFILE_REFERRAL_SOURCE",
+
+  /**
+   * @description
+   *    1. Whenever an `agency` upload `bulk candidate's cv` for particular `companyJob` or `job description`
+   *    the cv-jd matching score will be calculated in `worko-agency-bulk-jd-resume-matching-dev` lambda and all this event will be triggered for successfully 
+   *    calculated matching score. 
+   */
+  AGENCY_BULK_JD_RESUME_POST_MATCHING_SCORE = "AGENCY_BULK_JD_RESUME_POST_MATCHING_SCORE",
 }
