@@ -1,11 +1,14 @@
 // import dynamoose types
-import { QueryResponse } from "dynamoose/dist/ItemRetriever";
+import { Query, QueryResponse } from "dynamoose/dist/ItemRetriever";
 
 // import daos
 import BaseDao from "./BaseAwsDynamodb.dao";
 
 // Import dtos
 import { UserJobApplicationMoveToApplicantCreateDto } from "../dtos/UserJobApplication.dto";
+
+// Import helpers
+import { getPaginatedResultsWithMatchingConditions } from "../helpers/dynamoose.helper";
 
 // import models
 import {
@@ -44,7 +47,7 @@ class UserJobApplicationDao implements BaseDao {
    */
   preparePKAndSKForQuery(
     primaryEmail: string,
-    id: string
+    id: string,
   ): {
     PK: string;
     SK: string;
@@ -61,7 +64,7 @@ class UserJobApplicationDao implements BaseDao {
 
   async createJobApplicationMoveToApplicant(
     applicantEmail: string, // This email is need not to be registered in worko
-    jobApplicationRequestBody: UserJobApplicationMoveToApplicantCreateDto
+    jobApplicationRequestBody: UserJobApplicationMoveToApplicantCreateDto,
   ) {
     // Generate a unique ID
     const ulidId: string = UlidService.getUlidId();
@@ -115,7 +118,7 @@ class UserJobApplicationDao implements BaseDao {
    */
   async getJobApplicationByjobId(
     emailId: string,
-    jobId: string
+    jobId: string,
   ): Promise<QueryResponse<DbUserJobApplicationDto>> {
     global.logger.info(`Get Job Application By jobId [DAO]`, {
       filePath: __filename,
@@ -146,7 +149,7 @@ class UserJobApplicationDao implements BaseDao {
    * @returns {Promise<QueryResponse<DbUserJobApplicationDto>>} A promise that resolves to the job application data.
    */
   async getJobApplicationById(
-    jobApplicationId: string
+    jobApplicationId: string,
   ): Promise<QueryResponse<DbUserJobApplicationDto>> {
     global.logger.info("Get Job Application By Id [DAO]", {
       filePath: __filename,
@@ -160,6 +163,32 @@ class UserJobApplicationDao implements BaseDao {
       .where("GSI2SK")
       .eq(this.GSI2SK.strtr({ "{id}": jobApplicationId }))
       .exec();
+  }
+
+  async getJobApplicationByJobIdAndApplicantEmails(
+    jobId: string,
+    applicantEmails: string[],
+    filterOptions: {
+      pageSize: number;
+    },
+  ) {
+    // Initialize the query
+    let query: Query<DbUserJobApplicationDto> = UserJobApplicationModel.query("GSI3PK")
+        .eq(this.GSI3PK.strtr({ "{jobId}": jobId }))
+        .where("GSI3SK")
+        .beginsWith(this.GSI3SK.strtr({ "{id}": "" }))
+        .where("PK")
+        .in(applicantEmails.map((email: string) => this.partitianKey.strtr({ "{primaryEmail}": email })))
+        .attributes([
+          "PK",
+        ]);
+
+    return getPaginatedResultsWithMatchingConditions<
+      DbUserJobApplicationDto,
+      {
+        pageSize: number;
+      }
+    >(query, filterOptions);
   }
 }
 

@@ -365,6 +365,9 @@ var checkMatchingPattern = function (url, urlList, httpMethod) {
  */
 var checkWhitelistedUrl = function (url, httpMethod) {
   const urlList = [
+    //sitemap
+    {path: '/sitemap/sitemap.xml*', method: HttpMethodsConstants.GET },
+    
     // company routes
     { path: "/company*", method: HttpMethodsConstants.GET },
     { path: "/company/:beginsWith", method: HttpMethodsConstants.GET },
@@ -607,6 +610,8 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
     // Candidate Parsed Cv Routers
     { path: "/candidate-parsed-cv/search-in-db/corp-action*", method: HttpMethodsConstants.GET },
     { path: "/candidate-parsed-cv/move-to-applicant", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/duplicate-job-appl/bulk", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/move-to-applicant/bulk", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/find-matching-score", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/:id", method: HttpMethodsConstants.PATCH },
 
@@ -756,6 +761,8 @@ var isCorporateAdminUrl = function (url, httpMethod) {
     // Candidate Parsed Cv Routers
     { path: "/candidate-parsed-cv/search-in-db/corp-action*", method: HttpMethodsConstants.GET },
     { path: "/candidate-parsed-cv/move-to-applicant", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/duplicate-job-appl/bulk", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/move-to-applicant/bulk", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/find-matching-score", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/:id", method: HttpMethodsConstants.PATCH },
 
@@ -1026,6 +1033,9 @@ var isAdminUrl = function (url, httpMethod) {
     // Candidate parsed cvs
     { path: "/candidate-parsed-cv/search-in-db/admin-action*", method: HttpMethodsConstants.GET },
     { path: "/candidate-parsed-cv/:id", method: HttpMethodsConstants.PATCH },
+    { path: "/candidate-parsed-cv/move-to-applicant", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/duplicate-job-appl/bulk", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/move-to-applicant/bulk", method: HttpMethodsConstants.POST },
 
     // Agency Cv Recharge Package routers
     { path: "/agency-cv-recharge-package*", method: HttpMethodsConstants.ANY },

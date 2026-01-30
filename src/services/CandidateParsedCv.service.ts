@@ -19,10 +19,12 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsClientCognitoIdentityProviderLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvUpdateApiDto, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
 import { UserJobApplicationMoveToApplicantCreateApiDTO } from "../dtos/UserJobApplication.dto";
+import { InvokeLambdaCandidateBulkMoveToApplicantDto } from "../dtos/InvokeLambda.dto";
+import { PaginatedResultsWithMatchingConditionsInternalResponse } from "../dtos/Common.dto";
 
 // Import daos
 import { candidateParsedCvDaoObj } from "../daos/CandidateParsedCv.dao";
@@ -31,6 +33,7 @@ import { candidateParsedCvDaoObj } from "../daos/CandidateParsedCv.dao";
 import { JobApplicationStatus } from "../enums/UserJobApplication.enum";
 import { UserType } from "../enums/User.enum";
 import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
+import { InvokeLambdaHandlerEventTypeEnum } from "../enums/InvokeLambda.enum";
 
 // Import helpers
 import { getActionByUserId } from "../helpers/user.helper";
@@ -419,6 +422,35 @@ class CandidateParsedCvService {
     return moveToApplicantDetails;
   }
 
+  private async moveToApplUpdateCtcDetailsCandidateParsedCv(
+    validatedRequestBody: MoveToApplicantCandidateParsedCvCreateApiDTO,
+    actionByUserId?: string,
+    actionByCorporateUserId?: string
+  ) {
+    if(
+      validatedRequestBody.expectedCTC 
+      || validatedRequestBody.noticePeriod
+      || validatedRequestBody.currentCTC
+    ) {
+      const updateData: Partial<DbCandidateParsedCvDto> = {
+        updatedAt: dateHelperObj.getISODate(),
+        updatedByCorporateUserId: actionByCorporateUserId,
+        updatedByUserId: actionByUserId
+      }
+      if(validatedRequestBody.currentCTC) updateData.currentCTC = validatedRequestBody.currentCTC;
+      if(validatedRequestBody.expectedCTC) updateData.expectedCTC = validatedRequestBody.expectedCTC;
+      if(validatedRequestBody.noticePeriod) updateData.relevantYOE = validatedRequestBody.noticePeriod;
+      const updateCandParsedDetails = await candidateParsedCvServiceObj.updateCandidateParsedCvWithEmbedding(
+        validatedRequestBody.candidateParsedCvId, 
+        updateData
+      );
+      if(!updateCandParsedDetails) {
+        global.logger.error(`Failed to update candidate parsed cv`, { methodName: this.moveToApplicantCandidateParsedCv.name, validatedRequestBody, updateCandParsedDetails });
+        throw new BaseError("Failed to update candidate parsed cv", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+      }
+    }
+  }
+
   async moveToApplicantCandidateParsedCv(
     validatedRequestBody: MoveToApplicantCandidateParsedCvCreateApiDTO,
     cognitoUserGroups: string[],
@@ -481,7 +513,12 @@ class CandidateParsedCvService {
       candidateEmail
     );
     if(applicantRegisteredDetails.count) {
-      return this.createJobApplicationMoveToApplicant(validatedRequestBody, cognitoUserGroups, candidateParsedCvDetails, actionByUserId, actionByCorporateUserId);
+      const awaitedResponse: [DbUserJobApplicationDto, void] = await Promise.all([
+        this.createJobApplicationMoveToApplicant(validatedRequestBody, cognitoUserGroups, candidateParsedCvDetails, actionByUserId, actionByCorporateUserId),
+        this.moveToApplUpdateCtcDetailsCandidateParsedCv(validatedRequestBody, actionByUserId, actionByCorporateUserId)
+      ]) 
+
+      return awaitedResponse[0];
     }
 
     const {
@@ -534,7 +571,7 @@ class CandidateParsedCvService {
       isUserCreatedInternally: true
     };
 
-    const userDetailAndJobAppl: [DbUserDetailDto, DbUserJobApplicationDto,boolean, boolean] = await Promise.all([
+    const userDetailAndJobAppl: [DbUserDetailDto, DbUserJobApplicationDto,boolean, boolean, void] = await Promise.all([
       UserDetailService.createUserDetail(createUserDetailDto),
       this.createJobApplicationMoveToApplicant(validatedRequestBody, cognitoUserGroups, candidateParsedCvDetails, actionByUserId, actionByCorporateUserId),
       UserDetailService.sendEmailForCandAcctSignupReminder(
@@ -554,7 +591,8 @@ class CandidateParsedCvService {
           candidateCognitoUserId: userCreateCognito.User.Username,
           reminderSendCount: 0
         }
-      )
+      ),
+      this.moveToApplUpdateCtcDetailsCandidateParsedCv(validatedRequestBody, actionByUserId, actionByCorporateUserId)
     ]);
 
     if(!userDetailAndJobAppl[0] || !userDetailAndJobAppl[1] || !userDetailAndJobAppl[2] || !userDetailAndJobAppl[3]) {
@@ -563,6 +601,116 @@ class CandidateParsedCvService {
     }
 
     return userDetailAndJobAppl[1];
+  }
+
+  async duplicateJobApplicantBulkCandidateParsedCv(
+    validatedRequestBody: DuplicateJobApplicantBulkCandidateParsedCvApiDTO
+  ): Promise<PaginatedResultsWithMatchingConditionsInternalResponse<DbUserJobApplicationDto[]>> {
+    return userJobApplicationServiceObj.getJobApplicationByJobIdAndApplicantEmails(
+      validatedRequestBody.jobId,
+      validatedRequestBody.applicantEmails,
+      {
+        pageSize: validatedRequestBody.applicantEmails.length
+      }
+    );
+  } 
+
+  async moveToApplicantBulkCandidateParsedCvAsync(
+    validatedRequestBody: MoveToApplicantBulkCandidateParsedCvCreateApiDTO,
+    cognitoUserGroups: string[],
+    actionByUserId?: string,
+    actionByCorporateUserId?: string
+  ): Promise<APIGatewayProxyResult[]>
+  {
+    if (!actionByCorporateUserId) {
+      if (
+        !actionByUserId ||
+        !cognitoUserGroups.includes(
+          APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN,
+        )
+      ) {
+        global.logger.error(
+          `Only corporate or worko admin can move to applicant bulk.`,
+          {
+            methodName: this.moveToApplicantBulkCandidateParsedCvAsync.name,
+            validatedRequestBody,
+            actionByUserId,
+            cognitoUserGroups,
+          },
+        );
+        throw new BaseError(
+          "You are not allowed to access this resource.",
+          HttpStatusCode.FORBIDDEN_403,
+        );
+      }
+    }
+
+    if (actionByCorporateUserId) {
+      const corporateUserDetails: QueryResponse<DbCorporateUserDto> =
+        await corporateUserServiceObj.getCorpUserById(actionByCorporateUserId);
+      if (!corporateUserDetails.count) {
+        global.logger.error(
+          `Failed to bulk move to applicant, Corporate User not found`,
+          {
+            methodName: this.moveToApplicantBulkCandidateParsedCvAsync.name,
+            validatedRequestBody,
+          },
+        );
+        throw new BaseError(
+          "Failed to bulk move to applicant.",
+          HttpStatusCode.INTERNAL_SERVER_ERROR_500,
+        );
+      }
+
+      const reqBodyJobDetails: DbGcpFirestoreJobDto | undefined =
+        await gcpFirestoreJobServiceObj.getJobById(validatedRequestBody.jobId);
+      if (!reqBodyJobDetails) {
+        global.logger.error(`Failed to bulk move to applicant, Job not found`, {
+          methodName: this.moveToApplicantBulkCandidateParsedCvAsync.name,
+          validatedRequestBody,
+        });
+        throw new BaseError(
+          "Failed to bulk move to applicant.",
+          HttpStatusCode.INTERNAL_SERVER_ERROR_500,
+        );
+      }
+
+      const corporateUserData: DbCorporateUserDto = corporateUserDetails[0];
+      if (corporateUserData.companyId !== reqBodyJobDetails.companyId) {
+        global.logger.error(
+          `Failed to bulk move to applicant, Corporate User Company Id and Job Company Id does not match`,
+          {
+            methodName: this.moveToApplicantCandidateParsedCv.name,
+            validatedRequestBody,
+          },
+        );
+        throw new BaseError(
+          "Failed to bulk move to applicant.",
+          HttpStatusCode.INTERNAL_SERVER_ERROR_500,
+        );
+      }
+    }
+
+    const invokeLambdaPromises = validatedRequestBody.candidateParsedCvs.map(async (eachCandidateParsedCv: { candidateParsedCvId: string, currentCTC?: number, expectedCTC?: number, noticePeriod?: number })  => {
+      const invokeDataPayload: InvokeLambdaCandidateBulkMoveToApplicantDto = {
+        jobId: validatedRequestBody.jobId,
+        candidateParsedCvId: eachCandidateParsedCv.candidateParsedCvId,
+        currentCTC: eachCandidateParsedCv.currentCTC,
+        expectedCTC: eachCandidateParsedCv.expectedCTC,
+        noticePeriod: eachCandidateParsedCv.noticePeriod,
+        companyName: validatedRequestBody.companyName,
+        jobTitle: validatedRequestBody.jobTitle,
+        cognitoUserGroups,
+        actionByUserId,
+        actionByCorporateUserId
+      }
+      return InvokeLambdaService.triggerWorkoCorpAppInvokeLambdaTrigger({
+        eventType: InvokeLambdaHandlerEventTypeEnum.CANDIDATE_BULK_MOVE_TO_APPLICANT,
+        data: invokeDataPayload
+      });
+    })
+
+    return Promise.all(invokeLambdaPromises);
   }
 
   async findMatchingScoreCandidateParsedCv(validatedReqBody: CandidateParsedCvFindMatchingScoreApiDto): Promise<{

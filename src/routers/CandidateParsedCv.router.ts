@@ -26,11 +26,19 @@ CandidateParsedCvRouter.get("/search-in-db/admin-action", candidateParsedCvContr
 CandidateParsedCvRouter.get("/:id", candidateParsedCvController.getCandidateParsedCvById);
 
 /**
- * @description
- *  1. We are using "post" http method because we are creating job application with "ACCEPTED" status
  * @authorisedRoles ["corporate-recruiter", "corporate-admin", "admin"]
  */
 CandidateParsedCvRouter.post("/move-to-applicant", candidateParsedCvController.moveToApplicantCandidateParsedCv);
+
+/**
+ * @authorisedRoles ["corporate-recruiter", "corporate-admin", "admin"]
+ */
+CandidateParsedCvRouter.post("/duplicate-job-appl/bulk", candidateParsedCvController.duplicateJobApplicantBulkCandidateParsedCv);
+
+/**
+ * @authorisedRoles ["corporate-recruiter", "corporate-admin", "admin"]
+ */
+CandidateParsedCvRouter.post("/move-to-applicant/bulk", candidateParsedCvController.moveToApplicantBulkCandidateParsedCv);
 
 /**
  * @authorisedRoles ["admin","corporate-admin","corporate-recruiter"]

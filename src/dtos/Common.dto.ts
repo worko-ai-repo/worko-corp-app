@@ -1,3 +1,10 @@
+
+// import dynamoose types
+import { ObjectType } from "dynamoose/dist/General";
+
+// import enums
+import { SortOrderTypeEnum } from "../enums/Common.enum";
+
 /**
  * MinMaxRange
  */
@@ -82,4 +89,82 @@ export interface CommonMatchingScoreDetailDto {
    * @example "Candidate excels with over 5 years in Selenium automation, strong technical skills in Selenium, Protractor, Jenkins, and GitLab, and recognized agility in Agile environments."
    */
   emailFeedback?: string;
+}
+
+export interface RecordListingFilterOptions {
+  /**
+   * pageSize (limit)
+   *
+   * The maximum number of records that should be returned in the API response.
+   */
+  pageSize: number;
+
+  /**
+   * lastKey (offset)
+   *
+   * The "lastKey" property value returned by the "Dynamoose" in the previous "query" response.
+   *
+   * This will become the parameter for the "startAt" method of Dynamoose in the next query.
+   *
+   * Sample Value: { SK: 'ID#01HHM4Q0DDH1A5S56HJQ71P82V', PK: 'COMP#' }
+   */
+  lastKey?: ObjectType;
+
+  // sortOrder means the order in which the records should be sorted. posible values: "ascending" or "descending"
+  sortOrder?: SortOrderTypeEnum | undefined;
+
+  // search text
+  searchText?: string | undefined;
+
+  /**
+   * fromDate
+   *
+   * The "fromDate" value was returned by backend code internally,
+   * after converting it from "string" to "timestamp" format.(check in "request.helper.ts")
+   * And type of the "timestamp" is number or undefined.
+   *
+   * To know more about conversion of "fromDate" from "string" to "timestamp" you can Go to "request.helper.ts" file,
+   * and check The "parseFilterOptions" function present in "RequestHelper" class.
+   *
+   * Sample Value of "fromDate" after converting from "string" to "timestamp": 1661115600000
+   */
+  fromDate?: number | undefined;
+
+  /**
+   * toDate
+   *
+   * The "toDate" value was returned by backend code internally,
+   * after converting it from "string" to "timestamp" format.(check in "request.helper.ts")
+   * And type of the "timestamp" is number or undefined.
+   *
+   * To know more about conversion of "toDate" from "string" to "timestamp" you can Go to "request.helper.ts" file,
+   * and check The "parseFilterOptions" function present in "RequestHelper" class.
+   *
+   * Sample Value of "toDate" after converting from "string" to "timestamp": 1661115600000
+   */
+  toDate?: number | undefined;
+}
+
+export interface PaginatedResultsWithMatchingConditionsResponse<DbEntityDto> {
+  /**
+   * Index Signatures:- Sometimes you don’t know all the names of a type’s properties ahead of time, 
+   * but you do know the shape of the values. In those cases you can use an index signature to describe the types of possible values
+   * @see https://www.typescriptlang.org/docs/handbook/2/objects.html#index-signatures
+   */
+  [key: number]: DbEntityDto;
+
+  lastKey: ObjectType | undefined;
+  count: number;
+  timesQueried: number;
+  queriedCount: number;
+}
+
+export interface PaginatedResultsWithMatchingConditionsInternalResponse<
+  DbEntityDto
+> {
+  data: DbEntityDto;
+  lastKey: ObjectType | undefined;
+  count: number;
+  timesQueried: number;
+  queriedCount: number;
 }

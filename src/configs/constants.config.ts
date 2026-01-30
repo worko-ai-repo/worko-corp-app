@@ -108,6 +108,12 @@ const APP_CONSTANTS = {
      * RESUME_EXTRACTION_LAMBDA_NAME
      */
     RESUME_EXTRACTION_LAMBDA_NAME: `worko-resume-parser-${process.env.APP_STAGE}`,
+
+    /**
+     * @description This lambda is used to invoke other lambda functions in `worko-corp-app` repository
+     * you can check in `appInvokeLambda` function in `serverless.ts` file 
+     */
+    WORKO_CORP_APP_INVOKE_LAMBDA_NAME: `worko-corp-${process.env.APP_STAGE}-appInvokeLambda`,
   },
 
   CASUAL_EMAIL_DOMAINS: [

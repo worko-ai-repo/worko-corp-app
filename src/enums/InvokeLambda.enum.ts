@@ -38,3 +38,10 @@ export enum InvocationTypeEnum {
    */
   DryRunType = "DryRun",
 }
+
+/**
+ * InvokeLambdaHandlerEventTypeEnum
+ */
+export enum InvokeLambdaHandlerEventTypeEnum {
+  CANDIDATE_BULK_MOVE_TO_APPLICANT = "CANDIDATE_BULK_MOVE_TO_APPLICANT",
+}

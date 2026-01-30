@@ -18,6 +18,7 @@ import AgencyCvWalletRouter from "./routers/AgencyCvWallet.router";
 import AgencyCvCreditTransactionRouter from "./routers/AgencyCvCreditTransaction.router";
 import AgencyCvDebitTransactionRouter from "./routers/AgencyCvDebitTransaction.router";
 import AgencyCvRechargeOrderRouter from "./routers/AgencyCvRechargeOrder.router";
+import ScriptRouter from "./routers/Script.router";
 
 // Router that contains all the routes/endpoints in the application
 const router = Router();
@@ -125,5 +126,14 @@ router.use("/candidate-job-matching", CandidateJobMatchingRouter);
  * File Routers
  */
 router.use("/file", FileRouter);
+
+/**
+ * SCRIPT ROUTERS
+ * 
+ * Register the "Script" routers
+ * 
+ * @authorisedRoles ["admin"]
+ */
+router.use("/script", ScriptRouter);
 
 export default router;

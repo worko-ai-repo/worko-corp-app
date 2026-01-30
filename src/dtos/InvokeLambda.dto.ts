@@ -1,8 +1,9 @@
 
 // Import enums
 import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
+import { InvokeLambdaHandlerEventTypeEnum } from "../enums/InvokeLambda.enum";
 
-export interface InvokeLambdParseAgencyUserSubmissionCandidateCvDto {
+export interface InvokeLambdaParseAgencyUserSubmissionCandidateCvDto {
   agencyUserId: string;
   companyId: string;
   jobId: string;
@@ -70,4 +71,22 @@ export interface InvokeLambdaSourceTypeJdResumeMatchingScoreDto {
    * @example "USR#EML#shaukt1998+29@gmail.com"
    */
   USER_PK?: string;
+}
+
+export interface InvokeLambdaHandlerEventPayloadDto {
+  eventType: InvokeLambdaHandlerEventTypeEnum;
+  data: unknown;
+}
+
+export interface InvokeLambdaCandidateBulkMoveToApplicantDto {
+  candidateParsedCvId: string; // "01KCV1XNZNQ2Z6QWVB5A745G8N";
+  currentCTC?: number;
+  expectedCTC?: number;
+  noticePeriod?: number;
+  jobId: string; // "01KATYAQFJNNG73FMWEF4P8YJP";
+  companyName: string; // "NELLSYS";
+  jobTitle: string; // "three full stack developer (react.js | node.js | aws)";
+  cognitoUserGroups: string[];
+  actionByUserId?: string,
+  actionByCorporateUserId?: string
 }

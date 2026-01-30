@@ -194,6 +194,7 @@ const serverlessConfiguration: AWS = {
           "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-job-app-${self:custom.app.STAGE}-app-opensearch-operations",
           "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-sourcetype-jd-resume-matching-${self:custom.app.STAGE}",
           "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-corp-${self:custom.app.STAGE}-app-sourcetype-bulk-find-jd-cv-match-score",
+          "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-corp-${self:custom.app.STAGE}-appInvokeLambda",
         ],
       },
       {
@@ -335,6 +336,27 @@ const serverlessConfiguration: AWS = {
           }
         }
       ]
+    },
+
+    /**
+     * appInvokeLambda
+     * 
+     * @note
+     *  1. This lambda function is used for direct lambda to lambda invocations,
+     *  like if a lambda needs to invoke a another lambda without any sqs queue,
+     *  then in this "worko-corp-app" repository this lambda is used,
+     *  for every different kind of use cases if direct lambda to lambda invocation is needed 
+     *  then this lambda can be used.
+     *
+     * AWS Lambda Function Format:- {service}-{enviroment}-{functionName}
+     * Example:
+     *  1. `worko-corp-local-appInvokeLambda`
+     *  2. `worko-corp-dev-appInvokeLambda`
+     *  3. `worko-corp-prod-appInvokeLambda`
+     */
+    appInvokeLambda: {
+      handler: "dist/src/app-invoke-lambda.handler",
+      timeout: 900, // Set timeout to 900 seconds (15 minutes)
     },
   },
 };

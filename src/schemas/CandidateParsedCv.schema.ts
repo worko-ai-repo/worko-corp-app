@@ -49,6 +49,69 @@ export const moveToApplicantCandidateParsedCvCreateApiDtoValidation = Joi.object
     "any.type": "The candidateParsedCvId field must be a string.",
     "string.empty": "The candidateParsedCvId field should not be empty.",
   }),
+  currentCTC: Joi.number().optional().messages({
+    "number.base": "Current CTC should be a number",
+  }),
+  expectedCTC: Joi.number().optional().messages({
+    "number.base": "Expected CTC should be a number",
+  }),
+  noticePeriod: Joi.number().optional().messages({
+    "number.base": "Notice period should be a number",
+  }),
+  jobId: Joi.string().required().messages({
+    "any.required": "The jobId field is required.",
+    "any.type": "The jobId field must be a string.",
+    "string.empty": "The jobId field should not be empty.",
+  }),
+
+  companyName: Joi.string().required().uppercase().messages({
+    "any.required": "The companyName field is required.",
+    "any.type": "The companyName field must be a string.",
+    "string.empty": "The companyName field should not be empty.",
+  }),
+  jobTitle: Joi.string().required().lowercase().messages({
+    "any.required": "The jobTitle field is required.",
+    "any.type": "The jobTitle field must be a string.",
+    "string.empty": "The jobTitle field should not be empty.",
+  }),
+});
+
+export const duplicateJobApplicantBulkCandidateParsedCvApiDtoValidation = Joi.object({
+  jobId: Joi.string().required().messages({
+    "any.required": "The jobId field is required.",
+    "any.type": "The jobId field must be a string.",
+    "string.empty": "The jobId field should not be empty.",
+  }),
+  applicantEmails: Joi.array().min(1).max(10).items(
+    Joi.string()
+  ).required().messages({
+    "array.min": "At least one email must be provided",
+    "array.max": "Cannot process more than 10 emails at a time",
+  })
+})
+
+export const moveToApplicantBulkCandidateParsedCvCreateApiDtoValidation =  Joi.object({
+  candidateParsedCvs: Joi.array().min(1).max(10).items(
+    Joi.object({
+      candidateParsedCvId: Joi.string().required().messages({
+        "any.required": "The candidateParsedCv id field is required.",
+        "any.type": "The candidateParsedCv id field must be a string.",
+        "string.empty": "The candidateParsedCv id field should not be empty.",
+      }),
+      currentCTC: Joi.number().optional().messages({
+        "number.base": "Current CTC should be a number",
+      }),
+      expectedCTC: Joi.number().optional().messages({
+        "number.base": "Expected CTC should be a number",
+      }),
+      noticePeriod: Joi.number().optional().messages({
+        "number.base": "Notice period should be a number",
+      }),
+    })
+  ).required().messages({
+    "array.min": "At least one candidate parsed CV must be provided",
+    "array.max": "Cannot process more than 10 candidate parsed CVs at a time",
+  }),
   jobId: Joi.string().required().messages({
     "any.required": "The jobId field is required.",
     "any.type": "The jobId field must be a string.",

@@ -66,6 +66,9 @@ export interface CandidateParsedCvAwsS3FileTrackerDto {
 
 export interface MoveToApplicantCandidateParsedCvCreateApiDTO {
   candidateParsedCvId: string;
+  currentCTC?: number;
+  expectedCTC?: number;
+  noticePeriod?: number;
 
   /**
    * jobId
@@ -77,6 +80,23 @@ export interface MoveToApplicantCandidateParsedCvCreateApiDTO {
   /**
    * companyName
    */
+  companyName: string;
+  jobTitle: string;
+}
+
+export interface DuplicateJobApplicantBulkCandidateParsedCvApiDTO {
+  jobId: string;
+  applicantEmails: string[];
+}
+
+export interface MoveToApplicantBulkCandidateParsedCvCreateApiDTO {
+  candidateParsedCvs: {
+    candidateParsedCvId: string;
+    currentCTC?: number;
+    expectedCTC?: number;
+    noticePeriod?: number;
+  }[];
+  jobId: string;
   companyName: string;
   jobTitle: string;
 }

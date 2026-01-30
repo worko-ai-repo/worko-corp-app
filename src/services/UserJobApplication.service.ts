@@ -8,6 +8,7 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { userJobApplicationDao } from "../daos/UserJobApplication.dao";
 
 // import dtos
+import { PaginatedResultsWithMatchingConditionsInternalResponse } from "../dtos/Common.dto";
 import { UserJobApplicationMoveToApplicantCreateApiDTO, UserJobApplicationMoveToApplicantCreateDto, UserJobApplicationSendForEvaluationCreateApiDTO } from "../dtos/UserJobApplication.dto";
 
 // import enums
@@ -473,6 +474,45 @@ class UserJobApplicationService {
       applicantEmail,
       jobId
     );
+  }
+
+  async getJobApplicationByJobIdAndApplicantEmails(
+    jobId: string,
+    applicantEmails: string[],
+    filterOptions: {
+      pageSize: number;
+    }
+  ) {
+    const jobApplicationDetails = await userJobApplicationDao.getJobApplicationByJobIdAndApplicantEmails(
+      jobId,
+      applicantEmails,
+      filterOptions
+    );
+
+    const {
+      lastKey,
+      count,
+      timesQueried,
+      queriedCount,
+      ...userJobApplicationsData
+    } = jobApplicationDetails;
+
+    // Convert to array
+    const userJobApplicationArray: DbUserJobApplicationDto[] = Object.values(
+      userJobApplicationsData,
+    );
+
+    const data: PaginatedResultsWithMatchingConditionsInternalResponse<
+      DbUserJobApplicationDto[]
+    > = {
+      data: userJobApplicationArray,
+      lastKey,
+      count,
+      timesQueried,
+      queriedCount,
+    };
+
+    return data;
   }
 }
 

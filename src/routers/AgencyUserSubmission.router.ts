@@ -63,14 +63,9 @@ AgencyUserSubmissionRouter.post("/send-for-evaluation", agencyUserSubmissionCont
 AgencyUserSubmissionRouter.patch("/reject-applicant", agencyUserSubmissionController.rejectApplicantAgencyUserSubmission);
 
 /**
- * @authorisedRoles ["corporate-recruiter", "corporate-admin"]
+ * @authorisedRoles ["corporate-recruiter", "corporate-admin", "admin"]
  */
-// AgencyUserSubmissionRouter.post("/move-to-applicant/bulk/corp-action", agencyUserSubmissionController.moveToApplicantBulkAgencyUserSubmissionByCorp);
-
-/**
- * @authorisedRoles ["admin"]
- */
-// AgencyUserSubmissionRouter.post("/move-to-applicant/bulk/admin-action", agencyUserSubmissionController.moveToApplicantBulkAgencyUserSubmissionByAdmin);
+// AgencyUserSubmissionRouter.post("/move-to-applicant/bulk", agencyUserSubmissionController.moveToApplicantBulkAgencyUserSubmissionByCorp);
 
 /**
  * @authorisedRoles ["agency", "corporate-admin", "corporate-recruiter", "admin"]

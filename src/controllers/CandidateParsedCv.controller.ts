@@ -1,9 +1,13 @@
 // Import express packages
 import { Request, Response, NextFunction } from "express";
 
+// Import lambda
+import { APIGatewayProxyResult } from "aws-lambda";
+
 // Import dtos
-import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvAdminEmbeddingListingFilterRequestDTO, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterRequestDTO, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvUpdateApiDto, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvAdminEmbeddingListingFilterRequestDTO, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterRequestDTO, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
+import { PaginatedResultsWithMatchingConditionsInternalResponse } from "../dtos/Common.dto";
 
 // Import helpers
 import { GcpFirestoreRequestHelper } from "../helpers/request.gcp-firestore.helper";
@@ -18,7 +22,7 @@ import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJ
 import { candidateParsedCvServiceObj } from "../services/CandidateParsedCv.service";
 
 // Import schemas
-import { candidateParsedCvAdminEmbeddingFilterDtoValidation, candidateParsedCvCorpEmbeddingFilterDtoValidation, candidateParsedCvFindMatchingScoreApiValidationDto, candidateParsedCvUpdateApiValidationDto, moveToApplicantCandidateParsedCvCreateApiDtoValidation } from "../schemas/CandidateParsedCv.schema";
+import { candidateParsedCvAdminEmbeddingFilterDtoValidation, candidateParsedCvCorpEmbeddingFilterDtoValidation, candidateParsedCvFindMatchingScoreApiValidationDto, candidateParsedCvUpdateApiValidationDto, duplicateJobApplicantBulkCandidateParsedCvApiDtoValidation, moveToApplicantBulkCandidateParsedCvCreateApiDtoValidation, moveToApplicantCandidateParsedCvCreateApiDtoValidation } from "../schemas/CandidateParsedCv.schema";
 
 // import utils
 import HttpStatusCode from "../utils/http-codes.util";
@@ -157,6 +161,66 @@ class CandidateParsedCvController {
     } catch (error) {
       global.logger.error(`Move To Applicant Candidate Parsed Cv [Controller]`,{
         methodName: this.moveToApplicantCandidateParsedCv.name,
+        error
+      });
+      next(error);
+    }
+  }
+
+  duplicateJobApplicantBulkCandidateParsedCv = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const reqBody: DuplicateJobApplicantBulkCandidateParsedCvApiDTO = req.body;
+      const { error: reqBodyError, value: validatedRequestBody } = duplicateJobApplicantBulkCandidateParsedCvApiDtoValidation.validate(reqBody, {
+        abortEarly: false,
+      })
+      if (reqBodyError) {
+        throw new RequestValidationError(reqBodyError);
+      }
+      const response: PaginatedResultsWithMatchingConditionsInternalResponse<DbUserJobApplicationDto[]> = await candidateParsedCvServiceObj.duplicateJobApplicantBulkCandidateParsedCv(validatedRequestBody);
+      res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(`Duplicate Job Applicant Bulk Candidate Parsed Cv [Controller]`,{
+        methodName: this.duplicateJobApplicantBulkCandidateParsedCv.name,
+        error
+      });
+
+      next(error);
+    }
+  }
+
+  moveToApplicantBulkCandidateParsedCv = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      global.logger.info(`Move To Applicant Bulk Candidate Parsed Cv [Controller]`, {
+        methodName: this.moveToApplicantBulkCandidateParsedCv.name,
+      });
+      const reqBody: MoveToApplicantBulkCandidateParsedCvCreateApiDTO = req.body;
+      const { error: reqBodyError, value: validatedRequestBody } =
+        moveToApplicantBulkCandidateParsedCvCreateApiDtoValidation.validate(reqBody, {
+          abortEarly: false,
+        });
+      if (reqBodyError) {
+        throw new RequestValidationError(reqBodyError);
+      }
+
+      const { actionByCorporateUserId, actionByUserId } = getActionByUserId();
+
+      if (!actionByUserId && !actionByCorporateUserId) {
+        throw new BaseError(`Unauthorized.`, HttpStatusCode.UNAUTHORIZED_401);
+      }
+
+      const cognitoUserGroups: string[] = global.requestLocalContext.cognitoUserGroups;
+      const response: APIGatewayProxyResult[] = await candidateParsedCvServiceObj.moveToApplicantBulkCandidateParsedCvAsync(
+        validatedRequestBody,
+        cognitoUserGroups,
+        actionByUserId,
+        actionByCorporateUserId
+      );
+      res.status(HttpStatusCode.ACCEPTED_202).json({
+        message: "Bulk Move to applicant process initiated successfully.",
+      }); 
+    } catch (error) {
+      global.logger.error(`Move To Applicant Bulk Candidate Parsed Cv [Controller]`,{
+        methodName: this.moveToApplicantBulkCandidateParsedCv.name,
         error
       });
       next(error);
