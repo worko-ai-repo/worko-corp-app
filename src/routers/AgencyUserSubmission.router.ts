@@ -48,11 +48,21 @@ AgencyUserSubmissionRouter.post(
 AgencyUserSubmissionRouter.post("/move-to-applicant", agencyUserSubmissionController.moveToApplicantAgencyUserSubmission);
 
 /**
+ * @authorisedRoles ["corporate-recruiter", "corporate-admin", "admin"]
+ */
+AgencyUserSubmissionRouter.post("/move-to-applicant/bulk", agencyUserSubmissionController.moveToApplicantBulkAgencyUserSubmission);
+
+/**
  * @description 
  *  1. We are using "post" http method because we are creating job application with "UNDER_EVALUATION" status and updating agency user submission at the same time
  * @authorisedRoles ["corporate-recruiter", "corporate-admin", "admin"]
  */
 AgencyUserSubmissionRouter.post("/send-for-evaluation", agencyUserSubmissionController.sendForEvaluationAgencyUserSubmission);
+
+/**
+ * @authorisedRoles ["corporate-recruiter", "corporate-admin", "admin"]
+ */
+AgencyUserSubmissionRouter.post("/send-for-evaluation/bulk", agencyUserSubmissionController.sendForEvaluationBulkAgencyUserSubmission);
 
 /**
  * @description 
@@ -63,9 +73,9 @@ AgencyUserSubmissionRouter.post("/send-for-evaluation", agencyUserSubmissionCont
 AgencyUserSubmissionRouter.patch("/reject-applicant", agencyUserSubmissionController.rejectApplicantAgencyUserSubmission);
 
 /**
- * @authorisedRoles ["corporate-recruiter", "corporate-admin", "admin"]
+ * @authorisedRoles ["corporate-admin", "corporate-recruiter", "admin"]
  */
-// AgencyUserSubmissionRouter.post("/move-to-applicant/bulk", agencyUserSubmissionController.moveToApplicantBulkAgencyUserSubmissionByCorp);
+AgencyUserSubmissionRouter.patch("/reject-applicant/bulk", agencyUserSubmissionController.rejectApplicantBulkAgencyUserSubmission);
 
 /**
  * @authorisedRoles ["agency", "corporate-admin", "corporate-recruiter", "admin"]

@@ -19,7 +19,7 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsClientCognitoIdentityProviderLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { AgencyUserSubmissionBulkFindMatchingScoreApiDto, AgencyUserSubmissionCandidateParseCvApiDto, AgencyUserSubmissionCandidateParseCvResponseDto, AgencyUserSubmissionCreateApiDto, AgencyUserSubmissionFindMatchingScoreApiDto, AgencyUserSubmissionInvokedMatchingScoreResponseDto, AgencyUserSubmissionListingFilterOptions, AgencyUserSubmissionMoveToApplicantCreateApiDTO, AgencyUserSubmissionRejectApplicantCreateApiDTO, AgencyUserSubmissionSendForEvaluationCreateApiDTO } from "../dtos/AgencyUserSubmission.dto";
+import { AgencyUserSubmissionBulkFindMatchingScoreApiDto, AgencyUserSubmissionCandidateParseCvApiDto, AgencyUserSubmissionCandidateParseCvResponseDto, AgencyUserSubmissionCreateApiDto, AgencyUserSubmissionFindMatchingScoreApiDto, AgencyUserSubmissionInvokedMatchingScoreResponseDto, AgencyUserSubmissionListingFilterOptions, AgencyUserSubmissionMoveToApplicantBulkCreateApiDTO, AgencyUserSubmissionMoveToApplicantCreateApiDTO, AgencyUserSubmissionRejectApplicantBulkApiDTO, AgencyUserSubmissionRejectApplicantCreateApiDTO, AgencyUserSubmissionSendForEvaluationBulkCreateApiDTO, AgencyUserSubmissionSendForEvaluationCreateApiDTO } from "../dtos/AgencyUserSubmission.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import daos
@@ -27,6 +27,7 @@ import { agencyUserSubmissionDaoObj } from "../daos/AgencyUserSubmission.dao";
 
 // Import dtos
 import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
+import { InvokeLambdaAgencyUserSubmissionBulkMoveToApplicantDto, InvokeLambdaAgencyUserSubmissionBulkRejectApplicantDto, InvokeLambdaAgencyUserSubmissionBulkSendForEvaluationMoveToApplicantDto } from "../dtos/InvokeLambda.dto";
 
 // Import enums
 import { CorporateCandidateProfileDbRefereeTypeEnum } from "../enums/CorporateCandidateProfile.enum";
@@ -36,6 +37,7 @@ import { JobApplicationStatus } from "../enums/UserJobApplication.enum";
 import { AgencyUserSubmissionDbJobApplicationStatusEnum } from "../enums/AgencyUserSubmission.enum";
 import { AgencyJobAssignmentDbStatusEnum } from "../enums/AgencyJobAssignment.enum";
 import { UserType } from "../enums/User.enum";
+import { InvokeLambdaHandlerEventTypeEnum } from "../enums/InvokeLambda.enum";
 
 // Import helpers
 import { getActionByAgencyUserIds, getActionByUserId } from "../helpers/user.helper";
@@ -922,6 +924,42 @@ class AgencyUserSubmissionService {
     return userDetailAndJobAppl[1];
   }
 
+  async moveToApplicantBulkAgencyUserSubmissionAsync(
+    validatedRequestBody: AgencyUserSubmissionMoveToApplicantBulkCreateApiDTO,
+    cognitoUserGroups: string[],
+    actionByUserId?: string,
+    actionByCorporateUserId?: string
+  ): Promise<APIGatewayProxyResult[]> {
+    const invokeLambdaPromises = validatedRequestBody.agencyUserSubmissions.map(async (eachAgencyUserSubmission: { 
+      agencyUserSubmissionId: string, 
+      currentCTC?: number, 
+      expectedCTC?: number, 
+      noticePeriod?: number 
+      jobId: string,
+      companyName: string,
+      jobTitle: string,
+    }) => {
+      const invokeDataPayload: InvokeLambdaAgencyUserSubmissionBulkMoveToApplicantDto = {
+        jobId: eachAgencyUserSubmission.jobId,
+        agencyUserSubmissionId: eachAgencyUserSubmission.agencyUserSubmissionId,
+        currentCTC: eachAgencyUserSubmission.currentCTC,
+        expectedCTC: eachAgencyUserSubmission.expectedCTC,
+        noticePeriod: eachAgencyUserSubmission.noticePeriod,
+        companyName: eachAgencyUserSubmission.companyName,
+        jobTitle: eachAgencyUserSubmission.jobTitle,
+        cognitoUserGroups,
+        actionByUserId,
+        actionByCorporateUserId
+      }
+      return InvokeLambdaService.triggerWorkoCorpAppInvokeLambdaTrigger({
+        eventType: InvokeLambdaHandlerEventTypeEnum.AGENCY_USER_SUBMISSION_BULK_MOVE_TO_APPLICANT,
+        data: invokeDataPayload
+      });
+    })
+
+    return Promise.all(invokeLambdaPromises);
+  }
+
   async createJobApplSendForEvalAndUpdateAgencyUserSubmission(
     validatedReqBody: AgencyUserSubmissionSendForEvaluationCreateApiDTO,
     cognitoUserGroups: string[],
@@ -1123,6 +1161,37 @@ class AgencyUserSubmissionService {
     return userDetailAndJobAppl[1];
   }
 
+  async sendForEvaluationBulkAgencyUserSubmissionAsync(validatedRequestBody: AgencyUserSubmissionSendForEvaluationBulkCreateApiDTO, cognitoUserGroups: string[], actionByUserId?: string, actionByCorporateUserId?: string) {
+    const invokeLambdaPromises = validatedRequestBody.agencyUserSubmissions.map(async (eachAgencyUserSubmission: { 
+      agencyUserSubmissionId: string, 
+      currentCTC?: number, 
+      expectedCTC?: number, 
+      noticePeriod?: number,
+      jobId: string,
+      companyName: string,
+      jobTitle: string
+    })  => {
+      const invokeDataPayload: InvokeLambdaAgencyUserSubmissionBulkSendForEvaluationMoveToApplicantDto = {
+        jobId: eachAgencyUserSubmission.jobId,
+        agencyUserSubmissionId: eachAgencyUserSubmission.agencyUserSubmissionId,
+        currentCTC: eachAgencyUserSubmission.currentCTC,
+        expectedCTC: eachAgencyUserSubmission.expectedCTC,
+        noticePeriod: eachAgencyUserSubmission.noticePeriod,
+        companyName: eachAgencyUserSubmission.companyName,
+        jobTitle: eachAgencyUserSubmission.jobTitle,
+        cognitoUserGroups,
+        actionByUserId,
+        actionByCorporateUserId
+      }
+      return InvokeLambdaService.triggerWorkoCorpAppInvokeLambdaTrigger({
+        eventType: InvokeLambdaHandlerEventTypeEnum.AGENCY_USER_SUBMISSION_BULK_SEND_FOR_EVALUATION_MOVE_TO_APPLICANT,
+        data: invokeDataPayload
+      });
+    })
+
+    return Promise.all(invokeLambdaPromises);
+  }
+
   async rejectApplicantAgencyUserSubmission(
     validatedReqBody: AgencyUserSubmissionRejectApplicantCreateApiDTO,
     cognitoUserGroups: string[],
@@ -1186,6 +1255,30 @@ class AgencyUserSubmissionService {
     }
 
     return updateAgencyUserSubmission;
+  }
+
+  async rejectApplicantBulkAgencyUserSubmissionAsync(
+    validatedRequestBody: AgencyUserSubmissionRejectApplicantBulkApiDTO,
+    cognitoUserGroups: string[],
+    actionByUserId?: string,
+    actionByCorporateUserId?: string
+  ) {
+    const invokeLambdaPromises = validatedRequestBody.agencyUserSubmissionIds.map(async (eachAgencyUserSubmissionId: string)  => {
+      const invokeDataPayload: InvokeLambdaAgencyUserSubmissionBulkRejectApplicantDto = {
+        agencyUserSubmissionId: eachAgencyUserSubmissionId,
+        rejectApplicantReason: validatedRequestBody.rejectApplicantReason,
+        rejectApplicantDetailedReason: validatedRequestBody.rejectApplicantDetailedReason,
+        cognitoUserGroups,
+        actionByUserId,
+        actionByCorporateUserId
+      }
+      return InvokeLambdaService.triggerWorkoCorpAppInvokeLambdaTrigger({
+        eventType: InvokeLambdaHandlerEventTypeEnum.AGENCY_USER_SUBMISSION_BULK_REJECT_APPLICANT,
+        data: invokeDataPayload
+      });
+    })
+
+    return Promise.all(invokeLambdaPromises);
   }
 
   async getAllAgencyUserSubmissionByFilterOptions(

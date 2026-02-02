@@ -12,16 +12,18 @@ import DBConfig from "./db/DB.config";
 import "./configs/gcp-sdk.config";
 
 // Import dtos
-import { InvokeLambdaCandidateBulkMoveToApplicantDto, InvokeLambdaHandlerEventPayloadDto } from "./dtos/InvokeLambda.dto";
+import { InvokeLambdaAgencyUserSubmissionBulkMoveToApplicantDto, InvokeLambdaAgencyUserSubmissionBulkRejectApplicantDto, InvokeLambdaAgencyUserSubmissionBulkSendForEvaluationMoveToApplicantDto, InvokeLambdaCandidateBulkMoveToApplicantDto, InvokeLambdaHandlerEventPayloadDto } from "./dtos/InvokeLambda.dto";
 
 // Import enums
 import { InvokeLambdaHandlerEventTypeEnum } from "./enums/InvokeLambda.enum";
 
 // Import models
 import { DbUserJobApplicationDto } from "./db/aws-dynamodb-models/UserJobApplication.model";
+import { DbAgencyUserSubmissionDto } from "./db/gcp-firestore-models/AgencyUserSubmission.model";
 
 // Import services
 import { candidateParsedCvServiceObj } from "./services/CandidateParsedCv.service";
+import { agencyUserSubmissionServiceObj } from "./services/AgencyUserSubmission.service";
 
 // Import utils
 import { BaseError } from "./utils/errors.util";
@@ -141,8 +143,94 @@ export const handler = async (
         break;
       }
 
+      case InvokeLambdaHandlerEventTypeEnum.AGENCY_USER_SUBMISSION_BULK_MOVE_TO_APPLICANT: {
+        const {
+          agencyUserSubmissionId,
+          jobId,
+          companyName,
+          jobTitle,
+          cognitoUserGroups,
+          actionByUserId,
+          actionByCorporateUserId,
+        } = data as InvokeLambdaAgencyUserSubmissionBulkMoveToApplicantDto;
+        const response: DbAgencyUserSubmissionDto = await agencyUserSubmissionServiceObj.moveToApplicantAgencyUserSubmission(
+          {
+            agencyUserSubmissionId,
+            jobId,
+            companyName,
+            jobTitle,
+          },
+          cognitoUserGroups,
+          actionByUserId,
+          actionByCorporateUserId
+        );
+        global.logger.info("App Invoke Lambda handler:Agency User Submission Bulk move to applicant Response: ", {
+          methodName: "handler",
+          response
+        })
+        break;
+      }
+
+      case InvokeLambdaHandlerEventTypeEnum.AGENCY_USER_SUBMISSION_BULK_SEND_FOR_EVALUATION_MOVE_TO_APPLICANT: {
+        const {
+          agencyUserSubmissionId,
+          jobId,
+          companyName,
+          jobTitle,
+          cognitoUserGroups,
+          actionByUserId,
+          actionByCorporateUserId,
+        } = data as InvokeLambdaAgencyUserSubmissionBulkSendForEvaluationMoveToApplicantDto;
+        const response: DbAgencyUserSubmissionDto = await agencyUserSubmissionServiceObj.sendForEvaluationAgencyUserSubmission(
+          {
+            agencyUserSubmissionId,
+            jobId,
+            companyName,
+            jobTitle,
+          },
+          cognitoUserGroups,
+          actionByUserId,
+          actionByCorporateUserId
+        );
+        global.logger.info("App Invoke Lambda handler:Agency User Submission Bulk send for evaluation move to applicant Response: ", {
+          methodName: "handler",
+          response
+        })
+        break;
+      }
+
+      case InvokeLambdaHandlerEventTypeEnum.AGENCY_USER_SUBMISSION_BULK_REJECT_APPLICANT: {
+        const {
+          agencyUserSubmissionId,
+          rejectApplicantReason,
+          rejectApplicantDetailedReason,
+          cognitoUserGroups,
+          actionByUserId,
+          actionByCorporateUserId,
+        } = data as InvokeLambdaAgencyUserSubmissionBulkRejectApplicantDto;
+        const response: DbAgencyUserSubmissionDto =
+          await agencyUserSubmissionServiceObj.rejectApplicantAgencyUserSubmission(
+            {
+              agencyUserSubmissionId,
+              rejectApplicantReason,
+              rejectApplicantDetailedReason,
+            },
+            cognitoUserGroups,
+            actionByUserId,
+            actionByCorporateUserId,
+          );
+        global.logger.info(
+          "App Invoke Lambda handler:Agency User Submission Bulk reject applicant Response: ",
+          {
+            methodName: "handler",
+            response,
+          },
+        );
+        break;
+      }
+
       default: {
-        throw new BaseError(`No invoked lambda event type found.`);
+        throw new BaseError(`No invoked lambda event type found for: ${eventType}`);
       }
     }
 

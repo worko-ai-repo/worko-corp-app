@@ -193,8 +193,38 @@ export interface AgencyUserSubmissionSendForEvaluationCreateApiDTO {
   jobTitle: string;
 }
 
+export interface AgencyUserSubmissionSendForEvaluationBulkCreateApiDTO {
+  agencyUserSubmissions: {
+    agencyUserSubmissionId: string;
+    currentCTC?: number;
+    expectedCTC?: number;
+    noticePeriod?: number;
+    jobId: string;
+    companyName: string;
+    jobTitle: string;
+  }[];
+}
+
 export interface AgencyUserSubmissionRejectApplicantCreateApiDTO {
   agencyUserSubmissionId: string;
   rejectApplicantReason: string;
   rejectApplicantDetailedReason?: string;
+}
+
+export interface AgencyUserSubmissionRejectApplicantBulkApiDTO {
+  agencyUserSubmissionIds: string[];
+  rejectApplicantReason: string;
+  rejectApplicantDetailedReason?: string;
+}
+
+export interface AgencyUserSubmissionMoveToApplicantBulkCreateApiDTO {
+  agencyUserSubmissions: {
+    agencyUserSubmissionId: string;
+    currentCTC?: number;
+    expectedCTC?: number;
+    noticePeriod?: number;
+    jobId: string;
+    companyName: string;
+    jobTitle: string;
+  }[];
 }

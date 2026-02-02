@@ -288,3 +288,98 @@ export const agencyUserSubmissionRejectApplicantCreateApiDtoValidation = Joi.obj
     "any.type": "The rejectApplicantDetailedReason field must be a string.",
   }),
 });
+
+export const agencyUserSubmissionMoveToApplicantBulkCreateApiDtoValidation = Joi.object({
+  agencyUserSubmissions: Joi.array().min(1).max(10).items(
+    Joi.object({
+      agencyUserSubmissionId: Joi.string().required().messages({
+        "any.required": "The agency user submission id field is required.",
+        "any.type": "The agency user submission id field must be a string.",
+        "string.empty": "The agency user submission id field should not be empty.",
+      }),
+      currentCTC: Joi.number().optional().messages({
+        "number.base": "Current CTC should be a number",
+      }),
+      expectedCTC: Joi.number().optional().messages({
+        "number.base": "Expected CTC should be a number",
+      }),
+      noticePeriod: Joi.number().optional().messages({
+        "number.base": "Notice period should be a number",
+      }),
+      jobId: Joi.string().required().messages({
+        "any.required": "The jobId field is required.",
+        "any.type": "The jobId field must be a string.",
+        "string.empty": "The jobId field should not be empty.",
+      }),
+
+      companyName: Joi.string().required().uppercase().messages({
+        "any.required": "The companyName field is required.",
+        "any.type": "The companyName field must be a string.",
+        "string.empty": "The companyName field should not be empty.",
+      }),
+      jobTitle: Joi.string().required().lowercase().messages({
+        "any.required": "The jobTitle field is required.",
+        "any.type": "The jobTitle field must be a string.",
+        "string.empty": "The jobTitle field should not be empty.",
+      }),
+    })
+  ).required().messages({
+    "array.min": "At least one agency user submission must be provided",
+    "array.max": "Cannot process more than 10 agency user submissions at a time",
+  }),
+})
+
+export const agencyUserSubmissionSendForEvaluationBulkCreateApiDtoValidation = Joi.object({
+  agencyUserSubmissions: Joi.array().min(1).max(10).items(
+    Joi.object({
+      agencyUserSubmissionId: Joi.string().required().messages({
+        "any.required": "The agency user submission id field is required.",
+        "any.type": "The agency user submission id field must be a string.",
+        "string.empty": "The agency user submission id field should not be empty.",
+      }),
+      currentCTC: Joi.number().optional().messages({
+        "number.base": "Current CTC should be a number",
+      }),
+      expectedCTC: Joi.number().optional().messages({
+        "number.base": "Expected CTC should be a number",
+      }),
+      noticePeriod: Joi.number().optional().messages({
+        "number.base": "Notice period should be a number",
+      }),
+      jobId: Joi.string().required().messages({
+        "any.required": "The jobId field is required.",
+        "any.type": "The jobId field must be a string.",
+        "string.empty": "The jobId field should not be empty.",
+      }),
+
+      companyName: Joi.string().required().uppercase().messages({
+        "any.required": "The companyName field is required.",
+        "any.type": "The companyName field must be a string.",
+        "string.empty": "The companyName field should not be empty.",
+      }),
+      jobTitle: Joi.string().required().lowercase().messages({
+        "any.required": "The jobTitle field is required.",
+        "any.type": "The jobTitle field must be a string.",
+        "string.empty": "The jobTitle field should not be empty.",
+      }),
+    })
+  ).required().messages({
+    "array.min": "At least one agency user submission must be provided",
+    "array.max": "Cannot process more than 10 agency user submissions at a time",
+  }),
+})
+
+export const agencyUserSubmissionRejectApplicantBulkApiDtoValidation = Joi.object({
+  agencyUserSubmissionIds: Joi.array().items(Joi.string()).min(1).max(10).required().messages({
+    "array.min": "At least one agency user submission id must be provided",
+    "array.max": "Cannot process more than 10 agency user submission ids at a time",
+  }),
+  rejectApplicantReason: Joi.string().required().messages({
+    "any.required": "The rejectApplicantReason field is required.",
+    "any.type": "The rejectApplicantReason field must be a string.",
+    "string.empty": "The rejectApplicantReason field should not be empty.",
+  }),
+  rejectApplicantDetailedReason: Joi.string().optional().messages({
+    "any.type": "The rejectApplicantDetailedReason field must be a string.",
+  }),
+});

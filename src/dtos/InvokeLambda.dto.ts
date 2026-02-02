@@ -1,4 +1,3 @@
-
 // Import enums
 import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
 import { InvokeLambdaHandlerEventTypeEnum } from "../enums/InvokeLambda.enum";
@@ -13,10 +12,10 @@ export interface InvokeLambdaParseAgencyUserSubmissionCandidateCvDto {
 export interface InvokeLambdaSourceTypeJdResumeMatchingScoreDto {
   /**
    * @description
-   *  1. This will be only available whenever find matching score happens from `search in database` page 
+   *  1. This will be only available whenever find matching score happens from `search in database` page
    *  of `corporate` dashboard
    *  2. Using this id `ai team` will update matching score details in `candidateJobMatchings` collection
-   * 
+   *
    * @reference `id` attribute of `CandidateJobMatching.model.ts`
    */
   candidateJobMatchingId?: string;
@@ -87,6 +86,41 @@ export interface InvokeLambdaCandidateBulkMoveToApplicantDto {
   companyName: string; // "NELLSYS";
   jobTitle: string; // "three full stack developer (react.js | node.js | aws)";
   cognitoUserGroups: string[];
-  actionByUserId?: string,
-  actionByCorporateUserId?: string
+  actionByUserId?: string;
+  actionByCorporateUserId?: string;
+}
+
+export interface InvokeLambdaAgencyUserSubmissionBulkMoveToApplicantDto {
+  jobId: string;
+  agencyUserSubmissionId: string;
+  currentCTC?: number;
+  expectedCTC?: number;
+  noticePeriod?: number;
+  companyName: string;
+  jobTitle: string;
+  cognitoUserGroups: string[];
+  actionByUserId?: string;
+  actionByCorporateUserId?: string;
+}
+
+export interface InvokeLambdaAgencyUserSubmissionBulkRejectApplicantDto {
+  agencyUserSubmissionId: string;
+  rejectApplicantReason: string;
+  rejectApplicantDetailedReason?: string;
+  cognitoUserGroups: string[];
+  actionByUserId?: string;
+  actionByCorporateUserId?: string;
+}
+
+export interface InvokeLambdaAgencyUserSubmissionBulkSendForEvaluationMoveToApplicantDto {
+  jobId: string;
+  agencyUserSubmissionId: string;
+  currentCTC?: number;
+  expectedCTC?: number;
+  noticePeriod?: number;
+  companyName: string;
+  jobTitle: string;
+  cognitoUserGroups: string[];
+  actionByUserId?: string;
+  actionByCorporateUserId?: string;
 }

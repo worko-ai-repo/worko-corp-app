@@ -1,8 +1,11 @@
 // Import express packages
 import { Request, Response, NextFunction } from "express";
 
+// Import lambda
+import { APIGatewayProxyResult } from "aws-lambda";
+
 // Import dtos
-import { AgencyUserSubmissionBulkFindMatchingScoreApiDto, AgencyUserSubmissionCandidateParseCvApiDto, AgencyUserSubmissionCandidateParseCvResponseDto, AgencyUserSubmissionCreateApiDto, AgencyUserSubmissionFindMatchingScoreApiDto, AgencyUserSubmissionListingFilterOptions, AgencyUserSubmissionListingFilterRequestDTO, AgencyUserSubmissionMoveToApplicantCreateApiDTO, AgencyUserSubmissionRejectApplicantCreateApiDTO, AgencyUserSubmissionSendForEvaluationCreateApiDTO } from "../dtos/AgencyUserSubmission.dto";
+import { AgencyUserSubmissionBulkFindMatchingScoreApiDto, AgencyUserSubmissionCandidateParseCvApiDto, AgencyUserSubmissionCandidateParseCvResponseDto, AgencyUserSubmissionCreateApiDto, AgencyUserSubmissionFindMatchingScoreApiDto, AgencyUserSubmissionListingFilterOptions, AgencyUserSubmissionListingFilterRequestDTO, AgencyUserSubmissionMoveToApplicantBulkCreateApiDTO, AgencyUserSubmissionMoveToApplicantCreateApiDTO, AgencyUserSubmissionRejectApplicantBulkApiDTO, AgencyUserSubmissionRejectApplicantCreateApiDTO, AgencyUserSubmissionSendForEvaluationBulkCreateApiDTO, AgencyUserSubmissionSendForEvaluationCreateApiDTO } from "../dtos/AgencyUserSubmission.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import helpers
@@ -18,7 +21,7 @@ import { DbGcpFirestoreJobDto } from "../db/gcp-firestore-models/GcpFirestoreJob
 import { agencyUserSubmissionServiceObj } from "../services/AgencyUserSubmission.service";
 
 // Import schemas
-import { agencyUserSubmissionBulkFindMatchingScoreApiValidationDto, agencyUserSubmissionCandidateParseCvApiValidationDto, agencyUserSubmissionCreateApiValidationDto, agencyUserSubmissionFilterDtoValidation, agencyUserSubmissionFindMatchingScoreApiValidationDto, agencyUserSubmissionMoveToApplicantCreateApiDtoValidation, agencyUserSubmissionRejectApplicantCreateApiDtoValidation, agencyUserSubmissionSendForEvaluationCreateApiDtoValidation } from "../schemas/AgencyUserSubmission.schema";
+import { agencyUserSubmissionBulkFindMatchingScoreApiValidationDto, agencyUserSubmissionCandidateParseCvApiValidationDto, agencyUserSubmissionCreateApiValidationDto, agencyUserSubmissionFilterDtoValidation, agencyUserSubmissionFindMatchingScoreApiValidationDto, agencyUserSubmissionMoveToApplicantBulkCreateApiDtoValidation, agencyUserSubmissionMoveToApplicantCreateApiDtoValidation, agencyUserSubmissionRejectApplicantBulkApiDtoValidation, agencyUserSubmissionRejectApplicantCreateApiDtoValidation, agencyUserSubmissionSendForEvaluationBulkCreateApiDtoValidation, agencyUserSubmissionSendForEvaluationCreateApiDtoValidation } from "../schemas/AgencyUserSubmission.schema";
 
 // import utils
 import HttpStatusCode from "../utils/http-codes.util";
@@ -192,6 +195,51 @@ class AgencyUserSubmissionController {
     }
   }
 
+  moveToApplicantBulkAgencyUserSubmission = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      global.logger.info(`Move To Applicant Bulk Agency User Submission [Controller]`, {
+        methodName: this.moveToApplicantBulkAgencyUserSubmission.name,
+      });
+
+      const reqBody: AgencyUserSubmissionMoveToApplicantBulkCreateApiDTO = req.body;
+      const { error: reqBodyError, value: validatedRequestBody } =
+        agencyUserSubmissionMoveToApplicantBulkCreateApiDtoValidation.validate(reqBody, {
+          abortEarly: false,
+        });
+      if (reqBodyError) {
+        throw new RequestValidationError(reqBodyError);
+      }
+
+      const { actionByCorporateUserId, actionByUserId } = getActionByUserId();
+
+      if (!actionByUserId && !actionByCorporateUserId) {
+        throw new BaseError(`Unauthorized.`, HttpStatusCode.UNAUTHORIZED_401);
+      }
+
+      const cognitoUserGroups: string[] = global.requestLocalContext.cognitoUserGroups;
+
+      const response: APIGatewayProxyResult[] = await agencyUserSubmissionServiceObj.moveToApplicantBulkAgencyUserSubmissionAsync(
+        validatedRequestBody,
+        cognitoUserGroups,
+        actionByUserId,
+        actionByCorporateUserId
+      );
+      res.status(HttpStatusCode.ACCEPTED_202).json({
+        message: "Bulk Move to applicant process initiated successfully.",
+      }); 
+    } catch (error) {
+      global.logger.error(`Move To Applicant Bulk Agency User Submission [Controller]`,{
+        methodName: this.moveToApplicantBulkAgencyUserSubmission.name,
+        error
+      });
+      next(error);
+    }
+  }
+
   sendForEvaluationAgencyUserSubmission = async (
     req: Request,
     res: Response,
@@ -236,6 +284,52 @@ class AgencyUserSubmissionController {
     }
   }
 
+  sendForEvaluationBulkAgencyUserSubmission = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      global.logger.info(`Send For Evaluation Bulk Agency User Submission [Controller]`, {
+        methodName: this.sendForEvaluationBulkAgencyUserSubmission.name,
+      });
+
+      const reqBody: AgencyUserSubmissionSendForEvaluationBulkCreateApiDTO = req.body;
+      const { error: reqBodyError, value: validatedRequestBody } =
+        agencyUserSubmissionSendForEvaluationBulkCreateApiDtoValidation.validate(reqBody, {
+          abortEarly: false,
+        });
+      if (reqBodyError) {
+        throw new RequestValidationError(reqBodyError);
+      }
+
+      const { actionByCorporateUserId, actionByUserId } = getActionByUserId();
+
+      if (!actionByUserId && !actionByCorporateUserId) {
+        throw new BaseError(`Unauthorized.`, HttpStatusCode.UNAUTHORIZED_401);
+      }
+
+      const cognitoUserGroups: string[] = global.requestLocalContext.cognitoUserGroups;
+
+      const response =
+        await agencyUserSubmissionServiceObj.sendForEvaluationBulkAgencyUserSubmissionAsync(
+          validatedRequestBody,
+          cognitoUserGroups,
+          actionByUserId,
+          actionByCorporateUserId
+        );
+      res.status(HttpStatusCode.ACCEPTED_202).json({
+        message: "Successfully bulk send for evaluation process initiated.",
+      });
+    } catch (error) {
+      global.logger.error(`Send For Evaluation Bulk Agency User Submission [Controller]`,{
+        methodName: this.sendForEvaluationBulkAgencyUserSubmission.name,
+        error
+      });
+      next(error);
+    }
+  }
+
   rejectApplicantAgencyUserSubmission = async (
     req: Request,
     res: Response,
@@ -274,6 +368,52 @@ class AgencyUserSubmissionController {
     } catch (error) {
       global.logger.error(`Reject Applicant Agency User Submission [Controller]`,{
         methodName: this.rejectApplicantAgencyUserSubmission.name,
+        error
+      });
+      next(error);
+    }
+  }
+
+  rejectApplicantBulkAgencyUserSubmission = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      global.logger.info(`Reject Applicant Bulk Agency User Submission [Controller]`, {
+        methodName: this.rejectApplicantBulkAgencyUserSubmission.name,
+      });
+
+      const reqBody: AgencyUserSubmissionRejectApplicantBulkApiDTO = req.body;
+      const { error: reqBodyError, value: validatedRequestBody } =
+        agencyUserSubmissionRejectApplicantBulkApiDtoValidation.validate(reqBody, {
+          abortEarly: false,
+        });
+      if (reqBodyError) {
+        throw new RequestValidationError(reqBodyError);
+      }
+
+      const { actionByCorporateUserId, actionByUserId } = getActionByUserId();
+
+      if (!actionByUserId && !actionByCorporateUserId) {
+        throw new BaseError(`Unauthorized.`, HttpStatusCode.UNAUTHORIZED_401);
+      }
+
+      const cognitoUserGroups: string[] = global.requestLocalContext.cognitoUserGroups;
+
+      const response =
+        await agencyUserSubmissionServiceObj.rejectApplicantBulkAgencyUserSubmissionAsync(
+          validatedRequestBody,
+          cognitoUserGroups,
+          actionByUserId,
+          actionByCorporateUserId
+        );
+      res.status(HttpStatusCode.ACCEPTED_202).json({
+        message: "Bulk Applicants rejction initiated successfully.",
+      });
+    } catch (error) {
+      global.logger.error(`Reject Applicant Bulk Agency User Submission [Controller]`,{
+        methodName: this.rejectApplicantBulkAgencyUserSubmission.name,
         error
       });
       next(error);
