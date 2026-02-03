@@ -72,6 +72,12 @@ class AgencyCvRechargePackageDao implements BaseDao {
       DbAgencyCvRechargePackageDto
     >(db, this.collectionName, baseQuery, filterOptions);
   }
+
+  async getAgencyCvRechargePackageByTotalCvCount(totalCvCount: number) {
+    const db: Firestore =
+      await this.getAgencyCvRechargePackageFirestoreDatabase();
+    return db.collection(this.collectionName).where("totalCvCount", "==", totalCvCount).get();
+  }
 }
 
 const agencyCvRechargePackageDaoObj = new AgencyCvRechargePackageDao();

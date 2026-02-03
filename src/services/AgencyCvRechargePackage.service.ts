@@ -42,11 +42,18 @@ class AgencyCvRechargePackageService {
       throw new BaseError("Unauthorized.", HttpStatusCode.UNAUTHORIZED_401);
     }
 
-    const date: string = dateHelperObj.getISODate();
-    const documentId: string = UlidService.getUlidId();
-
     const { amountPerCv, totalCvCount, isActiveForPurchase, description } =
       agencyCvRechargePackageCreateDto;
+
+    const existingPackage = await this.getAgencyCvRechargePackageByTotalCvCount(
+      totalCvCount,
+    );
+    if (!existingPackage.empty) {
+      throw new BaseError("Package already exists.", HttpStatusCode.BAD_REQUEST_400);
+    }
+
+    const date: string = dateHelperObj.getISODate();
+    const documentId: string = UlidService.getUlidId();
 
     return agencyCvRechargePackageDaoObj.createAgencyCvRechargePackage({
       id: documentId,
@@ -59,6 +66,12 @@ class AgencyCvRechargePackageService {
       description,
       createdByUserId: actionByUserId,
     });
+  }
+
+  async getAgencyCvRechargePackageByTotalCvCount(totalCvCount: number) {
+    return agencyCvRechargePackageDaoObj.getAgencyCvRechargePackageByTotalCvCount(
+      totalCvCount,
+    );
   }
 
   async getAgencyCvRechargePackageById(agencyCvRechargePackageId: string) {
