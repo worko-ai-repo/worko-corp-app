@@ -5,7 +5,7 @@ import { Request, Response, NextFunction } from "express";
 import { APIGatewayProxyResult } from "aws-lambda";
 
 // Import dtos
-import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvAdminEmbeddingListingFilterRequestDTO, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterRequestDTO, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvAdminEmbeddingListingFilterRequestDTO, CandidateParsedCvBulkFindMatchingScoreApiDto, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterRequestDTO, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 import { PaginatedResultsWithMatchingConditionsInternalResponse } from "../dtos/Common.dto";
 
@@ -22,7 +22,7 @@ import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJ
 import { candidateParsedCvServiceObj } from "../services/CandidateParsedCv.service";
 
 // Import schemas
-import { candidateParsedCvAdminEmbeddingFilterDtoValidation, candidateParsedCvCorpEmbeddingFilterDtoValidation, candidateParsedCvFindMatchingScoreApiValidationDto, candidateParsedCvUpdateApiValidationDto, duplicateJobApplicantBulkCandidateParsedCvApiDtoValidation, moveToApplicantBulkCandidateParsedCvCreateApiDtoValidation, moveToApplicantCandidateParsedCvCreateApiDtoValidation } from "../schemas/CandidateParsedCv.schema";
+import { candidateParsedCvAdminEmbeddingFilterDtoValidation, candidateParsedCvBulkFindMatchingScoreApiValidationDto, candidateParsedCvCorpEmbeddingFilterDtoValidation, candidateParsedCvFindMatchingScoreApiValidationDto, candidateParsedCvUpdateApiValidationDto, duplicateJobApplicantBulkCandidateParsedCvApiDtoValidation, moveToApplicantBulkCandidateParsedCvCreateApiDtoValidation, moveToApplicantCandidateParsedCvCreateApiDtoValidation } from "../schemas/CandidateParsedCv.schema";
 
 // import utils
 import HttpStatusCode from "../utils/http-codes.util";
@@ -262,6 +262,47 @@ class CandidateParsedCvController {
         methodName: this.findMatchingScoreCandidateParsedCv.name,
         error,
       })
+      next(error);
+    }
+  }
+
+  findMatchingScoreBulkCandidateParsedCv = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const reqBody: CandidateParsedCvBulkFindMatchingScoreApiDto = req.body;
+      const { error: reqBodyError, value: validatedReqBody } =
+        candidateParsedCvBulkFindMatchingScoreApiValidationDto.validate(reqBody, {
+          abortEarly: false,
+        });
+
+      if (reqBodyError) {
+        throw new RequestValidationError(reqBodyError);
+      }
+      const response: {
+        existingCandidateJobMatchingScores: ({
+          candidateParsedCvId: string;
+        } & (
+          | Partial<DbCandidateJobMatchingDto>
+          | Partial<DbUserJobApplicationDto>
+        ))[];
+        initiatedCandidateJobMatchingScores: {
+          candidateParsedCvId: string;
+          candidateJobMatchingId: string;
+        }[];
+        failedCandidateJobMatchingScores: {
+          candidateParsedCvId: string;
+          error?: string;
+        }[];
+      } =
+        await candidateParsedCvServiceObj.performFindMatchingScoreBulkCandidateParsedCv(
+          validatedReqBody,
+        );
+      res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(`Find Matching Score Bulk Candidate Parsed Cv [Controller]`, {
+        methodName: this.findMatchingScoreBulkCandidateParsedCv.name,
+        error
+      })
+
       next(error);
     }
   }

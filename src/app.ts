@@ -22,7 +22,7 @@ import "./configs/gcp-sdk.config";
 import APP_CONSTANTS from "./configs/constants.config";
 
 // Import middlewares
-import { getAuthorizerContext } from "./middlewares/authorizer-context.middleware";
+import { getAuthorizerContext, getAuthorizerContextForLocal } from "./middlewares/authorizer-context.middleware";
 
 // Import the routes
 import routes from "./router";
@@ -90,7 +90,7 @@ class App {
    */
   registerAppRoutes() {
     if(process.env.APP_STAGE === APP_CONSTANTS.STAGES.LOCAL) {
-      this.app.use("/", routes);
+      this.app.use("/", getAuthorizerContextForLocal(), routes);
     } else {
       this.app.use("/", getAuthorizerContext(), routes);
     }

@@ -143,6 +143,21 @@ export const candidateParsedCvFindMatchingScoreApiValidationDto = Joi.object({
   }),
 })
 
+export const candidateParsedCvBulkFindMatchingScoreApiValidationDto = Joi.object({
+  candidateParsedCvIds: Joi.array().min(1).max(10).items(
+    Joi.string()
+  ).required().messages({
+    "array.base": "Candidate parsed CV ids must be an array",
+    "array.min": "At least one candidate parsed CV id must be provided",
+    "array.max": "Cannot process more than 10 candidate parsed CV ids at a time",
+  }),
+  jobId: Joi.string().required().messages({
+    "any.required": "The jobId field is required.",
+    "any.type": "The jobId field must be a string.",
+    "string.empty": "The jobId field should not be empty.",
+  }),
+});
+
 export const candidateParsedCvUpdateApiValidationDto = Joi.object({
   name: Joi.string().optional().messages({
     "string.base": "Name should be a string",

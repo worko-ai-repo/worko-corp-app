@@ -1,5 +1,5 @@
 // Import firestore package
-import { Firestore } from "@google-cloud/firestore";
+import { DocumentData, Firestore, Query } from "@google-cloud/firestore";
 
 // Import configs
 import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
@@ -7,6 +7,8 @@ import APP_CONSTANTS from "../configs/constants.config";
 
 // Import dtos
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
+import { CandidateJobMatchingListingFilterOptions } from "../dtos/CandidateJobMatching.dto";
+import { AgencyJobAssignmentListingFilterOptions } from "../dtos/AgencyJobAssignment.dto";
 
 // Import daos
 import BaseDao from "./BaseGcpFirestore.dao";
@@ -17,6 +19,7 @@ import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJ
 // Import utils
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
+import { gcpFirestoreUtilObj } from "../utils/gcp-firestore.util";
 
 class CandidateJobMatchingDao implements BaseDao {
   constructor() {
@@ -53,6 +56,26 @@ class CandidateJobMatchingDao implements BaseDao {
       this.getCandidateJobMatchingModelDetails(),
       id
     );
+  }
+
+  async getAllCandidateJobMatchingByFilterOptions(filterOptions: CandidateJobMatchingListingFilterOptions) {
+    const db: Firestore = await this.getCandidateJobMatchingFirestoreDatabase();
+    let baseQuery: Query<DocumentData, DocumentData> = db.collection(
+      this.collectionName
+    );
+
+    if (filterOptions.candidateJobMatchingIds) {
+      baseQuery = baseQuery.where(
+        "id",
+        "in",
+        filterOptions.candidateJobMatchingIds
+      );
+    }
+
+    return gcpFirestoreUtilObj.paginateGcpFirestore<
+      AgencyJobAssignmentListingFilterOptions,
+      DbCandidateJobMatchingDto
+    >(db, this.collectionName, baseQuery, filterOptions);
   }
 }
 

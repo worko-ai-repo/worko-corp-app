@@ -19,7 +19,7 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsClientCognitoIdentityProviderLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvBulkFindMatchingScoreApiDto, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
 import { UserJobApplicationMoveToApplicantCreateApiDTO } from "../dtos/UserJobApplication.dto";
@@ -868,6 +868,229 @@ class CandidateParsedCvService {
         candidateJobMatchingId: undefined
       };
     }
+  }
+
+  async findMatchingScoreBulkCandidateParsedCv(
+    companyId: string,
+    jobId: string,
+    candidateParsedCvId: string,
+    actionByCorporateUserId?: string,
+    actionByUserId?: string
+  ): Promise<{
+    initiatedCandidateJobMatchingId: string
+  } | { failedCandidateJobMatchingScores: { candidateParsedCvId: string, error?: string } } | { existingMatchingScore: DbCandidateJobMatchingDto | DbUserJobApplicationDto }> {
+    const existingCandidateParsedCv: DbCandidateParsedCvDto | undefined = await candidateParsedCvServiceObj.getCandidateParsedCvById(candidateParsedCvId);
+    if(!existingCandidateParsedCv) {
+      global.logger.error(`Candidate parsed cv not found.`, {
+        methodName: this.findMatchingScoreBulkCandidateParsedCv.name,
+        jobId,
+        existingCandidateParsedCv
+      });
+      return {
+        failedCandidateJobMatchingScores: { candidateParsedCvId, error: "Candidate parsed cv not found." }
+      }
+    }
+
+    const {
+      cvAwsS3BucketName,
+      cvAwsS3FilePath,
+      cvAwsS3FileName,
+      email: candidateEmail,
+    } = existingCandidateParsedCv;
+
+    const existingFindMatchingScore: DbCandidateJobMatchingDto | undefined = await candidateJobMatchingServiceObj.getCandidateJobMatchingByEmailAndJobId(
+      candidateEmail,
+      jobId
+    );
+    if(existingFindMatchingScore) {
+      global.logger.info(`Matching score already calculated`, { 
+        methodName: this.findMatchingScoreBulkCandidateParsedCv.name, 
+        jobId,
+        candidateParsedCvId
+      });
+      if(existingFindMatchingScore.matchingScore) {
+        return {
+          existingMatchingScore: existingFindMatchingScore
+        };
+      } else {
+        return {
+          initiatedCandidateJobMatchingId: existingFindMatchingScore.id
+        };
+      }
+    }
+
+    // Check if the user has already applied for the job and throw error if already applied for the job
+    let existingUserJobApplicationQueryResponse: QueryResponse<DbUserJobApplicationDto> =
+      await userJobApplicationServiceObj.getJobApplicationByjobId(
+        candidateEmail,
+        jobId
+      );
+    if(existingUserJobApplicationQueryResponse.count) {
+      global.logger.error(`Failed to find matching score, Candidate already in applicants page`, { 
+        methodName: this.findMatchingScoreBulkCandidateParsedCv.name, 
+        jobId,
+      });
+      const jobApplicationData: DbUserJobApplicationDto = existingUserJobApplicationQueryResponse[0];
+      if(jobApplicationData.matchingScore) {
+        return {
+          existingMatchingScore: jobApplicationData
+        };
+      } else {
+        global.logger.error("Candidate already moved to application process without calculating matching score.", {
+          methodName: this.findMatchingScoreBulkCandidateParsedCv.name,
+          jobId,
+          jobApplicationData,
+          candidateParsedCvId
+        });
+        return {
+          failedCandidateJobMatchingScores: { candidateParsedCvId, error: "Candidate already moved to application process without calculating matching score." }
+        }
+      }
+    }
+
+    /**
+     * @todo:
+     *  1. Need to implement a feature like after `3` months the `corporate` should able to find the matching score again
+     */
+    const createCandJobMatchDetails: DbCandidateJobMatchingDto | undefined = await candidateJobMatchingServiceObj.createCandidateJobMatching(
+      candidateEmail,
+      jobId,
+      companyId,
+      {
+        createdByCorporateUserId: actionByCorporateUserId,
+        createdByUserId: actionByUserId
+      }
+    );
+    if(!createCandJobMatchDetails) {
+      global.logger.error(`Failed to find matching score, Failed to create candidate job matching`, {
+        methodName: this.findMatchingScoreCandidateParsedCv.name,
+        jobId,
+      });
+      return {
+        failedCandidateJobMatchingScores: { candidateParsedCvId, error: "Failed to create candidate job matching" }
+      }
+    }
+
+    const invokedMatchingScoreDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeJdResumeMatchingScore(
+      {
+        candidateJobMatchingId: createCandJobMatchDetails.id,
+        cvAwsS3ResourceType: existingCandidateParsedCv.cvAwsS3ResourceType,
+        actionByCorporateUserId,
+        actionByUserId,
+        jobId, 
+        cvAwsS3BucketName,
+        cvAwsS3FilePath,
+        cvAwsS3FileName,
+        USER_PK: existingCandidateParsedCv.cvAwsS3ResourceType === CandidateParsedCvAwsS3ResourceTypeEnum.USER_RESUME ? `USR#EML#${existingCandidateParsedCv.email}`: undefined
+      }
+    );
+    if(invokedMatchingScoreDetails.statusCode !== HttpStatusCode.ACCEPTED_202) {
+      global.logger.error(`Ai matching score lambda trigger failed`, {
+        methodName: this.findMatchingScoreCandidateParsedCv.name,
+        invokedMatchingScoreDetails,
+      });
+      return {
+        failedCandidateJobMatchingScores: { candidateParsedCvId, error: "Ai matching score lambda trigger failed" }
+      }
+    }
+
+    if(invokedMatchingScoreDetails.statusCode === HttpStatusCode.ACCEPTED_202) {
+      global.logger.info(`Matching score processing started`, {
+        methodName: this.findMatchingScoreCandidateParsedCv.name,
+        invokedMatchingScoreDetails,
+      });
+
+      return {
+        initiatedCandidateJobMatchingId: createCandJobMatchDetails.id
+      };
+    } else {
+      return {
+        failedCandidateJobMatchingScores: { candidateParsedCvId, error: "Ai matching score lambda trigger failed" }
+      };
+    }
+  }
+
+  async performFindMatchingScoreBulkCandidateParsedCv(
+    reqBody: CandidateParsedCvBulkFindMatchingScoreApiDto
+  ): Promise<{
+    existingCandidateJobMatchingScores: Array<
+      { candidateParsedCvId: string } &
+      (Partial<DbCandidateJobMatchingDto> | Partial<DbUserJobApplicationDto>)
+    >;
+    initiatedCandidateJobMatchingScores: { candidateParsedCvId: string, candidateJobMatchingId: string }[];
+    failedCandidateJobMatchingScores: { candidateParsedCvId: string, error?: string }[];
+  }> {
+    const { actionByUserId, actionByCorporateUserId } = getActionByUserId();
+    const { candidateParsedCvIds, jobId } = reqBody;
+
+    const jobDetails: DbGcpFirestoreJobDto | undefined = await gcpFirestoreJobServiceObj.getJobById(jobId);
+    if(!jobDetails) throw new BaseError("Job not found.", HttpStatusCode.NOT_FOUND_404);
+
+    if(actionByCorporateUserId) {
+      const corporateUserDetails: QueryResponse<DbCorporateUserDto> = await corporateUserServiceObj.getCorpUserById(actionByCorporateUserId);
+      if(!corporateUserDetails.count || corporateUserDetails[0].companyId !== jobDetails.companyId) {
+        global.logger.error("Corporate user not authorized.", {
+          methodName: this.performFindMatchingScoreBulkCandidateParsedCv.name,
+          actionByCorporateUserId,
+          jobId,
+          corporateUserDetails
+        });
+        throw new BaseError("Unauthorized.", HttpStatusCode.UNAUTHORIZED_401);
+      }
+    }
+
+    const existingMatchingScores: Array<
+      { candidateParsedCvId: string } &
+      (Partial<DbCandidateJobMatchingDto> | Partial<DbUserJobApplicationDto>)
+    > = [];
+    const initiatedCandidateJobMatchingIds: { candidateParsedCvId: string, candidateJobMatchingId: string }[] = [];
+    const failedCandidateParsedCvs: { candidateParsedCvId: string, error?: string }[] = [];
+
+    const bulkPromises = candidateParsedCvIds.map(async (candidateId: string) => {
+      try {
+        const result: {
+          initiatedCandidateJobMatchingId: string;
+          } | {
+            failedCandidateJobMatchingScores: { candidateParsedCvId: string, error?: string }
+          } | {
+            existingMatchingScore: DbCandidateJobMatchingDto | DbUserJobApplicationDto;
+        } = await this.findMatchingScoreBulkCandidateParsedCv(
+          jobDetails.companyId as string,
+          jobId,
+          candidateId,
+          actionByCorporateUserId,
+          actionByUserId
+        );
+        if('initiatedCandidateJobMatchingId' in result && result.initiatedCandidateJobMatchingId) {
+          initiatedCandidateJobMatchingIds.push({ candidateParsedCvId: candidateId, candidateJobMatchingId: result.initiatedCandidateJobMatchingId });
+        } else if('existingMatchingScore' in result && result.existingMatchingScore) {
+          existingMatchingScores.push({ candidateParsedCvId: candidateId, ...result.existingMatchingScore });
+        } else if('failedCandidateJobMatchingScores' in result && result.failedCandidateJobMatchingScores) {
+          failedCandidateParsedCvs.push(result.failedCandidateJobMatchingScores);
+        } else {
+          global.logger.error("Unexpected error. Failed to find matching score", {
+            methodName: this.performFindMatchingScoreBulkCandidateParsedCv.name,
+            result
+          })
+          failedCandidateParsedCvs.push({ candidateParsedCvId: candidateId, error: "Unexpected error. Failed to find matching score" });
+        }
+      } catch (error: any) {
+        global.logger.error("Failed to find matching score", {
+          methodName: this.performFindMatchingScoreBulkCandidateParsedCv.name,
+          error
+        })
+        failedCandidateParsedCvs.push({ candidateParsedCvId: candidateId, error: "Catch block error" });
+      }
+    });
+
+    // Promise.allSettled waits for all the promises to resolve or reject
+    await Promise.allSettled(bulkPromises);
+
+    return {
+      existingCandidateJobMatchingScores: existingMatchingScores,
+      initiatedCandidateJobMatchingScores: initiatedCandidateJobMatchingIds,
+      failedCandidateJobMatchingScores: failedCandidateParsedCvs,
+    };
   }
 
   async updateCandidateParsedCvById(id: string, updateDto: Partial<DbCandidateParsedCvDto>): Promise<DbCandidateParsedCvDto | undefined> {

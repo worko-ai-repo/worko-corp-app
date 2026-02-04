@@ -12,4 +12,9 @@ const CandidateJobMatchingRouter = Router();
  */
 CandidateJobMatchingRouter.get("/:id", candidateJobMatchingController.getCandidateJobMatchingById);
 
+/**
+ * @authorisedRoles ["admin", "corporate-admin", "corporate-recruiter"]
+ */
+CandidateJobMatchingRouter.get("/", candidateJobMatchingController.getAllCandidateJobMatchingByFilterOptions);
+
 export default CandidateJobMatchingRouter;

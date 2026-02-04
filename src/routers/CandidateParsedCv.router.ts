@@ -50,6 +50,15 @@ CandidateParsedCvRouter.post(
 );
 
 /**
+ * @authorisedRoles ["admin","corporate-admin","corporate-recruiter"]
+ */
+CandidateParsedCvRouter.post(
+  "/find-matching-score/bulk",
+  candidateParsedCvMiddlewareObj.validateCandidateParsedCvForFindMatchingScore,
+  candidateParsedCvController.findMatchingScoreBulkCandidateParsedCv
+);
+
+/**
  * @authorisedRoles ["corporate-admin", "corporate-recruiter", "admin"]
  */
 CandidateParsedCvRouter.patch("/:id", candidateParsedCvController.updateCandidateParsedCvById);

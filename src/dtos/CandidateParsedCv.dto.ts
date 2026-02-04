@@ -106,6 +106,11 @@ export interface CandidateParsedCvFindMatchingScoreApiDto {
   jobId: string;
 }
 
+export interface CandidateParsedCvBulkFindMatchingScoreApiDto {
+  candidateParsedCvIds: string[];
+  jobId: string;
+}
+
 export interface CandidateParsedCvUpdateApiDto {
   name?: string;
   currentCompany?: string;

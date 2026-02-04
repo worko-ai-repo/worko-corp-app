@@ -618,10 +618,12 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
     { path: "/candidate-parsed-cv/duplicate-job-appl/bulk", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/move-to-applicant/bulk", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/find-matching-score", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/find-matching-score/bulk", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/:id", method: HttpMethodsConstants.PATCH },
 
     // Candidate Job Matching Routers
     { path: "/candidate-job-matching/:id", method: HttpMethodsConstants.GET },
+    { path: "/candidate-job-matching*", method: HttpMethodsConstants.GET },
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
@@ -658,6 +660,7 @@ var isCorporateAdminUrl = function (url, httpMethod) {
     { path: "/job/", method: HttpMethodsConstants.POST },
     { path: "/job/parsejd", method: HttpMethodsConstants.POST },
     { path: "/job/bulk-update", method: HttpMethodsConstants.PATCH },
+    { path: "/job/bulk-close", method: HttpMethodsConstants.PATCH },
 
     // corporate user routes
     { path: "/corporate-user/*", method: HttpMethodsConstants.GET },
@@ -774,10 +777,12 @@ var isCorporateAdminUrl = function (url, httpMethod) {
     { path: "/candidate-parsed-cv/duplicate-job-appl/bulk", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/move-to-applicant/bulk", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/find-matching-score", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/find-matching-score/bulk", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/:id", method: HttpMethodsConstants.PATCH },
 
     // Candidate Job Matching Routers
     { path: "/candidate-job-matching/:id", method: HttpMethodsConstants.GET },
+    { path: "/candidate-job-matching*", method: HttpMethodsConstants.GET },
 
     // Referral Source Type Activation Routers
     { path: "/referral-sourcetype-activation/", method: HttpMethodsConstants.POST },
@@ -907,7 +912,8 @@ var isAdminUrl = function (url, httpMethod) {
     { path: "/job/:jobId/delete", method: HttpMethodsConstants.PUT },
     { path: "/job/parsejd", method: HttpMethodsConstants.POST },
     { path: "/job/bulk-update", method: HttpMethodsConstants.PATCH },
-
+    { path: "/job/bulk-close", method: HttpMethodsConstants.PATCH },
+    
     // corporate user routes
     { path: "/corporate-user/*", method: HttpMethodsConstants.GET },
     { path: "/corporate-user/:id/delete", method: HttpMethodsConstants.PATCH },
@@ -1051,9 +1057,13 @@ var isAdminUrl = function (url, httpMethod) {
     { path: "/candidate-parsed-cv/move-to-applicant", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/duplicate-job-appl/bulk", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/move-to-applicant/bulk", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/find-matching-score", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/find-matching-score/bulk", method: HttpMethodsConstants.POST },
 
     // Agency Cv Recharge Package routers
     { path: "/agency-cv-recharge-package*", method: HttpMethodsConstants.ANY },
+
+    { path: "/candidate-job-matching*", method: HttpMethodsConstants.GET },
   ];
 
   const result = checkMatchingPattern(url, adminUrlList, httpMethod);

@@ -4,13 +4,18 @@ import { createHash } from 'crypto';
 // Import daos
 import { candidateJobMatchingDaoObj } from "../daos/CandidateJobMatching.dao";
 
+// Import dtos
+import { CandidateJobMatchingListingFilterOptions } from "../dtos/CandidateJobMatching.dto";
+
+// Import helpers
+import { dateHelperObj } from "../helpers/date.helper";
+
 // Import models
 import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJobMatching.model";
 
 // Import utils
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
-import { dateHelperObj } from '../helpers/date.helper';
 
 class CandidateJobMatchingService {
   
@@ -80,6 +85,10 @@ class CandidateJobMatchingService {
     });
 
     return candidateJobMatchingDaoObj.getCandidateJobMatchingById(id);
+  }
+
+  async getAllCandidateJobMatchingByFilterOptions(filterOptions: CandidateJobMatchingListingFilterOptions) {
+    return candidateJobMatchingDaoObj.getAllCandidateJobMatchingByFilterOptions(filterOptions);
   }
 
   /**
