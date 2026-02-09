@@ -1,9 +1,9 @@
 
 // Import dtos
-import { AgencyUserInviteDbPhoneNumberDto } from "../../dtos/AgencyUserInvite.dto";
+import { AgencyUserInviteDbActionTrackerDto, AgencyUserInviteDbPhoneNumberDto } from "../../dtos/AgencyUserInvite.dto";
 
 // Import enums
-import { AgencyUserInviteDbStatusEnum } from "../../enums/AgencyUserInvite.enum";
+import { AgencyUserInviteDbActionEnum, AgencyUserInviteDbStatusEnum } from "../../enums/AgencyUserInvite.enum";
 
 // Import models
 import { BaseFirestoreModel } from "./Base.model";
@@ -45,6 +45,9 @@ interface DbAgencyUserInviteDto extends BaseFirestoreModel {
   agencyName: string;
 
   inviteStatus: AgencyUserInviteDbStatusEnum;
+
+  inviteAction?: AgencyUserInviteDbActionEnum;
+  inviteActionTracker?: AgencyUserInviteDbActionTrackerDto[];
 
   /**
    * @description The email of the person who is being invited

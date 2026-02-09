@@ -16,6 +16,10 @@ export const agencyUserSubmissionCandidateParseCvApiValidationDto = Joi.object({
       "string.empty": "Candidate parsed cv aws s3 file name is required",
       "any.required": "Candidate parsed cv aws s3 file name is required",
    }),
+   agencyUserInviteId: Joi.string().required().messages({
+      "string.empty": "Agency user invite id is required",
+      "any.required": "Agency user invite id is required",
+   })
 });
 
 export const agencyUserSubmissionCreateApiValidationDto = Joi.object({

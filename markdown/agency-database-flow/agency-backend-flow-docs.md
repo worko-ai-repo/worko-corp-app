@@ -878,88 +878,34 @@ ClientId
 6. Then now `Frontend` will show a `dialog` box with `new password` and `confirm password` to  for `candidate` and in `cognito` the status will changes to `CONFIRMED`
 
 
-```ts
- def create_search_optimized_embedding_text(self, candidate_data: Dict) -> str:
-        """Create embedding text from search-relevant fields"""
-        embedding_parts = []
-        
-        if candidate_data.get('companyId'):
-            embedding_parts.append(f"Company ID: {candidate_data['companyId']}")
-        
-        if candidate_data.get('currentCompany'):
-            embedding_parts.append(f"Current Company: {candidate_data['currentCompany']}")
-        
-        if candidate_data.get('currentDesignation'):
-            embedding_parts.append(f"Current Designation: {candidate_data['currentDesignation']}")
-        
-        if candidate_data.get('totalYOE') is not None:
-            embedding_parts.append(f"Total Experience: {candidate_data['totalYOE']} years")
-        
-        if candidate_data.get('relevantYOE') is not None:
-            embedding_parts.append(f"Relevant Experience: {candidate_data['relevantYOE']} years")
-        
-        if candidate_data.get('currentCTC') is not None:
-            embedding_parts.append(f"Current CTC: {candidate_data['currentCTC']} LPA")
-        
-        if candidate_data.get('expectedCTC') is not None:
-            embedding_parts.append(f"Expected CTC: {candidate_data['expectedCTC']} LPA")
-        
-        if candidate_data.get('noticePeriod') is not None:
-            embedding_parts.append(f"Notice Period: {candidate_data['noticePeriod']} days")
-        
-        if candidate_data.get('isNoticePeriodNegotiable') is not None:
-            negotiable = "Yes" if candidate_data['isNoticePeriodNegotiable'] else "No"
-            embedding_parts.append(f"Notice Period Negotiable: {negotiable}")
-        
-        if candidate_data.get('location'):
-            embedding_parts.append(f"Current Location: {candidate_data['location']}")
-        
-        if candidate_data.get('readyToRelocate') is not None:
-            relocate = "Yes" if candidate_data['readyToRelocate'] else "No"
-            embedding_parts.append(f"Ready to Relocate: {relocate}")
-        
-        if candidate_data.get('coreSkills'):
-            core_skills_text = format_skills_list(candidate_data['coreSkills'], "Core Skills")
-            if core_skills_text:
-                embedding_parts.append(core_skills_text)
-        
-        if candidate_data.get('technicalSkills'):
-            tech_skills_text = format_skills_list(candidate_data['technicalSkills'], "Technical Skills")
-            if tech_skills_text:
-                embedding_parts.append(tech_skills_text)
-        
-        if candidate_data.get('userPreferredDepartments'):
-            dept_text = format_string_array(candidate_data['userPreferredDepartments'], "Preferred Departments")
-            if dept_text:
-                embedding_parts.append(dept_text)
-        
-        if candidate_data.get('userPreferredIndustries'):
-            industry_text = format_string_array(candidate_data['userPreferredIndustries'], "Preferred Industries")
-            if industry_text:
-                embedding_parts.append(industry_text)
-        
-        if candidate_data.get('userPreferredRoles'):
-            roles_text = format_string_array(candidate_data['userPreferredRoles'], "Preferred Roles")
-            if roles_text:
-                embedding_parts.append(roles_text)
-        
-        if candidate_data.get('userPreferredlocations'):
-            locations_text = format_string_array(candidate_data['userPreferredlocations'], "Preferred Locations")
-            if locations_text:
-                embedding_parts.append(locations_text)
-        
-        return " | ".join(embedding_parts)
-    
-```
 
 
-# Updates
-1. move `firestore` to `aws secrets manager` and use from them in all repos
-2. review aws sdk v3 in worko-api
-3. fix deployment issue in `worko-api` at `npm i` for file open error
-4. fix create and update email template issue for new aws sdk v3 email library
 
+# Pause Agency Invite
+1. Whenever `corporate` pause particular agency invite, then:
+   1. In `agency` dashboard:-
+      1. We can list old job assignments by `corporate`, but if `agency` tries to upload candidate
+      `cv` then we should not allow him to upload
+      2. We can list old agency user submissions in `Agency-Applicants` page
+   2. In `corporate` dashboard:-
+      1. Whenever `agency invite` is `paused` state and `corporate` tries to assign jobs to that `agency invite`
+      then we should not allow `corporate` to assign jobs and show popup with message:- `Resume the agency invite to assign new jobs`
 
-# Today's Plan
-1. test the user preference
-2. `worko-resume-parser-dev` instead of `resume-parser`
+# Resume Agency Invite
+1. `corporate` can only `resume` particular agency invite only from `pause` state but not from `delete` state, then:
+   1. In `agency` dashboard:-
+      1. We can list all job assignments by `corporate`, and we allow `agency` to upload candidate
+      `cv` 
+      2. We can list all agency user submissions in `Agency-Applicants` page
+   2. In `corporate` dashboard:-
+      1. Whenever `agency invite` is `resume` state and `corporate` tries to assign jobs to that `agency invite`
+      then we should will allow `corporate` to assign jobs 
+   
+# Delete Agency Invite
+1. Whenever `corporate` delete particular agency invite, then:
+   1. In `agency` dashboard:-
+      1. We can list old job assignments by `corporate` only up to `3` months, but if `agency` tries to upload candidate `cv` then we should not allow him to upload
+      2. We can list old agency user submissions in `Agency-Applicants` page only up to `3` months
+   2. In `corporate` dashboard:-
+      1. Whenever `agency invite` is `deleted` state and `corporate` tries to assign jobs to that `agency invite`
+      then we should not allow `corporate` to assign jobs and show popup with message:- `Re-invite the agency to assign new jobs`

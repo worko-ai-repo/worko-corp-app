@@ -561,6 +561,7 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
     { path: "/agency-invite/", method: HttpMethodsConstants.POST },
     { path: "/agency-invite*", method: HttpMethodsConstants.GET },
     { path: "/agency-invite/corp-action", method: HttpMethodsConstants.PATCH },
+    { path: "/agency-invite/action-type", method: HttpMethodsConstants.PATCH },
 
     // Agency Job Assignment Routers
     { path: "/agency-job-assignment/bulk", method: HttpMethodsConstants.POST },
@@ -720,6 +721,7 @@ var isCorporateAdminUrl = function (url, httpMethod) {
     { path: "/agency-invite/", method: HttpMethodsConstants.POST },
     { path: "/agency-invite*", method: HttpMethodsConstants.GET },
     { path: "/agency-invite/corp-action", method: HttpMethodsConstants.PATCH },
+    { path: "/agency-invite/action-type", method: HttpMethodsConstants.PATCH },
 
     // Agency Job Assignment Routers
     { path: "/agency-job-assignment/bulk", method: HttpMethodsConstants.POST },

@@ -12,6 +12,8 @@ export interface AgencyUserSubmissionCandidateParseCvApiDto {
    * @reference "Amazon S3 > Buckets > worko-app-{environment}/agencies/{agencyUserId}/companies/{companyId}/jobs/{jobId}/user-profiles/<ulidId>.pdf"
    */
   candidateParsedCvAwsS3FileName: string;
+
+  agencyUserInviteId: string;
 }
 
 export interface AgencyUserSubmissionCandidateParseCvResponseDto {

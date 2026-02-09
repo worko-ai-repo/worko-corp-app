@@ -13,12 +13,12 @@ import { agencyUserInviteDaoObj } from "../daos/AgencyUserInvite.dao";
 import { agencyUserDaoObj } from "../daos/AgencyUser.dao";
 
 // Import dtos
-import {  AgencyUserInviteCreateApiDto, AgencyUserInviteCreateDto, AgencyUserInviteDbPhoneNumberDto, AgencyUserInviteListingFilterOptions, AgencyUserInviteCorpUpdateApiDto, AgencyUserInviteAgencyUpdateApiDto } from "../dtos/AgencyUserInvite.dto";
+import {  AgencyUserInviteCreateApiDto, AgencyUserInviteCreateDto, AgencyUserInviteDbPhoneNumberDto, AgencyUserInviteListingFilterOptions, AgencyUserInviteCorpUpdateApiDto, AgencyUserInviteAgencyUpdateApiDto, AgencyUserInviteActionUpdateApiDto } from "../dtos/AgencyUserInvite.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 import { EmailTemplatePlaceholderAGENCY_INVITE_FOR_REGISTERED, EmailTemplatePlaceholderAGENCY_INVITE_FOR_UNREGISTERED } from "../dtos/EmailTemplatePlaceholder.dto";
 
 // Import enums
-import { AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
+import { AgencyUserInviteDbActionEnum, AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
 import { EmailTemplateEnum } from "../enums/EmailTemplate.enum";
 
 // Import helpers
@@ -516,6 +516,101 @@ class AgencyUserInviteService {
           { agencyName: validatedRequestBody.agencyName }
         );
       }
+    }
+
+    return updatedInviteDetails;
+  }
+
+  async performUpdateAgencyUserInviteActionActivities(
+    validatedRequestBody: AgencyUserInviteActionUpdateApiDto
+  ) {
+    const { actionByCorporateUserId } = getActionByUserId();
+    if (!actionByCorporateUserId) {
+      global.logger.error(`Action by corporate user id not found.`, {
+        methodName: this.performCreateAgencyUserInviteActivities.name,
+        actionByCorporateUserId,
+        validatedRequestBody,
+      });
+      throw new BaseError(`Unauthorized.`, HttpStatusCode.UNAUTHORIZED_401);
+    }
+
+    const corporateUserDetails: QueryResponse<DbCorporateUserDto> =
+      await corporateUserServiceObj.getCorpUserById(actionByCorporateUserId);
+    if (!corporateUserDetails.count) {
+      throw new BaseError(
+        `Corporate User Details not found.`,
+        HttpStatusCode.NOT_FOUND_404,
+      );
+    }
+    const corporateUserData: DbCorporateUserDto = corporateUserDetails[0];
+
+    const existingInviteDetails: DbAgencyUserInviteDto | undefined =
+      await this.getAgencyUserInviteById(validatedRequestBody.agencyInviteId);
+    if (!existingInviteDetails) {
+      throw new BaseError(
+        `Agency User Invite Details not found.`,
+        HttpStatusCode.NOT_FOUND_404,
+      );
+    }
+
+    if (
+      existingInviteDetails.invitedByCorporateUserId !== actionByCorporateUserId
+    ) {
+      global.logger.error(
+        `The action by corporate user id does not match the invited by corporate user id.`,
+        {
+          methodName: this.performCreateAgencyUserInviteActivities.name,
+          existingInviteDetails,
+          actionByCorporateUserId,
+        },
+      );
+      throw new BaseError(`Unauthorized.`, HttpStatusCode.UNAUTHORIZED_401);
+    }
+
+    if(existingInviteDetails.inviteAction === validatedRequestBody.inviteAction) {
+      throw new BaseError(`Invite is already in ${validatedRequestBody.inviteAction.toTitleCase()} state.`, HttpStatusCode.BAD_REQUEST_400);
+    }
+
+    if(existingInviteDetails.inviteAction === AgencyUserInviteDbActionEnum.DELETE) {
+      throw new BaseError(`Invite is already deleted, so it cannot be updated to ${validatedRequestBody.inviteAction.toTitleCase()} state.`, HttpStatusCode.BAD_REQUEST_400);
+    }
+
+    const updatedAt: string = dateHelperObj.getISODate();
+
+    // Prepare update data
+    const updateData: Partial<DbAgencyUserInviteDto> = {
+      inviteAction: validatedRequestBody.inviteAction,
+      inviteActionTracker: [
+        ...(existingInviteDetails.inviteActionTracker || []),
+        {
+          oldAction: existingInviteDetails.inviteAction,
+          newAction: validatedRequestBody.inviteAction,
+          reason: validatedRequestBody.reason,
+          detailedDescription: validatedRequestBody.detailedDescription,
+          actionByCorporateUserId,
+          actionDate: updatedAt,
+          actionByUserType: corporateUserData.corporateUserType,
+        },
+      ],
+      updatedByCorporateUserId: actionByCorporateUserId,
+      updatedAt,
+    };
+
+    const updatedInviteDetails: DbAgencyUserInviteDto | undefined =
+      await this.updateAgencyUserInviteById(
+        existingInviteDetails.id,
+        updateData,
+      );
+    if (!updatedInviteDetails) {
+      global.logger.error(`Failed to Update Agency User Invite [Service]`, {
+        methodName: this.performUpdateAgencyUserInviteActivitiesByCorpUser.name,
+        updatedInviteDetails,
+        updateData,
+      });
+      throw new BaseError(
+        `Failed to Update Agency User Invite.`,
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500,
+      );
     }
 
     return updatedInviteDetails;

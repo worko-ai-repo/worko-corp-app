@@ -17,7 +17,7 @@ import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firesto
 
 // Import enums
 import { AgencyJobAssignmentDbStatusEnum } from "../enums/AgencyJobAssignment.enum";
-import { AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
+import { AgencyUserInviteDbActionEnum, AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
 
 // Import helpers
 import { getActionByAgencyUserIds, getActionByUserId } from "../helpers/user.helper";
@@ -86,6 +86,34 @@ class AgencyJobAssignmentService {
         `Agency User Invite is not accepted, so you are not allowed to perform this action.`,
         HttpStatusCode.FORBIDDEN_403
       );
+    }
+
+    if(
+      agencyUserInviteDetails.inviteAction &&
+      [
+        AgencyUserInviteDbActionEnum.DELETE,
+        AgencyUserInviteDbActionEnum.PAUSE
+      ].includes(agencyUserInviteDetails.inviteAction)
+    ) {
+      global.logger.error(`Agency User Invite is deleted or paused.`, {
+        validatedRequestBody,
+        agencyUserInviteDetails,
+        methodName: this.performCreateBulkAgencyJobAssignmentActivities.name,
+      });
+      if(
+        agencyUserInviteDetails.inviteAction ===
+        AgencyUserInviteDbActionEnum.DELETE
+      ) {
+        throw new BaseError(
+          `Invite is deleted, Resend a new invite to continue.`,
+          HttpStatusCode.FORBIDDEN_403
+        );
+      } else {
+        throw new BaseError(
+          `Invite is paused, Resume the invite to continue.`,
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
     }
 
     if (actionByCorporateUserId) {

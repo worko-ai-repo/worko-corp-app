@@ -38,6 +38,7 @@ import { AgencyUserSubmissionDbJobApplicationStatusEnum } from "../enums/AgencyU
 import { AgencyJobAssignmentDbStatusEnum } from "../enums/AgencyJobAssignment.enum";
 import { UserType } from "../enums/User.enum";
 import { InvokeLambdaHandlerEventTypeEnum } from "../enums/InvokeLambda.enum";
+import { AgencyUserInviteDbActionEnum } from "../enums/AgencyUserInvite.enum";
 
 // Import helpers
 import { getActionByAgencyUserIds, getActionByUserId } from "../helpers/user.helper";
@@ -189,7 +190,7 @@ class AgencyUserSubmissionService {
       methodName: this.parseAgencyUserSubmissionCandidateCv.name,
     });
 
-    const { companyId: reqBodyCompanyId, jobId: reqBodyJobId } =
+    const { companyId: reqBodyCompanyId, jobId: reqBodyJobId, agencyUserInviteId } =
       validatedReqBody;
 
     const validateAgencyUserCompanyJobDetails: {
@@ -201,6 +202,42 @@ class AgencyUserSubmissionService {
       reqBodyCompanyId,
       reqBodyJobId
     );
+
+    const reqBodyAgencyInviteDetails: DbAgencyUserInviteDto | undefined  =
+      await agencyUserInviteServiceObj.getAgencyUserInviteById(agencyUserInviteId);
+    if (!reqBodyAgencyInviteDetails) {
+      throw new BaseError(
+        `Agency User Invite not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+
+    if (
+      reqBodyAgencyInviteDetails.inviteAction &&
+      [
+        AgencyUserInviteDbActionEnum.DELETE,
+        AgencyUserInviteDbActionEnum.PAUSE,
+      ].includes(reqBodyAgencyInviteDetails.inviteAction)
+    ) {
+      global.logger.error(`Agency User Invite is deleted or paused.`, {
+        reqBodyAgencyInviteDetails,
+        methodName: this.performCreateAgencyUserSubmissionActivities.name,
+      });
+      if (
+        reqBodyAgencyInviteDetails.inviteAction ===
+        AgencyUserInviteDbActionEnum.DELETE
+      ) {
+        throw new BaseError(
+          `Your invite has been deleted, so you are not allowed to access this resource.`,
+          HttpStatusCode.FORBIDDEN_403,
+        );
+      } else {
+        throw new BaseError(
+          `Your invite has been paused, so you are not allowed to access this resource.`,
+          HttpStatusCode.FORBIDDEN_403,
+        );
+      }
+    }
 
     const parsedCvDetails: APIGatewayProxyResult =
       await InvokeLambdaService.triggerParseAgencyUserSubmissionCandidateCv({
@@ -335,6 +372,33 @@ class AgencyUserSubmissionService {
         `You are not allowed to access this resource.`,
         HttpStatusCode.FORBIDDEN_403
       );
+    }
+
+    if(
+      reqBodyAgencyInviteDetails.inviteAction &&
+      [
+        AgencyUserInviteDbActionEnum.DELETE,
+        AgencyUserInviteDbActionEnum.PAUSE
+      ].includes(reqBodyAgencyInviteDetails.inviteAction)
+    ) {
+      global.logger.error(`Agency User Invite is deleted or paused.`, {
+        reqBodyAgencyInviteDetails,
+        methodName: this.performCreateAgencyUserSubmissionActivities.name,
+      });
+      if(
+        reqBodyAgencyInviteDetails.inviteAction ===
+        AgencyUserInviteDbActionEnum.DELETE
+      ) {
+        throw new BaseError(
+          `Your invite has been deleted, so you are not allowed to access this resource.`,
+          HttpStatusCode.FORBIDDEN_403
+        );
+      } else {
+        throw new BaseError(
+          `Your invite has been paused, so you are not allowed to access this resource.`,
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
     }
 
     const currentDate: string = dateHelperObj.getISODate();

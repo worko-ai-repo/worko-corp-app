@@ -2,7 +2,7 @@
 import Joi from "joi";
 
 // Import enums
-import { AgencyUserInviteAllowedAgencyAllowedStatusEnum, AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
+import { AgencyUserInviteAllowedAgencyAllowedStatusEnum, AgencyUserInviteDbActionEnum, AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
 
 // Import schemas
 import { gcpFirestoreCommonSchema } from "./Common.gcp-firestore.schema";
@@ -68,6 +68,27 @@ export const agencyUserInviteCorpUpdateApiValidationDto = Joi.object({
    }),
    agencyName: Joi.string().optional().uppercase().trim().messages({
       "string.base": "Agency name should be a string",
+   })
+});
+
+export const agencyUserInviteActionUpdateApiValidationDto = Joi.object({
+   agencyInviteId: Joi.string().required().messages({
+    "string.empty": "Agency invite id is required",
+    "any.required": "Agency invite id is required",
+   }),
+   inviteAction: Joi.string()
+    .valid(AgencyUserInviteDbActionEnum.PAUSE, AgencyUserInviteDbActionEnum.RESUME)
+    .required()
+    .messages({
+      "string.empty": "Invite action is required",
+      "any.required": "Invite action is required",
+      "any.only": `Invalid invite action. Please provide a valid value from ${AgencyUserInviteDbActionEnum.PAUSE}, ${AgencyUserInviteDbActionEnum.RESUME}.`,
+   }),
+   reason: Joi.string().optional().messages({
+      "string.empty": "Reason should not be empty",
+   }),
+   detailedDescription: Joi.string().optional().messages({
+      "string.empty": "Detailed description should not be empty",
    })
 });
 
