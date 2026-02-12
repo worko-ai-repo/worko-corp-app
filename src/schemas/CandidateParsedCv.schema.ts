@@ -231,3 +231,27 @@ export const candidateParsedCvUpdateApiValidationDto = Joi.object({
     "array.base": "User Preferred Roles must be an array",
   }),
 }).options({ stripUnknown: true });
+
+export const candidateParsedCvParseSubmitFormApiValidationDto = Joi.object({
+  companyId: Joi.string().required().messages({
+    "string.empty": "Company id is required",
+    "any.required": "Company id is required",
+  }),
+  jobId: Joi.string().required().messages({
+    "string.empty": "Job id is required",
+    "any.required": "Job id is required",
+  }),
+  candidateParsedCvAwsS3FileName: Joi.string().required().messages({
+    "string.empty": "Candidate parsed cv aws s3 file name is required",
+    "any.required": "Candidate parsed cv aws s3 file name is required",
+  }),
+  currentCTC: Joi.number().optional().messages({
+    "number.base": "Current CTC should be a number",
+  }),
+  expectedCTC: Joi.number().optional().messages({
+    "number.base": "Expected CTC should be a number",
+  }),
+  noticePeriod: Joi.number().optional().messages({
+    "number.base": "Notice period should be a number",
+  }),
+})

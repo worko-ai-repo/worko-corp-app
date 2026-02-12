@@ -206,43 +206,6 @@ class GcpFirestoreVectorLibrary {
 
     return response;
   }
-
-  /**
-   * Smart update: Only regenerates embedding if the text has actually changed
-   * This is an optimization to avoid unnecessary API calls
-   */
-  async updateDocumentWithEmbeddingIfChanged<
-    UpdateEntityDto extends DocumentData,
-    DbEntityDto
-  >(
-    commonDbDetails: GcpFirestoreInteractionDto,
-    id: string,
-    data: UpdateEntityDto,
-    newEmbeddingText: string,
-    oldEmbeddingText?: string,
-    title?: string
-  ): Promise<DbEntityDto | undefined> {
-    // If text hasn't changed, skip embedding regeneration
-    if (oldEmbeddingText && oldEmbeddingText === newEmbeddingText) {
-      global.logger.info("Text unchanged, skipping embedding regeneration", {
-        documentId: id,
-      });
-
-      return gcpFirestoreLibrary.updateDocumentById<
-        UpdateEntityDto,
-        DbEntityDto
-      >(commonDbDetails, id, data);
-    }
-
-    // Text changed, regenerate embedding
-    return this.updateDocumentWithEmbedding<UpdateEntityDto, DbEntityDto>(
-      commonDbDetails,
-      id,
-      data,
-      newEmbeddingText,
-      title
-    );
-  }
 }
 
 /**

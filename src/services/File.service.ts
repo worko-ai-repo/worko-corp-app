@@ -7,7 +7,7 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsS3ClientLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { AdminCandBulkCvUploadPsuToViewApiDto, AgencyBulkCvsPreSignedUrlToUploadFileDto, AgencyBulkCvsPsuToViewApiDto, AgencyBulkJdResumePreSignedUrlToUploadDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, CorpCandBulkCvUploadPsuToViewApiDto, CorpCandReferralCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
+import { AdminCandBulkCvUploadPsuToViewApiDto, AgencyBulkCvsPreSignedUrlToUploadFileDto, AgencyBulkCvsPsuToViewApiDto, AgencyBulkJdResumePreSignedUrlToUploadDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, CandidateSubmissionCvForJobPsuToUploadApiDto, CandidateSubmissionCvForJobPsuToViewApiDto, CorpCandBulkCvUploadPsuToViewApiDto, CorpCandReferralCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
 import { CorporateCandidateProfileBulkCvPsuToUploadApiDto } from "../dtos/CorporateCandidateProfile.dto";
 import { CentralCandidateProfileBulkCvPsuToUploadApiDto } from "../dtos/CentralCandidateProfile.dto";
 
@@ -745,6 +745,127 @@ class FileService {
       fileMimeType: fileMimeType,
       fileExtension: fileExtension,
       awsS3SignedUrl: fileSignedUrl,
+    };
+  }
+
+  private async validatePsuToUploadOrViewCandidateSubmissionCvForJob(
+    companyId: string,
+    jobId: string
+  ) {
+    const reqBodyCompanyDetails: QueryResponse<DbCompanyDetailDto> =
+      await companyDetailServiceObj.getCompanyDetailById(companyId);
+    if (!reqBodyCompanyDetails.count) {
+      throw new BaseError(
+        `Company details not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+    const reqBodyCompanyData: DbCompanyDetailDto = reqBodyCompanyDetails[0];
+
+    const reqBodyJobDetails: QueryResponse<DbCompanyJobDto> =
+      await companyJobServiceObj.getJobById(jobId);
+    if (!reqBodyJobDetails.count) {
+      throw new BaseError(
+        `Job details not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+    const reqBodyJobData: DbCompanyJobDto = reqBodyJobDetails[0];
+
+    if (reqBodyCompanyData.id !== reqBodyJobData.companyId) {
+      throw new BaseError(
+        `Job does not belong to the company.`,
+        HttpStatusCode.CONFLICT_409
+      );
+    }
+  }
+
+  async generatePsuToUploadCandidateSubmissionCvForJob(requestBodyObject: CandidateSubmissionCvForJobPsuToUploadApiDto): Promise<PreSignedUrlToUploadFileResponseDto> {
+    await this.validatePsuToUploadOrViewCandidateSubmissionCvForJob(
+      requestBodyObject.companyId,
+      requestBodyObject.jobId
+    );
+
+    const { companyId, jobId, fileMimeType, fileName } = requestBodyObject;
+
+    const fileUploadPath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.CAND_SUBMIT_CV_JOB.strtr({
+        "{companyId}": companyId,
+        "{jobId}": jobId,
+      });
+
+    const fileExtension: string = fileName.split(".").pop() as string;
+
+    const cloudFileName: string = `${UlidService.getUlidId()}.${fileExtension}`;
+
+    const bucketName: string | undefined =
+      process.env.APP_AWS_S3_BUCKET_WORKO_APP;
+    if (!bucketName) {
+      global.logger.error(`AWS S3 bucket name not found. [File Service]`, {
+        bucketName,
+        methodName: this.generatePsuToUploadCandidateSubmissionCvForJob.name,
+      });
+
+      throw new BaseError(
+        `AWS S3 bucket name not found.`,
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const fileSignedUrl: string =
+      await awsS3ClientLibrary.getSignedUrlForUploadingObject(
+        bucketName,
+        `${fileUploadPath}/${cloudFileName}`,
+        APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
+        {
+          ContentType: fileMimeType,
+        }
+      );
+
+    return {
+      userFileName: fileName,
+      cloudFileName: cloudFileName,
+      fileMimeType: fileMimeType,
+      fileExtension: fileExtension,
+      awsS3SignedUrl: fileSignedUrl,
+    };
+  }
+
+  async generatePsuToViewCandidateSubmissionCvForJob(requestBodyObject: CandidateSubmissionCvForJobPsuToViewApiDto): Promise<PreSignedUrlToViewFileResponseDto> {
+    const { companyId, jobId, candCvAwsS3FileName } = requestBodyObject;
+
+    await this.validatePsuToUploadOrViewCandidateSubmissionCvForJob(
+      requestBodyObject.companyId,
+      requestBodyObject.jobId
+    );
+
+    const filePath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.CAND_SUBMIT_CV_JOB.strtr({
+        "{companyId}": companyId,
+        "{jobId}": jobId,
+      });
+
+    const bucketName: string | undefined =
+      process.env.APP_AWS_S3_BUCKET_WORKO_APP;
+    if (!bucketName) {
+      global.logger.error(`AWS S3 bucket name not found. [File Service]`, {
+        bucketName,
+        methodName: this.generatePsuToViewAgencyUserSubmissionCv.name,
+      });
+
+      throw new BaseError(
+        `Internal server error.`,
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const objectUrl: string = await awsS3ClientLibrary.generateObjectUrl(
+      bucketName,
+      `${filePath}/${candCvAwsS3FileName}`
+    );
+
+    return {
+      objectUrl: objectUrl,
     };
   }
 

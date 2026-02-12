@@ -26,6 +26,20 @@ export interface EmailTemplatePlaceholderCAND_ACCOUNT_CHANGE_PASS_SIGNUP_REMINDE
   candidateTemporaryPassword: string;
 }
 
+export interface EmailTemplatePlaceholderCAND_SUCCESS_SUBMIT_FORM_FOR_JOB extends EmailTemplatePlaceholderSOCIAL_PROFILE_DETAILS {
+  candidateName: string;
+  jobTitle: string;
+  companyName: string;
+  dateApplied: string;
+}
+
+export interface EmailTemplatePlaceholderCAND_DUPLICATE_JOB_APPLICATION_SUBMIT_FORM_FOR_JOB extends EmailTemplatePlaceholderSOCIAL_PROFILE_DETAILS {
+  candidateName: string;
+  jobTitle: string;
+  companyName: string;
+  dateApplied: string;
+}
+
 /**
  * @note
  *  1. Below will be used if we want to send email to candidates for agency bulk cv check

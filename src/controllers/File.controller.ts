@@ -2,13 +2,13 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { AdminCandBulkCvUploadPsuToViewApiDto, AgencyBulkCvsPsuToViewApiDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, CorpCandBulkCvUploadPsuToViewApiDto, CorpCandReferralCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
+import { AdminCandBulkCvUploadPsuToViewApiDto, AgencyBulkCvsPsuToViewApiDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, CandidateSubmissionCvForJobPsuToUploadApiDto, CandidateSubmissionCvForJobPsuToViewApiDto, CorpCandBulkCvUploadPsuToViewApiDto, CorpCandReferralCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
 
 // Import enums
 import { FileResourceKeyEnum } from "../enums/File.enum";
 
 // Import schemas
-import { adminCandBulkCvUploadPsuToViewApiDtoValidation, agencyBulkCvsPsuToViewApiDtoValidation, agencyUserInviteContractCopyPsuToUploadApiDtoValidation, agencyUserInviteContractCopyPsuToViewApiDtoValidation, agencyUserSubmissionCvPsuToUploadApiDtoValidation, agencyUserSubmissionCvPsuToViewApiDtoValidation, corpCandBulkCvUploadPsuToViewApiDtoValidation, corpCandReferralCvPsuToViewApiDtoValidation } from "../schemas/File.schema";
+import { adminCandBulkCvUploadPsuToViewApiDtoValidation, agencyBulkCvsPsuToViewApiDtoValidation, agencyUserInviteContractCopyPsuToUploadApiDtoValidation, agencyUserInviteContractCopyPsuToViewApiDtoValidation, agencyUserSubmissionCvPsuToUploadApiDtoValidation, agencyUserSubmissionCvPsuToViewApiDtoValidation, candidateSubmissionCvForJobPsuToUploadApiDtoValidation, candidateSubmissionCvForJobPsuToViewApiDtoValidation, corpCandBulkCvUploadPsuToViewApiDtoValidation, corpCandReferralCvPsuToViewApiDtoValidation } from "../schemas/File.schema";
 
 // Import services
 import { fileServiceObj } from "../services/File.service";
@@ -93,6 +93,44 @@ class FileController {
       next(error);
     }
   };
+
+  generatePsuToViewCandidateSubmissionCvForJob = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      let requestBodyObject: CandidateSubmissionCvForJobPsuToViewApiDto =
+        req.body;
+
+      const { error } =
+        candidateSubmissionCvForJobPsuToViewApiDtoValidation.validate(
+          requestBodyObject,
+          {
+            abortEarly: false,
+          }
+        );
+      if (error) {
+        throw new RequestValidationError(error);
+      }
+
+      const response: PreSignedUrlToViewFileResponseDto =
+        await fileServiceObj.generatePsuToViewCandidateSubmissionCvForJob(
+          requestBodyObject
+        );
+
+      return res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(
+        `Error at catch block in while generating pre-signed url to view file. [File Controller]`,
+        {
+          error,
+          methodName: this.generatePsuToViewCandidateSubmissionCvForJob.name,
+        }
+      );
+      next(error);
+    }
+  }
 
   generatePsuToViewAgencyBulkCvs = async (
     req: Request,
@@ -285,6 +323,44 @@ class FileController {
     }
   };
 
+  generatePsuToUploadCandidateSubmissionCvForJob = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      let requestBodyObject: CandidateSubmissionCvForJobPsuToUploadApiDto =
+        req.body;
+
+      const { error } =
+        candidateSubmissionCvForJobPsuToUploadApiDtoValidation.validate(
+          requestBodyObject,
+          {
+            abortEarly: false,
+          }
+        );
+      if (error) {
+        throw new RequestValidationError(error);
+      }
+
+      const response: PreSignedUrlToUploadFileResponseDto =
+        await fileServiceObj.generatePsuToUploadCandidateSubmissionCvForJob(
+          requestBodyObject
+        );
+
+      return res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(
+        `Error at catch block in while generating pre-signed url for file upload. [File Controller]`,
+        {
+          error,
+          methodName: this.generatePsuToUploadCandidateSubmissionCvForJob.name,
+        }
+      );
+      next(error);
+    }
+  }
+
   generatePreSignedUrlsToUpload = async (
     req: Request,
     res: Response,
@@ -312,6 +388,10 @@ class FileController {
 
         case FileResourceKeyEnum.AGENCY_SUBMIT_USER_CV:
           await this.generatePsuToUploadAgencyUserSubmissionCv(req, res, next);
+          break;
+
+        case FileResourceKeyEnum.CAND_SUBMIT_CV_JOB: 
+          await this.generatePsuToUploadCandidateSubmissionCvForJob(req, res, next);
           break;
 
         default:
@@ -375,6 +455,10 @@ class FileController {
 
         case FileResourceKeyEnum.ADMIN_CAND_BULK_CV_UPLOAD:
           await this.generatePsuToViewAdminCandBulkCvUpload(req, res, next);
+          break;
+
+        case FileResourceKeyEnum.CAND_SUBMIT_CV_JOB: 
+          await this.generatePsuToViewCandidateSubmissionCvForJob(req, res, next);
           break;
 
         default:

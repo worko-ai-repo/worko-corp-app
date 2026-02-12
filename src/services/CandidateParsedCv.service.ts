@@ -3,7 +3,7 @@
 import { DateTime } from "luxon";
 
 // Import google cloud firestore
-import { DocumentData, QueryDocumentSnapshot } from "@google-cloud/firestore";
+import { DocumentData, QueryDocumentSnapshot, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import dynamoose
 import { QueryResponse } from "dynamoose/dist/ItemRetriever";
@@ -19,12 +19,13 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsClientCognitoIdentityProviderLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvBulkFindMatchingScoreApiDto, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvBulkFindMatchingScoreApiDto, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvParseSubmitFormApiDto, CandidateParsedCvParseSubmitFormResponseDto, CandidateParsedCvSubmitFormCreateApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO, MoveToApplicantSubmitFormCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
-import { UserJobApplicationMoveToApplicantCreateApiDTO } from "../dtos/UserJobApplication.dto";
-import { InvokeLambdaCandidateBulkMoveToApplicantDto } from "../dtos/InvokeLambda.dto";
+import { UserJobApplicationMoveToApplicantCreateApiDTO, UserJobApplicationMoveToApplicantSubmitFormCreateApiDTO } from "../dtos/UserJobApplication.dto";
+import { InvokeLambdaCandidateBulkMoveToApplicantDto, InvokeLambdaSubmitFormCandidateParsedCvActivityDto } from "../dtos/InvokeLambda.dto";
 import { PaginatedResultsWithMatchingConditionsInternalResponse } from "../dtos/Common.dto";
+import { EmailTemplatePlaceholderCAND_DUPLICATE_JOB_APPLICATION_SUBMIT_FORM_FOR_JOB, EmailTemplatePlaceholderCAND_SUCCESS_SUBMIT_FORM_FOR_JOB } from "../dtos/EmailTemplatePlaceholder.dto";
 
 // Import daos
 import { candidateParsedCvDaoObj } from "../daos/CandidateParsedCv.dao";
@@ -34,10 +35,16 @@ import { JobApplicationStatus } from "../enums/UserJobApplication.enum";
 import { UserType } from "../enums/User.enum";
 import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
 import { InvokeLambdaHandlerEventTypeEnum } from "../enums/InvokeLambda.enum";
+import { CorporateCandidateProfileDbRefereeTypeEnum } from "../enums/CorporateCandidateProfile.enum";
+import { CentralCandidateProfileDbRefereeTypeEnum } from "../enums/CentralCandidateProfile.enum";
+import { EmailTemplateEnum } from "../enums/EmailTemplate.enum";
 
 // Import helpers
 import { getActionByUserId } from "../helpers/user.helper";
 import { dateHelperObj } from "../helpers/date.helper";
+
+// Import libraries
+import { emailLibrary, EmailSourceDestinationAddress } from "../libraries/email.library";
 
 // Import models
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
@@ -47,6 +54,8 @@ import { DbUserJobApplicationDto } from "../db/aws-dynamodb-models/UserJobApplic
 import { DbCorporateUserDto } from "../db/aws-dynamodb-models/CorporateUser.model";
 import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJobMatching.model";
 import { DbCentralCandidateProfileDto } from "../db/gcp-firestore-models/CentralCandidateProfile.model";
+import { DbCompanyDetailDto } from "../db/aws-dynamodb-models/CompanyDetail.model";
+import { DbCorporateCandidateProfileDto } from "../db/gcp-firestore-models/CorporateCandidateProfile.model";
 
 // Import services
 import { gcpFirestoreJobServiceObj } from "./GcpFirestoreJob.service";
@@ -57,6 +66,8 @@ import { corporateUserServiceObj } from "./CorporateUser.service";
 import InvokeLambdaService from "./InvokeLambda.service";
 import { candidateJobMatchingServiceObj } from "./CandidateJobMatching.service";
 import { centralCandidateProfileServiceObj } from "./CentralCandidateProfile.service";
+import { companyDetailServiceObj } from "./CompanyDetail.service";
+import { corporateCandidateProfileServiceObj } from "./CorporateCandidateProfile.service";
 
 // Import utils
 import { BaseError } from "../utils/errors.util";
@@ -422,6 +433,25 @@ class CandidateParsedCvService {
     return moveToApplicantDetails;
   }
 
+  private async createJobApplicationMoveToApplicantSubmitForm(
+    validatedRequestBody: MoveToApplicantSubmitFormCandidateParsedCvCreateApiDTO,
+    candidateParsedCvDetails: DbCandidateParsedCvDto,
+  ): Promise<boolean> {
+    const {jobTitle, ...restValidatedRequestBody} = validatedRequestBody;
+
+    // Prepare job application create data
+    const jobApplicationCreateData: UserJobApplicationMoveToApplicantSubmitFormCreateApiDTO = {
+      ...restValidatedRequestBody,
+      applicantEmail: candidateParsedCvDetails.email,
+    };
+
+    const moveToApplicantDetails: boolean = await userJobApplicationServiceObj.createJobApplicationMoveToApplicantSubmitForm(
+      jobApplicationCreateData,
+    );
+
+    return moveToApplicantDetails;
+  }
+
   private async moveToApplUpdateCtcDetailsCandidateParsedCv(
     validatedRequestBody: MoveToApplicantCandidateParsedCvCreateApiDTO,
     actionByUserId?: string,
@@ -599,6 +629,118 @@ class CandidateParsedCvService {
       global.logger.error(`Failed to move to applicant, Failed to create user detail`, { methodName: this.moveToApplicantCandidateParsedCv.name, userDetailAndJobAppl });
       throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
     }
+
+    return userDetailAndJobAppl[1];
+  }
+
+  async moveToApplicantSubmitFormCandidateParsedCv(
+    validatedRequestBody: MoveToApplicantSubmitFormCandidateParsedCvCreateApiDTO
+  ) {
+    const reqBodyJobDetails: DbGcpFirestoreJobDto | undefined = await gcpFirestoreJobServiceObj.getJobById(validatedRequestBody.jobId);
+    if(!reqBodyJobDetails) {
+      global.logger.error(`Failed to move to applicant, Job not found`, { methodName: this.moveToApplicantSubmitFormCandidateParsedCv.name, validatedRequestBody });
+      throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const candidateParsedCvDetails: DbCandidateParsedCvDto | undefined = await candidateParsedCvServiceObj.getCandidateParsedCvById(
+      validatedRequestBody.candidateParsedCvId
+    );
+    if(!candidateParsedCvDetails) {
+      global.logger.error(`Failed to move to applicant, Candidate Parsed Cv not found`, { methodName: this.moveToApplicantSubmitFormCandidateParsedCv.name, validatedRequestBody });
+      throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const {
+      name: candidateName,
+      phoneNumberDetails: candidatePhoneNumberDetails,
+      email: candidateEmail
+    } = candidateParsedCvDetails;
+
+    const workoUserPoolId: string | undefined = process.env.APP_AWS_WORKO_COGNITO_USER_POOL_ID;
+    if(!workoUserPoolId) {
+      global.logger.error(`Failed to move to applicant, Worko User Pool Id not found`, { methodName: this.moveToApplicantSubmitFormCandidateParsedCv.name, validatedRequestBody });
+      throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const applicantRegisteredDetails: QueryResponse<DbUserDetailDto> = await UserDetailService.get(
+      candidateEmail
+    );
+    if(applicantRegisteredDetails.count) {
+      return this.createJobApplicationMoveToApplicantSubmitForm(validatedRequestBody, candidateParsedCvDetails);
+    }
+
+    const {
+      number: candidatePhoneNumber,
+      countryCode: candidatePhoneNumberCountryCode
+    } = candidatePhoneNumberDetails;
+    const candidateFullPhoneNumber: string = `+${candidatePhoneNumberCountryCode}${candidatePhoneNumber}`;
+    const temporaryPassword: string = `Temp${UlidService.getUlidId().toLowerCase()}!`; // temporary password with lowercase
+
+    const userCreateCognito: AdminCreateUserCommandOutput = await awsClientCognitoIdentityProviderLibrary.createUser(
+      workoUserPoolId,
+      candidateEmail,
+      temporaryPassword,
+      [
+        { Name: "name", Value: candidateName },
+        { Name: "phone_number", Value: `+${candidatePhoneNumberCountryCode}${candidatePhoneNumber}` }
+      ],
+      "SUPPRESS"
+    );
+    if(!userCreateCognito.User?.Username) {
+      global.logger.error(`Failed to move to applicant, Failed to create user in cognito`, { methodName: this.moveToApplicantSubmitFormCandidateParsedCv.name, validatedRequestBody });
+      throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    };
+
+    const createUserDetailDto: UserDetailCreateDto = {
+      id: userCreateCognito.User.Username,
+      userId: userCreateCognito.User.Username,
+      name: candidateName,
+      email: candidateEmail,
+      number: candidateFullPhoneNumber,
+      ECTC: candidateParsedCvDetails.expectedCTC,
+      YOE: candidateParsedCvDetails.relevantYOE,
+      emailList: {
+        primary: candidateEmail
+      },
+      userType: [UserType.CAND],
+      isEmailVerified: false,
+      isNumberVerified: false,
+      lastAccessedDash: UserType.CAND,
+      referralCount: 0,
+      isSubscribed: false,
+
+      /**
+       * @note It is dummy value, it is being updated later in the process
+       * @todo Need to check when and where this is updating in the process
+       */
+      expiryDate: DateTime.now().toJSDate(), 
+
+      acceptedTermsAndConditions: false,
+      isUserCreatedInternally: true
+    };
+
+    const userDetailAndJobAppl: [DbUserDetailDto, boolean,boolean, boolean] = await Promise.all([
+      UserDetailService.createUserDetail(createUserDetailDto),
+      this.createJobApplicationMoveToApplicantSubmitForm(validatedRequestBody, candidateParsedCvDetails),
+      UserDetailService.sendEmailForCandAcctSignupReminder(
+        candidateEmail,
+        validatedRequestBody.jobTitle,
+        validatedRequestBody.companyName,
+        candidateName,
+        temporaryPassword
+      ),
+      UserDetailService.scheduleCandChangePassSignupReminder(
+        {
+          candidateEmail,
+          candidateName,
+          jobTitle: validatedRequestBody.jobTitle,
+          companyName: validatedRequestBody.companyName,
+          temporaryPassword,
+          candidateCognitoUserId: userCreateCognito.User.Username,
+          reminderSendCount: 0
+        }
+      ),
+    ]);
 
     return userDetailAndJobAppl[1];
   }
@@ -1183,6 +1325,358 @@ class CandidateParsedCvService {
     }
 
     return updatedCandidateParsedCv;
+  }
+
+  async parseSubmitFormCandidateParsedCvAsync(
+    validatedReqBody: CandidateParsedCvParseSubmitFormApiDto
+  ) {
+    const invokeData:InvokeLambdaSubmitFormCandidateParsedCvActivityDto = validatedReqBody;
+    return InvokeLambdaService.triggerWorkoCorpAppInvokeLambdaTrigger({
+      eventType: InvokeLambdaHandlerEventTypeEnum.CANDIDATE_SUBMIT_CV_FOR_JOB,
+      data: invokeData,
+    });
+  }
+
+  async parseSubmitFormCandidateParsedCv(
+    validatedReqBody: CandidateParsedCvParseSubmitFormApiDto
+  ) {
+    const { 
+      jobId: reqBodyJobId, 
+      candidateParsedCvAwsS3FileName, 
+      companyId: reqBodyCompanyId,
+    } = validatedReqBody;
+
+    const reqBodyCompanyDetails: QueryResponse<DbCompanyDetailDto> =
+      await companyDetailServiceObj.getCompanyDetailById(reqBodyCompanyId);
+    if (!reqBodyCompanyDetails.count) {
+      throw new BaseError(
+        `Company details not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+    const reqBodyCompanyData: DbCompanyDetailDto = reqBodyCompanyDetails[0];
+
+    const reqBodyJobData: DbGcpFirestoreJobDto | undefined =
+      await gcpFirestoreJobServiceObj.getJobById(reqBodyJobId);
+    if (!reqBodyJobData) {
+      throw new BaseError(
+        `Job details not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+
+    if(!reqBodyJobData.companyId) {
+      global.logger.error(`Job does not belong to any company.`, {
+        methodName: this.parseSubmitFormCandidateParsedCv.name,
+        reqBodyJobData,
+      });
+      throw new BaseError(
+        `Job does not belong to any company.`,
+        HttpStatusCode.CONFLICT_409
+      );
+    }
+
+    const parsedCvDetails: APIGatewayProxyResult =
+      await InvokeLambdaService.triggerParseSubmitFormCandidateParsedCv({
+        companyId: reqBodyJobData.companyId,
+        jobId: reqBodyJobId,
+        candidateParsedCvAwsS3FileName,
+        cvAwsS3ResourceType: CandidateParsedCvAwsS3ResourceTypeEnum.CAND_SUBMIT_CV_JOB
+      });
+    if (parsedCvDetails.statusCode !== HttpStatusCode.OK_200) {
+      global.logger.error(`Failed to parse CV.`, {
+        methodName: this.parseSubmitFormCandidateParsedCv.name,
+        parsedCvDetails,
+      });
+      throw new BaseError(
+        "Failed to parse CV.",
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const parsedCvData: CandidateParsedCvParseSubmitFormResponseDto =
+      JSON.parse(parsedCvDetails.body);
+    global.logger.info(`Parsed CV.`, {
+      methodName: this.parseSubmitFormCandidateParsedCv.name,
+      parsedCvData,
+    })
+
+    if (!parsedCvData.email || !parsedCvData.phoneNumberDetails) {
+      global.logger.error(`Candidate email or phone number not found in parsed CV..`, {
+        methodName: this.parseSubmitFormCandidateParsedCv.name,
+        parsedCvData,
+      });
+      throw new BaseError(
+        "Candidate email or phone number not found in CV.",
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const existingCandidateProfile: QuerySnapshot<DocumentData, DocumentData> =
+      await corporateCandidateProfileServiceObj.getDuplicateCorporateCandidateProfile(
+        reqBodyJobData.companyId,
+        parsedCvData.email, // candidate email
+        parsedCvData.phoneNumberDetails // candidate phone number details
+      );
+    let duplicateCorporateCandidateProfile: DbCorporateCandidateProfileDto | undefined;
+    if (!existingCandidateProfile.empty) {
+      global.logger.error(
+        `Candidate is already submitted for the company job.`,
+        {
+          methodName: this.parseSubmitFormCandidateParsedCv.name,
+          reqBodyJobId,
+          parsedCvData,
+          duplicateCandidateProfile: existingCandidateProfile.docs[0].data(),
+        }
+      );
+      global.logger.error(`Duplicate profile.`, {
+        methodName: this.parseSubmitFormCandidateParsedCv.name,
+      });
+      duplicateCorporateCandidateProfile = existingCandidateProfile.docs[0].data() as DbCorporateCandidateProfileDto;
+    }
+
+    return {
+      parsedCvData: {
+        ...parsedCvData,
+        noticePeriod: validatedReqBody.noticePeriod,
+        expectedCTC: validatedReqBody.expectedCTC,
+        currentCTC: validatedReqBody.currentCTC,
+      },
+      duplicateCorporateCandidateProfile,
+      reqBodyJobData,
+      reqBodyCompanyData
+    };
+  }
+
+  async createSubmitFormCandidateParsedCv(
+    reqBody: CandidateParsedCvSubmitFormCreateApiDto,
+    reqBodyJobData: DbGcpFirestoreJobDto,
+    reqBodyCompanyData: DbCompanyDetailDto
+  ) {
+    const { companyId: reqBodyCompanyId, jobId: reqBodyJobId, cvAwsS3FileName } = reqBody;
+
+    const bucketName: string | undefined =
+      process.env.APP_AWS_S3_BUCKET_WORKO_APP;
+    if (!bucketName) {
+      global.logger.error(`AWS S3 bucket name not found. [File Service]`, {
+        bucketName,
+        methodName: this.createSubmitFormCandidateParsedCv.name,
+      });
+
+      throw new BaseError(
+        `Internal server error.`,
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const currentDate: string = dateHelperObj.getISODate();
+
+    /**
+     * Prepare data to Store Candidate parsed details in "CandidateParsedCv" model
+     */
+    const candidateParsedCvCreateData: DbCandidateParsedCvDto = {
+      ...reqBody,
+      id: UlidService.getUlidId(),
+      createdAt: currentDate,
+      updatedAt: currentDate,
+      // userDetailId: candidateDetails?.id,
+      cvAwsS3ResourceType: CandidateParsedCvAwsS3ResourceTypeEnum.CAND_SUBMIT_CV_JOB,
+      cvAwsS3BucketName: bucketName,
+      cvAwsS3FilePath: APP_CONSTANTS.AWS_S3_DIR_PATHS.CAND_SUBMIT_CV_JOB.strtr({
+        "{companyId}": reqBodyCompanyId,
+        "{jobId}": reqBodyJobId,
+      }),
+      cvAwsS3FileTracker: [
+        {
+          actionDate: currentDate,
+          resourceType: CandidateParsedCvAwsS3ResourceTypeEnum.CAND_SUBMIT_CV_JOB,
+          bucketName: bucketName,
+          filePath: APP_CONSTANTS.AWS_S3_DIR_PATHS.CAND_SUBMIT_CV_JOB.strtr({
+            "{companyId}": reqBodyCompanyId,
+            "{jobId}": reqBodyJobId,
+          }),
+          fileName: reqBody.cvAwsS3FileName,
+        }
+      ]
+    };
+
+    let refereeTypeForCorpCandProfile: CorporateCandidateProfileDbRefereeTypeEnum;
+    let refereeTypeForCentralCandProfile: CentralCandidateProfileDbRefereeTypeEnum;
+    if(reqBodyJobData.createdByCorporateUserId) {
+      refereeTypeForCorpCandProfile = CorporateCandidateProfileDbRefereeTypeEnum.INTERNAL;
+      refereeTypeForCentralCandProfile = CentralCandidateProfileDbRefereeTypeEnum.INTERNAL;
+    } else {
+      refereeTypeForCorpCandProfile = CorporateCandidateProfileDbRefereeTypeEnum.WORKO;
+      refereeTypeForCentralCandProfile = CentralCandidateProfileDbRefereeTypeEnum.WORKO;
+    }
+
+    const corporateCandidateProfileCreateData: DbCorporateCandidateProfileDto = {
+      id: UlidService.getUlidId(),
+      createdAt: currentDate,
+      updatedAt: currentDate,
+      companyId: reqBodyCompanyId,
+      jobId: reqBodyJobId,
+      candidateEmail: reqBody.email,
+      refereeType: refereeTypeForCorpCandProfile,
+      candidateParsedCvId: candidateParsedCvCreateData.id,
+      phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
+      // userDetailId: candidateDetails?.id
+    };
+
+    candidateParsedCvCreateData.corporateCandidateProfileId = corporateCandidateProfileCreateData.id;
+
+    const existingCentralCandidateProfile: DbCentralCandidateProfileDto | undefined =
+      await centralCandidateProfileServiceObj.getCentralCandidateProfileById(
+        reqBody.email
+      );
+
+    let createOrUpdateCentralCandidateProfile: Promise<DbCentralCandidateProfileDto | undefined>;
+
+    if(existingCentralCandidateProfile) {
+      createOrUpdateCentralCandidateProfile = centralCandidateProfileServiceObj.updateCentralCandidateProfileById(
+        reqBody.email,
+        {
+          updatedAt: currentDate,
+          candidateProfileInCompanies: [
+            ...(existingCentralCandidateProfile?.candidateProfileInCompanies ?? []),
+            {
+              companyId: reqBodyCompanyId,
+              companyName: reqBodyCompanyData.name,
+              jobIds: [reqBodyJobId]
+            }
+          ],
+          corporateCandidateProfileIds: [
+            ...(existingCentralCandidateProfile?.corporateCandidateProfileIds ?? []),
+            corporateCandidateProfileCreateData.id
+          ],
+          candidateParsedCvIds: [
+            ...(existingCentralCandidateProfile?.candidateParsedCvIds ?? []),
+            candidateParsedCvCreateData.id
+          ],
+          latestCandidateParsedCvId: candidateParsedCvCreateData.id,
+        }
+      )
+    } else {
+      let createCentralCandidateProfileData: DbCentralCandidateProfileDto = {
+        id: reqBody.email,
+        createdAt: currentDate,
+        updatedAt: currentDate,
+        candidateEmail: reqBody.email,
+        phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
+        refereeType: refereeTypeForCentralCandProfile,
+        // userDetailId: candidateDetails?.id,
+        candidateProfileInCompanies: [
+          {
+            companyId: reqBodyCompanyId,
+            companyName: reqBodyCompanyData.name,
+            jobIds: [reqBodyJobId],
+          },
+        ],
+        corporateCandidateProfileIds: [corporateCandidateProfileCreateData.id],
+        candidateParsedCvIds: [candidateParsedCvCreateData.id],
+        latestCandidateParsedCvId: candidateParsedCvCreateData.id,
+      };
+
+      createOrUpdateCentralCandidateProfile = centralCandidateProfileServiceObj.createCentralCandidateProfile(createCentralCandidateProfileData);
+    }
+
+    const createSubmitFormCandidateParsedCv: [
+      DbCandidateParsedCvDto | undefined, 
+      DbCorporateCandidateProfileDto | undefined, 
+      DbCentralCandidateProfileDto | undefined
+    ] = await Promise.all([
+      candidateParsedCvServiceObj.createCandidateParsedCvWithEmbedding(
+        candidateParsedCvCreateData
+      ),
+      corporateCandidateProfileServiceObj.createCorporateCandidateProfile(corporateCandidateProfileCreateData),
+      createOrUpdateCentralCandidateProfile,
+    ]);
+
+    if(!createSubmitFormCandidateParsedCv[0] || !createSubmitFormCandidateParsedCv[1] || !createSubmitFormCandidateParsedCv[2]) {
+      throw new BaseError("Failed to create candidate parsed cv, corporate candidate profile and central candidate profile.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    return createSubmitFormCandidateParsedCv[0];
+  }
+
+  async processSubmitFormCandidateParsedCvActivity(
+    data: InvokeLambdaSubmitFormCandidateParsedCvActivityDto
+  ) {
+    const parseSubmitFormCandidateParsedCv: {
+      parsedCvData: CandidateParsedCvParseSubmitFormResponseDto;
+      duplicateCorporateCandidateProfile: DbCorporateCandidateProfileDto | undefined;
+      reqBodyJobData: DbGcpFirestoreJobDto;
+      reqBodyCompanyData: DbCompanyDetailDto;
+    } = await this.parseSubmitFormCandidateParsedCv(data);
+
+    let candidateParsedCvId: string;
+    let candidateEmail: string;
+    let candidateName: string;
+
+    // If duplicate corporate candidate profile is found, then we don't need to create a new candidate parsed cv
+    if(!parseSubmitFormCandidateParsedCv.duplicateCorporateCandidateProfile) {
+      const createSubmitFormCandidateParsedCv: DbCandidateParsedCvDto = await this.createSubmitFormCandidateParsedCv(
+        {
+          ...parseSubmitFormCandidateParsedCv.parsedCvData,
+          companyId: data.companyId,
+          jobId: data.jobId,
+          cvAwsS3FileName: data.candidateParsedCvAwsS3FileName
+        },
+        parseSubmitFormCandidateParsedCv.reqBodyJobData,
+        parseSubmitFormCandidateParsedCv.reqBodyCompanyData
+      );
+      candidateParsedCvId = createSubmitFormCandidateParsedCv.id;
+      candidateEmail = createSubmitFormCandidateParsedCv.email;
+      candidateName = createSubmitFormCandidateParsedCv.name;
+    } else {
+      candidateParsedCvId = parseSubmitFormCandidateParsedCv.duplicateCorporateCandidateProfile.candidateParsedCvId;
+      candidateEmail = parseSubmitFormCandidateParsedCv.duplicateCorporateCandidateProfile.candidateEmail;
+      candidateName = parseSubmitFormCandidateParsedCv.parsedCvData.name;
+    }
+
+    const moveToApplicantCandidateParsedCv: boolean = await this.moveToApplicantSubmitFormCandidateParsedCv({
+      candidateParsedCvId,
+      jobId: data.jobId,
+      companyName: parseSubmitFormCandidateParsedCv.reqBodyCompanyData.name,
+      jobTitle: parseSubmitFormCandidateParsedCv.reqBodyJobData.jobTitle
+    });
+
+    const toAddress: EmailSourceDestinationAddress = {
+      email: candidateEmail,
+      fullName: candidateName.toTitleCase(),
+    };
+
+    if(moveToApplicantCandidateParsedCv) {
+      const emailPlaceholders: EmailTemplatePlaceholderCAND_SUCCESS_SUBMIT_FORM_FOR_JOB =
+        {
+          candidateName: candidateName.toTitleCase(),
+          jobTitle: parseSubmitFormCandidateParsedCv.reqBodyJobData.jobTitle.toTitleCase(),
+          companyName: parseSubmitFormCandidateParsedCv.reqBodyCompanyData.name.toTitleCase(),
+          dateApplied: dateHelperObj.getCurrentDayMonthYearFormattedDate(),
+          ...APP_CONSTANTS.GET_WORKO_SOCIAL_PROFILES_TO_SEND_EMAIL,
+        };
+
+      await emailLibrary.sendEmail(
+        EmailTemplateEnum.CAND_SUCCESS_SUBMIT_FORM_FOR_JOB,
+        toAddress,
+        emailPlaceholders
+      );
+    } else {
+      const emailPlaceholders: EmailTemplatePlaceholderCAND_DUPLICATE_JOB_APPLICATION_SUBMIT_FORM_FOR_JOB =
+        {
+          candidateName: candidateName.toTitleCase(),
+          jobTitle: parseSubmitFormCandidateParsedCv.reqBodyJobData.jobTitle.toTitleCase(),
+          companyName: parseSubmitFormCandidateParsedCv.reqBodyCompanyData.name.toTitleCase(),
+          dateApplied: dateHelperObj.getCurrentDayMonthYearFormattedDate(),
+          ...APP_CONSTANTS.GET_WORKO_SOCIAL_PROFILES_TO_SEND_EMAIL,
+        };
+
+      await emailLibrary.sendEmail(
+        EmailTemplateEnum.CAND_DUPLICATE_JOB_APPLICATION_SUBMIT_FORM_FOR_JOB,
+        toAddress,
+        emailPlaceholders
+      );
+    }
   }
 }
 

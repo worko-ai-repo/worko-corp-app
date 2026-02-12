@@ -26,6 +26,11 @@ CandidateParsedCvRouter.get("/search-in-db/admin-action", candidateParsedCvContr
 CandidateParsedCvRouter.get("/:id", candidateParsedCvController.getCandidateParsedCvById);
 
 /**
+ * @authorisedRoles ["public"]
+ */
+CandidateParsedCvRouter.post("/parse/submit-form", candidateParsedCvController.parseSubmitFormCandidateParsedCv);
+
+/**
  * @authorisedRoles ["corporate-recruiter", "corporate-admin", "admin"]
  */
 CandidateParsedCvRouter.post("/move-to-applicant", candidateParsedCvController.moveToApplicantCandidateParsedCv);

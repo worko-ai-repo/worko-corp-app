@@ -6,7 +6,7 @@ import { awsClientLambdaLibrary } from "../configs/aws-sdk.config";
 import APP_CONSTANTS from "../configs/constants.config";
 
 // import dtos
-import { InvokeLambdaSourceTypeJdResumeMatchingScoreDto, InvokeLambdaParseAgencyUserSubmissionCandidateCvDto, InvokeLambdaHandlerEventPayloadDto } from "../dtos/InvokeLambda.dto";
+import { InvokeLambdaSourceTypeJdResumeMatchingScoreDto, InvokeLambdaParseAgencyUserSubmissionCandidateCvDto, InvokeLambdaHandlerEventPayloadDto, InvokeLambdaParseSubmitFormCandidateParsedCvDto } from "../dtos/InvokeLambda.dto";
 
 /**
  * @note
@@ -45,6 +45,13 @@ class InvokeLambdaService {
   ) {
     return awsClientLambdaLibrary.triggerLambdaEventInvocationType(
       APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.WORKO_CORP_APP_INVOKE_LAMBDA_NAME,
+      payload
+    );
+  }
+
+  async triggerParseSubmitFormCandidateParsedCv(payload: InvokeLambdaParseSubmitFormCandidateParsedCvDto) {
+    return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType<InvokeLambdaParseSubmitFormCandidateParsedCvDto>(
+      APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.RESUME_EXTRACTION_LAMBDA_NAME,
       payload
     );
   }

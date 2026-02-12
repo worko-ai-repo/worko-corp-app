@@ -84,6 +84,23 @@ export interface MoveToApplicantCandidateParsedCvCreateApiDTO {
   jobTitle: string;
 }
 
+export interface MoveToApplicantSubmitFormCandidateParsedCvCreateApiDTO {
+  candidateParsedCvId: string;
+
+  /**
+   * jobId
+   *
+   * @reference `id` attribute of `CompanyJob.model.ts`
+   */
+  jobId: string;
+
+  /**
+   * companyName
+   */
+  companyName: string;
+  jobTitle: string;
+}
+
 export interface DuplicateJobApplicantBulkCandidateParsedCvApiDTO {
   jobId: string;
   applicantEmails: string[];
@@ -143,4 +160,115 @@ export interface CandidateParsedCvUpdateApiDto {
   userPreferredIndustries?: string[];
   userPreferredlocations?: string[];
   userPreferredRoles?: string[];
+}
+
+export interface CandidateParsedCvParseSubmitFormApiDto {
+  companyId: string;
+  jobId: string;
+
+  /**
+   * @reference "Amazon S3 > Buckets > worko-app-{environment}/candidate-submit-cvs/companies/{companyId}/jobs/{jobId}/cvs/<ulidId>.pdf"
+   */
+  candidateParsedCvAwsS3FileName: string;
+  currentCTC?: number;
+  expectedCTC?: number;
+  noticePeriod?: number;
+}
+
+export interface CandidateParsedCvSubmitFormCreateApiDto {
+  name: string;
+  email: string;
+  phoneNumberDetails: CommonPhoneNumberDto;
+  currentCompany: string;
+  currentDesignation: string;
+  totalYOE: number;
+  relevantYOE: number;
+  currentCTC?: number;
+  expectedCTC?: number;
+  noticePeriod?: number;
+  location: string;
+  readyToRelocate: boolean;
+  about?: string;
+  education?: {
+    collage: string;
+    degree: string;
+    startedYear?: number;
+    passingYear: number;
+    grade?: string;
+    field?: string;
+  }[];
+  coreSkills?: {
+    skillName: string;
+    years: number;
+    timestamps?: {
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
+  technicalSkills?: {
+    skillName: string;
+    years: number;
+    timestamps?: {
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
+  softSkills?: {
+    skillName: string;
+    timestamps?: {
+      createdAt: string;
+    };
+  }[];
+  userPreferredDepartments: string[];
+  userPreferredIndustries: string[];
+  userPreferredlocations: string[];
+  userPreferredRoles: string[];
+  
+  cvAwsS3FileName: string;
+  companyId: string;
+  jobId: string;
+}
+
+export interface CandidateParsedCvParseSubmitFormResponseDto {
+  name: string;
+  email: string;
+  phoneNumberDetails: CommonPhoneNumberDto;
+  currentCompany: string;
+  currentDesignation: string;
+  totalYOE: number;
+  relevantYOE: number;
+  currentCTC?: number;
+  expectedCTC?: number;
+  noticePeriod?: number;
+  location: string;
+  readyToRelocate: boolean;
+  about?: string;
+  education?: {
+    collage: string;
+    degree: string;
+    startedYear?: number;
+    passingYear: number;
+    grade?: string;
+    field?: string;
+  }[];
+  coreSkills?: {
+    skillName: string;
+    years: number;
+    timestamps?: {
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
+  technicalSkills?: {
+    skillName: string;
+    years: number;
+    timestamps?: {
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
+  userPreferredDepartments: string[];
+  userPreferredIndustries: string[];
+  userPreferredlocations: string[];
+  userPreferredRoles: string[];
 }

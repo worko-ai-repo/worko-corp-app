@@ -73,7 +73,7 @@ class CandidateParsedCvDao implements BaseDao {
     let searchPrompt: string = searchByJobDescription ? searchByJobDescription : (filterOptions.searchByPrompt as string);
 
     return gcpFirestoreVectorLibrary.getDocumentsByEmbedding<DbCandidateParsedCvDto>(
-      candidateParsedCvDaoObj.getCandidateParsedCvModelDetails(),
+      this.getCandidateParsedCvModelDetails(),
       searchPrompt,
       {
         pageSize: filterOptions.pageSize,
@@ -97,7 +97,7 @@ class CandidateParsedCvDao implements BaseDao {
     let searchPrompt: string = searchByJobDescription ? searchByJobDescription : (filterOptions.searchByPrompt as string);
 
     return gcpFirestoreVectorLibrary.getDocumentsByEmbedding<DbCandidateParsedCvDto>(
-      candidateParsedCvDaoObj.getCandidateParsedCvModelDetails(),
+      this.getCandidateParsedCvModelDetails(),
       searchPrompt,
       {
         preFilters: [

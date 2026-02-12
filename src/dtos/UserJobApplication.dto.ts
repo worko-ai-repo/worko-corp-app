@@ -50,6 +50,25 @@ export interface UserJobApplicationMoveToApplicantCreateApiDTO {
   matchingScoreDetails?: AgencyUserSubmissionDbMatchingScoreDetailDto;
 }
 
+export interface UserJobApplicationMoveToApplicantSubmitFormCreateApiDTO {
+  candidateParsedCvId: string;
+
+  /**
+   * jobId
+   *
+   * @reference `id` attribute of `CompanyJob.model.ts`
+   */
+  jobId: string;
+
+  companyName: string;
+
+  /**
+   * @description
+   *  1. Applicant need not to be registered in the system.
+   */
+  applicantEmail: string;
+}
+
 export interface UserJobApplicationMoveToApplicantCreateDto {
   /**
    * @note

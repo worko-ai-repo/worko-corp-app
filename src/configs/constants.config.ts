@@ -49,6 +49,7 @@ const APP_CONSTANTS = {
     USER_PROFILE_PIC: "users/{userId}/profilePics", // To upload the individual user's profile pics
     AGENCY_INVITE_CONTRACT_COPY: `companies/{companyId}/agency-invites/{agencyInviteId}/contract-copies`,
     AGENCY_SUBMIT_USER_CV: `agencies/{agencyUserId}/companies/{companyId}/jobs/{jobId}/user-profiles`,
+    CAND_SUBMIT_CV_JOB: `candidate-submit-cvs/companies/{companyId}/jobs/{jobId}/cvs`,
     AGENCY_BULK_CVS: `agencies/{agencyUserId}/bulk-cvs/{agencyBulkJdId}`,
 
     /**

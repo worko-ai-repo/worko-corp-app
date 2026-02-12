@@ -83,6 +83,19 @@ export interface AgencyUserSubmissionCvPsuToUploadApiDto {
   fileMimeType: string;
 }
 
+export interface CandidateSubmissionCvForJobPsuToUploadApiDto {
+  companyId: string;
+  jobId: string;
+  /**
+   * @example "raj_cv.pdf"
+   */
+  fileName: string;
+
+  /**
+   * @example "application/pdf"
+   */
+  fileMimeType: string;
+}
 
 export interface AgencyUserSubmissionCvPsuToViewApiDto {
   companyId: string;
@@ -155,4 +168,13 @@ export interface CorpCandReferralCvPsuToViewApiDto {
 
 export interface AdminCandBulkCvUploadPsuToViewApiDto {
   candCvAwsS3FileName: string
+}
+
+export interface CandidateSubmissionCvForJobPsuToViewApiDto {
+  companyId: string;
+  jobId: string;
+  /**
+   * @example "{ulidId}.pdf"
+   */
+  candCvAwsS3FileName: string;
 }

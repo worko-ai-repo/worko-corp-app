@@ -9,7 +9,7 @@ import { userJobApplicationDao } from "../daos/UserJobApplication.dao";
 
 // import dtos
 import { PaginatedResultsWithMatchingConditionsInternalResponse } from "../dtos/Common.dto";
-import { UserJobApplicationMoveToApplicantCreateApiDTO, UserJobApplicationMoveToApplicantCreateDto, UserJobApplicationSendForEvaluationCreateApiDTO } from "../dtos/UserJobApplication.dto";
+import { UserJobApplicationMoveToApplicantCreateApiDTO, UserJobApplicationMoveToApplicantCreateDto, UserJobApplicationMoveToApplicantSubmitFormCreateApiDTO, UserJobApplicationSendForEvaluationCreateApiDTO } from "../dtos/UserJobApplication.dto";
 
 // import enums
 import { AdminRoleEnum } from "../enums/Common.enum";
@@ -52,6 +52,182 @@ import { DbCountCompanyJobDto } from "../db/aws-dynamodb-models/CountCompanyJob.
  * Service for handling user job application-related operations
  */
 class UserJobApplicationService {
+
+  async createJobApplicationMoveToApplicantSubmitForm(
+    reqBody: UserJobApplicationMoveToApplicantSubmitFormCreateApiDTO,
+  ) {
+    const {
+      applicantEmail: reqBodyApplicantEmail,
+      jobId: reqBodyJobId,
+      companyName: reqBodyCompanyName,
+      candidateParsedCvId: reqBodyCandidateParsedCvId,
+    } = reqBody;
+
+    // Fetch job details based on job ID
+    const jobDetails: DbCompanyJobDto = (
+      await companyJobServiceObj.getJobById(reqBodyJobId)
+    )[0];
+
+    // Throw an error if job is not published
+    if (jobDetails.status !== JobStatusEnum.PUBLISHED || jobDetails.isDeleted) {
+      throw new BaseError(
+        `The new job applications for this job are currently closed.`,
+        HttpStatusCode.FORBIDDEN_403
+      );
+    }
+
+    // Check if the user has already applied for the job and throw error if already applied for the job
+    let existingUserJobApplicationQueryResponse: QueryResponse<DbUserJobApplicationDto> =
+      await userJobApplicationDao.getJobApplicationByjobId(
+        reqBodyApplicantEmail,
+        jobDetails.id
+      );
+
+    // Check if user has already applied for the job
+    if (existingUserJobApplicationQueryResponse.count) {
+      // Throw error if user has already applied for the job.
+      global.logger.error(
+        `The application for this job is already present.`,
+        HttpStatusCode.CONFLICT_409
+      );
+      return false;
+    }
+
+    const currentDateAndTime: string = dateHelperObj.getISODate();
+
+    // Prepare the data required to create a new job application
+    const userJobApplicationDto: UserJobApplicationMoveToApplicantCreateDto = {
+      jobId: reqBodyJobId,
+      companyName: reqBodyCompanyName,
+      companyId: jobDetails.companyId,
+      status: JobApplicationStatus.ACCEPTED,
+      statusTracker: [
+        {
+          oldStatus: JobApplicationStatus.ACCEPTED,
+          newStatus: JobApplicationStatus.ACCEPTED,
+          actionDate: currentDateAndTime,
+        },
+      ],
+      candidateParsedCvId: reqBodyCandidateParsedCvId,
+    };
+
+    // Create a new job application
+    const jobApplicationDetails: DbUserJobApplicationDto =
+      await userJobApplicationDao.createJobApplicationMoveToApplicant(
+        reqBodyApplicantEmail, // email id of the candidate applying for the job
+        userJobApplicationDto // job application request body
+      );
+    if (!jobApplicationDetails || !jobApplicationDetails.id) {
+      throw new BaseError(
+        `Unable to move the candidate to applicants page.`,
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const countUserJobApplicationQueryResponse: QueryResponse<DbCountUserDto> =
+      await countUserServiceObj.getCountUserByRegisteredEmailAndEntityType(
+        reqBodyApplicantEmail,
+        CountUserDbEntityTypeEnum.JOB_APPLICATION
+      );
+    const countUserJobApplicationData: DbCountUserDto =
+      countUserJobApplicationQueryResponse[0];
+
+    const countGlobalCompanyJobQueryResponse: QueryResponse<DbCountGlobalDto> =
+      await countGlobalServiceObj.getCountGlobalByEntityType(
+        CountGlobalDbEntityTypeEnum.COMPANY_JOB
+      );
+    const countGlobalCompanyJobData: DbCountGlobalDto =
+      countGlobalCompanyJobQueryResponse[0];
+
+    const countGlobalCandidateQueryResponse: QueryResponse<DbCountGlobalDto> =
+      await countGlobalServiceObj.getCountGlobalByEntityType(
+        CountGlobalDbEntityTypeEnum.CANDIDATE
+      );
+    const countGlobalCandidateData: DbCountGlobalDto =
+      countGlobalCandidateQueryResponse[0];
+
+    const countCompanyJobQueryResponse: QueryResponse<DbCountCompanyJobDto> =
+      await countCompanyJobServiceObj.getCountCompanyJobByCompanyIdJobIdAndEntityType(
+        jobDetails.companyId,
+        jobDetails.id,
+        CountCompanyJobDbEntityTypeEnum.JOB_APPLICATION
+      );
+    const countCompanyJobData: DbCountCompanyJobDto =
+      countCompanyJobQueryResponse[0];
+
+    const countCompanyQueryResponse: QueryResponse<DbCountCompanyDto> =
+      await countCompanyServiceObj.getCountCompanyByCompanyIdAndEntityType(
+        jobDetails.companyId,
+        CountCompanyDbEntityTypeEnum.JOB_APPLICATION
+      );
+    const countCompanyData: DbCountCompanyDto = countCompanyQueryResponse[0];
+
+    await Promise.all([
+      countUserServiceObj.createOrUpdateCountUserForJobApplicationEntityType(
+        reqBodyApplicantEmail,
+        {
+          userJobApplicationCounts: {
+            ...countUserJobApplicationData?.userJobApplicationCounts,
+            total: countUserJobApplicationData?.userJobApplicationCounts?.total
+              ? countUserJobApplicationData.userJobApplicationCounts.total + 1
+              : 1,
+          },
+        },
+        !!countUserJobApplicationQueryResponse.count // If count user already exists in ddb then `true` else `false`
+      ),
+      countGlobalServiceObj.createOrUpdateCountGlobalForCompanyJobEntityType(
+        {
+          companyJobApplicationCounts: {
+            ...countGlobalCompanyJobData?.companyJobApplicationCounts,
+            total: countGlobalCompanyJobData?.companyJobApplicationCounts?.total
+              ? countGlobalCompanyJobData.companyJobApplicationCounts.total + 1
+              : 1,
+          },
+        },
+        !!countGlobalCompanyJobQueryResponse.count
+      ),
+      countGlobalServiceObj.createOrUpdateCountGlobalForCandidateEntityType(
+        {
+          candidateJobApplicationCounts: {
+            ...countGlobalCandidateData?.candidateJobApplicationCounts,
+            total: countGlobalCandidateData?.candidateJobApplicationCounts
+              ?.total
+              ? countGlobalCandidateData.candidateJobApplicationCounts.total + 1
+              : 1,
+          },
+        },
+        !!countGlobalCompanyJobQueryResponse.count
+      ),
+      countCompanyJobServiceObj.createOrUpdateCountCompanyJobForJobApplicationEntityType(
+        jobDetails.companyId,
+        jobDetails.id,
+        {
+          allJobApplicationCounts: {
+            ...countCompanyJobData?.allJobApplicationCounts,
+            total: countCompanyJobData?.allJobApplicationCounts?.total
+              ? countCompanyJobData.allJobApplicationCounts.total + 1
+              : 1,
+          },
+        },
+        !!countCompanyJobQueryResponse.count
+      ),
+      countCompanyServiceObj.createOrUpdateCountCompanyForJobApplicationEntityType(
+        jobDetails.companyId,
+        {
+          allJobApplicationCounts: {
+            ...countCompanyData?.allJobApplicationCounts,
+            total: countCompanyData?.allJobApplicationCounts?.total
+              ? countCompanyData.allJobApplicationCounts.total + 1
+              : 1,
+          },
+        },
+        !!countCompanyQueryResponse.count
+      ),
+    ]);
+
+    return true;
+  }
+
   async createJobApplicationMoveToApplicant(
     reqBody: UserJobApplicationMoveToApplicantCreateApiDTO,
     cognitoUserGroups: string[],

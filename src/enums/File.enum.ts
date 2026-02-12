@@ -33,4 +33,12 @@ export enum FileResourceKeyEnum {
    *  1. In `My database` page of `Admin dashboard` whenever admin upload bulk candidate cvs
    */
   ADMIN_CAND_BULK_CV_UPLOAD = "ADMIN_CAND_BULK_CV_UPLOAD",
+
+  /**
+   * @description
+   *  1. Corporate creates a job in `worko` platform and generates a form link for that job and create the same job
+   *     in `linkedin` platform and whenever a user clicks apply button for that job, then it will opens a 
+   *     form to submit cv details, and this resource key will be used to store the cv in s3 bucket
+   */
+  CAND_SUBMIT_CV_JOB = "CAND_SUBMIT_CV_JOB",
 }

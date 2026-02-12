@@ -9,6 +9,13 @@ export interface InvokeLambdaParseAgencyUserSubmissionCandidateCvDto {
   candidateParsedCvAwsS3FileName: string;
 }
 
+export interface InvokeLambdaParseSubmitFormCandidateParsedCvDto {
+  companyId: string;
+  jobId: string;
+  candidateParsedCvAwsS3FileName: string;
+  cvAwsS3ResourceType: CandidateParsedCvAwsS3ResourceTypeEnum;
+}
+
 export interface InvokeLambdaSourceTypeJdResumeMatchingScoreDto {
   /**
    * @description
@@ -123,4 +130,17 @@ export interface InvokeLambdaAgencyUserSubmissionBulkSendForEvaluationMoveToAppl
   cognitoUserGroups: string[];
   actionByUserId?: string;
   actionByCorporateUserId?: string;
+}
+
+export interface InvokeLambdaSubmitFormCandidateParsedCvActivityDto {
+  companyId: string;
+  jobId: string;
+
+  /**
+   * @reference "Amazon S3 > Buckets > worko-app-{environment}/candidate-submit-cvs/companies/{companyId}/jobs/{jobId}/cvs/<ulidId>.pdf"
+   */
+  candidateParsedCvAwsS3FileName: string;
+  currentCTC?: number;
+  expectedCTC?: number;
+  noticePeriod?: number;
 }

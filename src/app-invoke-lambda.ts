@@ -12,7 +12,7 @@ import DBConfig from "./db/DB.config";
 import "./configs/gcp-sdk.config";
 
 // Import dtos
-import { InvokeLambdaAgencyUserSubmissionBulkMoveToApplicantDto, InvokeLambdaAgencyUserSubmissionBulkRejectApplicantDto, InvokeLambdaAgencyUserSubmissionBulkSendForEvaluationMoveToApplicantDto, InvokeLambdaCandidateBulkMoveToApplicantDto, InvokeLambdaHandlerEventPayloadDto } from "./dtos/InvokeLambda.dto";
+import { InvokeLambdaAgencyUserSubmissionBulkMoveToApplicantDto, InvokeLambdaAgencyUserSubmissionBulkRejectApplicantDto, InvokeLambdaAgencyUserSubmissionBulkSendForEvaluationMoveToApplicantDto, InvokeLambdaCandidateBulkMoveToApplicantDto, InvokeLambdaHandlerEventPayloadDto, InvokeLambdaSubmitFormCandidateParsedCvActivityDto } from "./dtos/InvokeLambda.dto";
 
 // Import enums
 import { InvokeLambdaHandlerEventTypeEnum } from "./enums/InvokeLambda.enum";
@@ -226,6 +226,16 @@ export const handler = async (
             response,
           },
         );
+        break;
+      }
+
+      case InvokeLambdaHandlerEventTypeEnum.CANDIDATE_SUBMIT_CV_FOR_JOB: {
+        await candidateParsedCvServiceObj.processSubmitFormCandidateParsedCvActivity(
+          data as InvokeLambdaSubmitFormCandidateParsedCvActivityDto
+        );
+        global.logger.info("App Invoke Lambda handler: Submit form candidate parsed cv activity Response: ", {
+          methodName: "handler",
+        })
         break;
       }
 

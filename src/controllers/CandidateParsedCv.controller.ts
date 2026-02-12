@@ -5,7 +5,7 @@ import { Request, Response, NextFunction } from "express";
 import { APIGatewayProxyResult } from "aws-lambda";
 
 // Import dtos
-import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvAdminEmbeddingListingFilterRequestDTO, CandidateParsedCvBulkFindMatchingScoreApiDto, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterRequestDTO, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvAdminEmbeddingListingFilterRequestDTO, CandidateParsedCvBulkFindMatchingScoreApiDto, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterRequestDTO, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvParseSubmitFormApiDto, CandidateParsedCvParseSubmitFormResponseDto, CandidateParsedCvSubmitFormCreateApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO, MoveToApplicantSubmitFormCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 import { PaginatedResultsWithMatchingConditionsInternalResponse } from "../dtos/Common.dto";
 
@@ -22,7 +22,7 @@ import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJ
 import { candidateParsedCvServiceObj } from "../services/CandidateParsedCv.service";
 
 // Import schemas
-import { candidateParsedCvAdminEmbeddingFilterDtoValidation, candidateParsedCvBulkFindMatchingScoreApiValidationDto, candidateParsedCvCorpEmbeddingFilterDtoValidation, candidateParsedCvFindMatchingScoreApiValidationDto, candidateParsedCvUpdateApiValidationDto, duplicateJobApplicantBulkCandidateParsedCvApiDtoValidation, moveToApplicantBulkCandidateParsedCvCreateApiDtoValidation, moveToApplicantCandidateParsedCvCreateApiDtoValidation } from "../schemas/CandidateParsedCv.schema";
+import { candidateParsedCvAdminEmbeddingFilterDtoValidation, candidateParsedCvBulkFindMatchingScoreApiValidationDto, candidateParsedCvCorpEmbeddingFilterDtoValidation, candidateParsedCvFindMatchingScoreApiValidationDto, candidateParsedCvParseSubmitFormApiValidationDto, candidateParsedCvUpdateApiValidationDto, duplicateJobApplicantBulkCandidateParsedCvApiDtoValidation, moveToApplicantBulkCandidateParsedCvCreateApiDtoValidation, moveToApplicantCandidateParsedCvCreateApiDtoValidation } from "../schemas/CandidateParsedCv.schema";
 
 // import utils
 import HttpStatusCode from "../utils/http-codes.util";
@@ -127,6 +127,39 @@ class CandidateParsedCvController {
       next(error);
     }
   }
+
+  parseSubmitFormCandidateParsedCv = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const reqBody: CandidateParsedCvParseSubmitFormApiDto = req.body;
+
+      const { error: reqBodyError, value: validatedReqBody } =
+        candidateParsedCvParseSubmitFormApiValidationDto.validate(reqBody, {
+          abortEarly: false,
+        });
+
+      if (reqBodyError) {
+        throw new RequestValidationError(reqBodyError);
+      }
+
+      const response =
+        await candidateParsedCvServiceObj.parseSubmitFormCandidateParsedCvAsync(
+          validatedReqBody
+        );
+      res.status(HttpStatusCode.ACCEPTED_202).json({
+        message: "Candidate cv parsing initiated successfully.",
+      });
+    } catch (error) {
+      global.logger.error(`Parse Submit Form Candidate Parsed Cv [Controller]`, {
+        methodName: this.parseSubmitFormCandidateParsedCv.name,
+        error,
+      })
+      next(error);
+    }
+  };
 
   moveToApplicantCandidateParsedCv = async (req: Request, res: Response, next: NextFunction) => {
     try {
