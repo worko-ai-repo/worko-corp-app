@@ -90,7 +90,8 @@ class FileService {
   }
 
   async generatePsuToBulkCvUploadCorporateCandidateProfile(
-    requestBody: CorporateCandidateProfileBulkCvPsuToUploadApiDto
+    requestBody: CorporateCandidateProfileBulkCvPsuToUploadApiDto,
+    corporateUserEmail: string,
   ): Promise<PreSignedUrlToUploadFileResponseDto[]> {
     const { companyId, bulkCvs } = requestBody;
     global.logger.info(
@@ -135,6 +136,10 @@ class FileService {
               APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
               {
                 ContentType: eachFileDetail.fileMimeType,
+                Metadata: {
+                  "bulkSourceTypeResumeId": requestBody.bulkSourceTypeResumeId,
+                  "corporateUserEmail": corporateUserEmail,
+                }
               }
             );
 
@@ -275,7 +280,7 @@ class FileService {
     };
   }
 
-  async generatePsuToBulkCvUploadCentralCandidateProfile(requestBody: CentralCandidateProfileBulkCvPsuToUploadApiDto) {
+  async generatePsuToBulkCvUploadCentralCandidateProfile(requestBody: CentralCandidateProfileBulkCvPsuToUploadApiDto, workoAdminUserEmail: string) {
     const { bulkCvs } = requestBody;
     global.logger.info(
       `Generate the Pre-signed URL to upload bulk cvs for central candidate profile. [File Service]`,
@@ -316,6 +321,10 @@ class FileService {
               APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
               {
                 ContentType: eachFileDetail.fileMimeType,
+                "Metadata": {
+                  "bulkSourceTypeResumeId": requestBody.bulkSourceTypeResumeId,
+                  "workoAdminUserEmail": workoAdminUserEmail
+                }
               }
             );
 

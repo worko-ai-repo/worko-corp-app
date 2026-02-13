@@ -255,3 +255,10 @@ export const candidateParsedCvParseSubmitFormApiValidationDto = Joi.object({
     "number.base": "Notice period should be a number",
   }),
 })
+
+export const candidateParsedCvRefreshApiValidationDto = Joi.object({
+  candidateParsedCvId: Joi.string().required().messages({
+    "string.empty": "Candidate parsed cv id is required",
+    "any.required": "Candidate parsed cv id is required",
+  })
+});

@@ -631,6 +631,11 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
     { path: "/candidate-parsed-cv/find-matching-score", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/find-matching-score/bulk", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/:id", method: HttpMethodsConstants.PATCH },
+    { path: "/candidate-parsed-cv/:id", method: HttpMethodsConstants.GET },
+    { path: "/candidate-parsed-cv/refresh", method: HttpMethodsConstants.POST },
+
+    // Bulk source type resume routers
+    { path: "/bulk-source-type-resume/", method: HttpMethodsConstants.POST },
 
     // Candidate Job Matching Routers
     { path: "/candidate-job-matching/:id", method: HttpMethodsConstants.GET },
@@ -795,10 +800,15 @@ var isCorporateAdminUrl = function (url, httpMethod) {
     { path: "/candidate-parsed-cv/find-matching-score", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/find-matching-score/bulk", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/:id", method: HttpMethodsConstants.PATCH },
+    { path: "/candidate-parsed-cv/:id", method: HttpMethodsConstants.GET },
+    { path: "/candidate-parsed-cv/refresh", method: HttpMethodsConstants.POST },
 
     // Candidate Job Matching Routers
     { path: "/candidate-job-matching/:id", method: HttpMethodsConstants.GET },
     { path: "/candidate-job-matching*", method: HttpMethodsConstants.GET },
+
+    // Bulk source type resume routers
+    { path: "/bulk-source-type-resume/", method: HttpMethodsConstants.POST },
 
     // Referral Source Type Activation Routers
     { path: "/referral-sourcetype-activation/", method: HttpMethodsConstants.POST },
@@ -1079,11 +1089,16 @@ var isAdminUrl = function (url, httpMethod) {
     { path: "/candidate-parsed-cv/move-to-applicant/bulk", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/find-matching-score", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/find-matching-score/bulk", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/refresh", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/:id", method: HttpMethodsConstants.GET },
 
     // Agency Cv Recharge Package routers
     { path: "/agency-cv-recharge-package*", method: HttpMethodsConstants.ANY },
 
     { path: "/candidate-job-matching*", method: HttpMethodsConstants.GET },
+
+    // Bulk source type resume routers
+    { path: "/bulk-source-type-resume/", method: HttpMethodsConstants.POST },
   ];
 
   const result = checkMatchingPattern(url, adminUrlList, httpMethod);

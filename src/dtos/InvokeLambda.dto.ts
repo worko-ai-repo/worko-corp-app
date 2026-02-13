@@ -16,6 +16,14 @@ export interface InvokeLambdaParseSubmitFormCandidateParsedCvDto {
   cvAwsS3ResourceType: CandidateParsedCvAwsS3ResourceTypeEnum;
 }
 
+export interface InvokeLambdaRefreshCandidateParsedCvDto {
+  event: "SOURCE_TYPE_REFRESH_CV";
+  candidateParsedCvAwsS3FileName: string; // "UJFGVBGVGHVFGGHCJVNB.pdf";
+  cvAwsS3FilePath: string;
+  cvAwsS3ResourceType: CandidateParsedCvAwsS3ResourceTypeEnum; // "CORP_CAND_BULK_CV_UPLOAD";
+  cvAwsS3BucketName: string; // "worko-corporate-cand-profile-dev";
+}
+
 export interface InvokeLambdaSourceTypeJdResumeMatchingScoreDto {
   /**
    * @description
@@ -143,4 +151,8 @@ export interface InvokeLambdaSubmitFormCandidateParsedCvActivityDto {
   currentCTC?: number;
   expectedCTC?: number;
   noticePeriod?: number;
+}
+
+export interface InvokeLambdaRefreshCandidateParsedCvTriggerDto {
+  candidateParsedCvId: string;
 }

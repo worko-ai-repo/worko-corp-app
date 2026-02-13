@@ -30,4 +30,20 @@ export enum SqsMsgEventEnum {
    *    calculated matching score. 
    */
   AGENCY_BULK_JD_RESUME_POST_MATCHING_SCORE = "AGENCY_BULK_JD_RESUME_POST_MATCHING_SCORE",
+
+  /**
+   * @description
+   *    1. Whenever a `corporate` uploads bulk candidate cv's against his particular `company`
+   *    the cv will be get parsed in `worko-cand-profile-parser-dev` lambda and duplicacy will be checked,
+   *    if duplicate found and the cv is `3` months old then this event will be triggered to update that cv
+   */
+  OLDER_CV_CORPORATE_CAND_PROFILE_BULK_UPLOAD = "OLDER_CV_CORPORATE_CAND_PROFILE_BULK_UPLOAD",
+
+  /**
+   * @description
+   *    1. Whenever a `worko-admin` uploads bulk candidate cv's
+   *    the cv will be get parsed in `worko-cand-profile-parser-dev` lambda and duplicacy will be checked,
+   *    if duplicate found and the cv is `3` months old then this event will be triggered to update that cv
+   */
+  OLDER_CV_ADMIN_CAND_PROFILE_BULK_UPLOAD = "OLDER_CV_ADMIN_CAND_PROFILE_BULK_UPLOAD",
 }

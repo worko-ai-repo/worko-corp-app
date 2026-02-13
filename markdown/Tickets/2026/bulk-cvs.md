@@ -35,3 +35,55 @@ const totalResumesSucceeded = FieldValue.increment(1)
 
 # Pending Implementations in Bulk cvs feature
 1. how to send `counts` of `failed`, `success`, `duplicate` to `react ui` 
+
+
+
+# if `corporateCandidateProfile`
+   1. check duplicacy
+      1. if found:
+         1. use `candidateParsedCvId` in `corporateCandidateProfile` as document id and retrieve data from `candidateParsedCvs`
+            1. check `cvAwsS3FileTracker` array
+               1. if find object containing `resourceType:CORP_CAND_BULK_CV_UPLOAD` in `cvAwsS3FileTracker` 
+                  1. if you recieve one object:
+                     1. then check `actionDate: "2026-01-27T14:56:23.954+00:00"`:
+                        1. less than `3` months:
+                           1. consider as `duplicate` and create document in `bulkSourceTypeParseResumes` as `DUPLICATE` status
+                        2. more than `3` months
+                           1. sqs with event name:
+                              ```json
+                              {    
+                                 event: "OLDER_CV_CORPORATE_CAND_PROFILE_BULK_UPLOAD",
+                                 companyId: string;
+                                 candidateCvAwsS3FileName: string;
+                                 cvExtractedParsed: SqsMsgCvExtractedParsedDto;
+                              }
+                              ```
+                           2. do not consider as `duplicate` and create document in `bulkSourceTypeParseResumes` as `SUCCESS` status
+      2. if not found:
+         do same thing ..
+         at last `CORPORATE_CAND_PROFILE_BULK_UPLOAD` sqs
+
+# else If `centralCandidateProfile`
+   1. check duplicacy
+      1. if found:
+         1. use `latestCandidateParsedCvId` in `centralCandidateProfile` as document id and retrieve data from `candidateParsedCvs`
+            1. check `cvAwsS3FileTracker` array
+               1. if find object containing `resourceType:ADMIN_CAND_BULK_CV_UPLOAD` in `cvAwsS3FileTracker` 
+                  1. if you recieve one object:
+                     1. then check `actionDate: "2026-01-27T14:56:23.954+00:00"`:
+                        1. less than `3` months:
+                           1. consider as `duplicate` and create document in `bulkSourceTypeParseResumes` as `DUPLICATE` status
+                        2. more than `3` months
+                           1. sqs with event name:
+                              ```json
+                              {    
+                                 event: "OLDER_CV_ADMIN_CAND_PROFILE_BULK_UPLOAD",
+                                 companyId: string;
+                                 candidateCvAwsS3FileName: string;
+                                 cvExtractedParsed: SqsMsgCvExtractedParsedDto;
+                              }
+                              ```
+                           2. do not consider as `duplicate` and create document in `bulkSourceTypeParseResumes` as `SUCCESS` status
+      2. if not found:
+         do same thing ..
+         at last `ADMIN_CAND_PROFILE_BULK_UPLOAD` sqs

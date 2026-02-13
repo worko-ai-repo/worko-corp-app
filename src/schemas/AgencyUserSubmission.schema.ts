@@ -110,7 +110,32 @@ export const agencyUserSubmissionCreateApiValidationDto = Joi.object({
       }),
     )
     .optional(),
-
+  multipleCandidateExperience: Joi.array()
+    .items(
+      Joi.object({
+        companyId: Joi.string().optional().messages({
+          "string.base": "Company Id must be a string",
+        }),
+        companyName: Joi.string().optional().messages({
+          "string.base": "Company Name must be a string",
+        }),
+        designation: Joi.string().optional().messages({
+          "string.base": "Designation must be a string",
+        }),
+        department: Joi.string().optional().messages({
+          "string.base": "Department must be a string",
+        }),
+        YOE: Joi.number().optional().messages({
+          "number.base": "YOE must be a number",
+        }),
+        startDate: Joi.string().isoDate().optional().messages({
+          "string.base": "Start Date must be a date",
+        }),
+        endDate: Joi.string().isoDate().optional().messages({
+          "string.base": "End Date must be a date",
+        })
+      })
+  ).optional(),
   location: Joi.string().required().lowercase().messages({
     "string.empty": "Location is required",
     "any.required": "Location is required",

@@ -111,7 +111,7 @@ class CorporateCandidateProfileService {
       );
     }
 
-    return fileServiceObj.generatePsuToBulkCvUploadCorporateCandidateProfile(requestBody);
+    return fileServiceObj.generatePsuToBulkCvUploadCorporateCandidateProfile(requestBody, corporateUserData.email);
   }
 
   async performGetAllCorporateCandidateProfileActivities(
@@ -266,7 +266,8 @@ class CorporateCandidateProfileService {
       userPreferredDepartments,
       userPreferredIndustries,
       userPreferredlocations,
-      userPreferredRoles
+      userPreferredRoles,
+      multipleCandidateExperience
     } = cvExtractedParsed;
 
     const existingCorporateCandidateProfile: QuerySnapshot<DocumentData, DocumentData> = await this.getDuplicateCorporateCandidateProfile(
@@ -313,6 +314,7 @@ class CorporateCandidateProfileService {
         userPreferredIndustries: userPreferredIndustries,
         userPreferredlocations: userPreferredlocations,
         userPreferredRoles: userPreferredRoles,
+        multipleCandidateExperience,
         cvAwsS3ResourceType: CandidateParsedCvAwsS3ResourceTypeEnum.CORP_CAND_BULK_CV_UPLOAD,
         cvAwsS3BucketName: process.env.APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE as string,
         cvAwsS3FilePath: APP_CONSTANTS.AWS_S3_DIR_PATHS.CORP_CAND_BULK_CV_UPLOAD.strtr({
@@ -425,6 +427,130 @@ class CorporateCandidateProfileService {
     }
   }
 
+  async validateOlderCvCorporateCandidateProfileBulkUpload(companyId: string, candidateCvAwsS3FileName: string, cvExtractedParsed: SqsMsgCvExtractedParsedDto): Promise<boolean> {
+    const companyDetails: QueryResponse<DbCompanyDetailDto> =
+      await companyDetailServiceObj.getCompanyDetailById(companyId);
+    if (!companyDetails.count) {
+      throw new BaseError(
+        `Company details not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+
+    const {
+      candidateNumber,
+      candidatePhoneCountryCode,
+      candidateName,
+      candidateNoticePeriod,
+      isNoticePeriodNegotiable,
+      candidateEmail,
+      about,
+      education,
+      candidateLocation,
+      candidateCurrentCompany,
+      candidateCurrentDesignation,
+      candidateRelevantYOE,
+      candidateTotalYOE,
+      candidateReadyToRelocate,
+      coreSkills,
+      technicalSkills,
+      userPreferredDepartments,
+      userPreferredIndustries,
+      userPreferredlocations,
+      userPreferredRoles,
+      multipleCandidateExperience
+    } = cvExtractedParsed;
+
+    const existingCorporateCandidateProfile: QuerySnapshot<DocumentData, DocumentData> = await this.getDuplicateCorporateCandidateProfile(
+      companyId,
+      candidateEmail,
+      {
+        number: candidateNumber,
+        countryCode: candidatePhoneCountryCode
+      }
+    );
+    const currentDate: string = dateHelperObj.getISODate();
+    if(existingCorporateCandidateProfile.empty) {
+      global.logger.info(`Corporate candidate profile not found.`, {
+        methodName: this.validateOlderCvCorporateCandidateProfileBulkUpload.name,
+        existingCorporateCandidateProfileLength: existingCorporateCandidateProfile.docs.length,
+      });
+      return false;
+    } else {
+      const existingCorporateCandidateProfileData = existingCorporateCandidateProfile.docs[0].data() as DbCorporateCandidateProfileDto;
+      const existingCandidateParsedCv: DbCandidateParsedCvDto | undefined = await candidateParsedCvServiceObj.getCandidateParsedCvById(existingCorporateCandidateProfileData.candidateParsedCvId);
+      if(!existingCandidateParsedCv) {
+        global.logger.info(`Candidate parsed CV not found.`, {
+          methodName: this.validateOlderCvCorporateCandidateProfileBulkUpload.name,
+          existingCorporateCandidateProfileLength: existingCorporateCandidateProfile.docs.length,
+        });
+        return false;
+      }
+
+      // Prepare data to update candidate parsed CV
+      const candidateParsedCvUpdateData: Partial<DbCandidateParsedCvDto> = {
+        updatedAt: currentDate,
+        name: candidateName.toLowerCase(),
+        about,
+        education,
+        currentCompany: candidateCurrentCompany,
+        currentDesignation: candidateCurrentDesignation,
+        totalYOE: candidateTotalYOE,
+        relevantYOE: candidateRelevantYOE,
+        noticePeriod: candidateNoticePeriod,
+        location: candidateLocation?.toLowerCase(),
+        readyToRelocate: candidateReadyToRelocate,
+        coreSkills: coreSkills,
+        technicalSkills: technicalSkills,
+        userPreferredDepartments: userPreferredDepartments,
+        userPreferredIndustries: userPreferredIndustries,
+        userPreferredlocations: userPreferredlocations,
+        userPreferredRoles: userPreferredRoles,
+        multipleCandidateExperience,
+        cvAwsS3ResourceType: CandidateParsedCvAwsS3ResourceTypeEnum.CORP_CAND_BULK_CV_UPLOAD,
+        cvAwsS3BucketName: process.env.APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE as string,
+        cvAwsS3FilePath: APP_CONSTANTS.AWS_S3_DIR_PATHS.CORP_CAND_BULK_CV_UPLOAD.strtr({
+          "{companyId}": companyId,
+        }),
+        cvAwsS3FileName: candidateCvAwsS3FileName,
+        cvAwsS3FileTracker: [
+          ...existingCandidateParsedCv.cvAwsS3FileTracker,
+          {
+            actionDate: currentDate,
+            resourceType: CandidateParsedCvAwsS3ResourceTypeEnum.CORP_CAND_BULK_CV_UPLOAD,
+            bucketName: process.env.APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE as string,
+            filePath: APP_CONSTANTS.AWS_S3_DIR_PATHS.CORP_CAND_BULK_CV_UPLOAD.strtr({
+              "{companyId}": companyId,
+            }),
+            fileName: candidateCvAwsS3FileName
+          }
+        ],
+        isNoticePeriodNegotiable,
+        companyId: companyId,
+      };
+
+      // Get existing candidate data from `CentralCandidateProfile` model
+      const existingCentralCandidateProfile: DbCentralCandidateProfileDto | undefined =
+        await centralCandidateProfileServiceObj.getCentralCandidateProfileById(
+          candidateEmail
+        );
+
+      if(!existingCentralCandidateProfile) {
+        global.logger.info(`Central candidate profile not found.`, {
+          methodName: this.validateOlderCvCorporateCandidateProfileBulkUpload.name,
+          existingCentralCandidateProfileLength: existingCentralCandidateProfile,
+        });
+        return false;
+      }
+      const candidateProfileResult: DbCandidateParsedCvDto | undefined = await candidateParsedCvServiceObj.updateCandidateParsedCvWithEmbedding(existingCandidateParsedCv.id, candidateParsedCvUpdateData);
+      if(candidateProfileResult) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+  }
+
   async validateCorporateCandProfileReferralSource(companyId: string, candidateCvAwsS3FileName: string, cvExtractedParsed: SqsMsgCvExtractedParsedDto): Promise<boolean> {
     const companyDetails: QueryResponse<DbCompanyDetailDto> =
       await companyDetailServiceObj.getCompanyDetailById(companyId);
@@ -456,7 +582,8 @@ class CorporateCandidateProfileService {
       userPreferredDepartments,
       userPreferredIndustries,
       userPreferredlocations,
-      userPreferredRoles
+      userPreferredRoles,
+      multipleCandidateExperience
     } = cvExtractedParsed;
 
     const existingCorporateCandidateProfile: QuerySnapshot<DocumentData, DocumentData> = await this.getDuplicateCorporateCandidateProfile(
@@ -497,6 +624,7 @@ class CorporateCandidateProfileService {
         readyToRelocate: candidateReadyToRelocate,
         coreSkills: coreSkills,
         technicalSkills: technicalSkills,
+        multipleCandidateExperience: multipleCandidateExperience,
         userPreferredDepartments: userPreferredDepartments,
         userPreferredIndustries: userPreferredIndustries,
         userPreferredlocations: userPreferredlocations,

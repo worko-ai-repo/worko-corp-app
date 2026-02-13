@@ -18,6 +18,8 @@ import {
    SqsMsgAgencyBulkJdResumePostMatchingScoreReqDto,
    SqsMsgCorporateCandProfileBulkUploadReqDto,
    SqsMsgCorporateCandProfileReferralSourceReqDto,
+   SqsMsgOlderCvAdminCandProfileBulkUploadReqDto,
+   SqsMsgOlderCvCorporateCandProfileBulkUploadReqDto,
 } from "./dtos/SqsEvent.dto";
 
 // Import enums
@@ -141,6 +143,56 @@ const validateCorporateCandProfileBulkUpload  = async (
   }
 };
 
+const validateOlderCvCorporateCandProfileBulkUpload  = async (
+  message: SqsMsgOlderCvCorporateCandProfileBulkUploadReqDto
+) => {
+  try {
+    const { companyId, candidateCvAwsS3FileName, cvExtractedParsed } = message;
+
+    if(!companyId || !candidateCvAwsS3FileName || !cvExtractedParsed){
+      global.logger.error(`Missing companyId or candidateCvAwsS3FileName or cvExtractedParsed [Controller]`, {
+        candidateCvAwsS3FileName,
+        cvExtractedParsed,
+        companyId
+      })
+      throw new BaseError(
+        `Unable to validate Older cv Corporate candidate profile bulk upload."`,
+        HttpStatusCode.BAD_REQUEST_400
+      );
+    }
+
+    const corpCandProfileActivityStatus: boolean = await corporateCandidateProfileServiceObj.validateOlderCvCorporateCandidateProfileBulkUpload(
+      companyId,
+      candidateCvAwsS3FileName,
+      cvExtractedParsed
+    );
+
+    // Return success response if validation was successful
+    if (corpCandProfileActivityStatus) {
+      return responseHandlerUtilObj.sendSuccess(
+        HttpStatusCode.OK_200,
+        "Older cv Corporate candidate profile bulk upload validated successfully."
+      );
+    } else {
+      // Throw custom error if validation failed
+      throw new BaseError(
+        `Unable to validate Older cv Corporate candidate profile bulk upload."`,
+        HttpStatusCode.BAD_REQUEST_400
+      );
+    }
+  } catch (error:any) {
+    global.logger.error(`validateOlderCvCorporateCandProfileBulkUpload error [Controller]`, {
+      methodName: "validateOlderCvCorporateCandProfileBulkUpload",
+      error,
+    })
+    // Return error response if validation failed
+    return responseHandlerUtilObj.sendError(
+      error,
+      error?.errorMsg ?? error?.message
+    );
+  }
+}
+
 const validateAdminCandProfileBulkUpload = async (
   message: SqsMsgAdminCandProfileBulkUploadReqDto
 ): Promise<object> => {
@@ -178,8 +230,57 @@ const validateAdminCandProfileBulkUpload = async (
       );
     }
   } catch (error:any) {
-    global.logger.error(`validateCorporateCandProfileBulkUpload error [Controller]`, {
-      methodName: "validateCorporateCandProfileBulkUpload",
+    global.logger.error(`validateAdminCandProfileBulkUpload error [Controller]`, {
+      methodName: "validateAdminCandProfileBulkUpload",
+      error,
+    })
+    // Return error response if validation failed
+    return responseHandlerUtilObj.sendError(
+      error,
+      error?.errorMsg ?? error?.message
+    );
+  }
+}
+
+const validateOlderCvAdminCandProfileBulkUpload = async (
+  message: SqsMsgOlderCvAdminCandProfileBulkUploadReqDto
+) => {
+  try {
+    const { candidateCvAwsS3FileName, cvExtractedParsed } = message;
+
+    if(!candidateCvAwsS3FileName || !cvExtractedParsed){
+      global.logger.error(`Missing candidateCvAwsS3FileName or cvExtractedParsed [Controller]`, {
+        candidateCvAwsS3FileName,
+        cvExtractedParsed
+      });
+      throw new BaseError(
+        `Unable to validate Older cv Admin candidate profile bulk upload."`,
+        HttpStatusCode.BAD_REQUEST_400
+      );
+    }
+
+    const adminCandProfileActivityStatus: boolean = await centralCandidateProfileServiceObj.validateCentralCandidateProfileBulkUpload(
+      candidateCvAwsS3FileName,
+      cvExtractedParsed
+    );
+
+    // Return success response if validation was successful
+    if (adminCandProfileActivityStatus) {
+      return responseHandlerUtilObj.sendSuccess(
+        HttpStatusCode.OK_200,
+        "Older cv Admin candidate profile bulk upload validated successfully."
+      );
+    } else {
+      // If duplicate candidate profile is found, it will return false
+      // Throw custom error if validation failed
+      throw new BaseError(
+        `Unable to validate Older cv Admin candidate profile bulk upload."`,
+        HttpStatusCode.BAD_REQUEST_400
+      );
+    }
+  } catch (error:any) {
+    global.logger.error(`validateOlderCvAdminCandProfileBulkUpload error [Controller]`, {
+      methodName: "validateOlderCvAdminCandProfileBulkUpload",
       error,
     })
     // Return error response if validation failed
@@ -299,8 +400,14 @@ export const handler = async (
       case SqsMsgEventEnum.CORPORATE_CAND_PROFILE_BULK_UPLOAD:
         return validateCorporateCandProfileBulkUpload(parsedMessageBody as SqsMsgCorporateCandProfileBulkUploadReqDto);
 
+      case SqsMsgEventEnum.OLDER_CV_CORPORATE_CAND_PROFILE_BULK_UPLOAD:
+        return validateOlderCvCorporateCandProfileBulkUpload(parsedMessageBody as SqsMsgOlderCvCorporateCandProfileBulkUploadReqDto);
+
       case SqsMsgEventEnum.ADMIN_CAND_PROFILE_BULK_UPLOAD:
         return validateAdminCandProfileBulkUpload(parsedMessageBody as SqsMsgAdminCandProfileBulkUploadReqDto);
+
+      case SqsMsgEventEnum.OLDER_CV_ADMIN_CAND_PROFILE_BULK_UPLOAD:
+        return validateOlderCvAdminCandProfileBulkUpload(parsedMessageBody as SqsMsgOlderCvAdminCandProfileBulkUploadReqDto);
         
       case SqsMsgEventEnum.CORPORATE_CAND_PROFILE_REFERRAL_SOURCE: 
         return validateCorporateCandProfileReferralSource(parsedMessageBody as SqsMsgCorporateCandProfileReferralSourceReqDto);

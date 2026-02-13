@@ -42,5 +42,9 @@ export const centralCandidateProfileBulkCvPsuToUploadApiDtoValidation = Joi.obje
     "any.required": "Bulk cvs is required",
     "array.min": "Bulk cvs should have at least 1 item",
     "array.max": "Bulk cvs should have at most 50 items"
+  }),
+  bulkSourceTypeResumeId: Joi.string().required().messages({
+    "string.empty": "Bulk source type resume id is required",
+    "any.required": "Bulk source type resume id is required",
   })
 })

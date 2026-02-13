@@ -12,7 +12,7 @@ import DBConfig from "./db/DB.config";
 import "./configs/gcp-sdk.config";
 
 // Import dtos
-import { InvokeLambdaAgencyUserSubmissionBulkMoveToApplicantDto, InvokeLambdaAgencyUserSubmissionBulkRejectApplicantDto, InvokeLambdaAgencyUserSubmissionBulkSendForEvaluationMoveToApplicantDto, InvokeLambdaCandidateBulkMoveToApplicantDto, InvokeLambdaHandlerEventPayloadDto, InvokeLambdaSubmitFormCandidateParsedCvActivityDto } from "./dtos/InvokeLambda.dto";
+import { InvokeLambdaAgencyUserSubmissionBulkMoveToApplicantDto, InvokeLambdaAgencyUserSubmissionBulkRejectApplicantDto, InvokeLambdaAgencyUserSubmissionBulkSendForEvaluationMoveToApplicantDto, InvokeLambdaCandidateBulkMoveToApplicantDto, InvokeLambdaHandlerEventPayloadDto, InvokeLambdaRefreshCandidateParsedCvTriggerDto, InvokeLambdaSubmitFormCandidateParsedCvActivityDto } from "./dtos/InvokeLambda.dto";
 
 // Import enums
 import { InvokeLambdaHandlerEventTypeEnum } from "./enums/InvokeLambda.enum";
@@ -236,6 +236,14 @@ export const handler = async (
         global.logger.info("App Invoke Lambda handler: Submit form candidate parsed cv activity Response: ", {
           methodName: "handler",
         })
+        break;
+      }
+
+      case InvokeLambdaHandlerEventTypeEnum.REFRESH_CANDIDATE_PARSED_CV: {
+        const invokeData = data as InvokeLambdaRefreshCandidateParsedCvTriggerDto;
+        await candidateParsedCvServiceObj.refreshCandidateParsedCv(
+          {candidateParsedCvId: invokeData.candidateParsedCvId}
+        );
         break;
       }
 

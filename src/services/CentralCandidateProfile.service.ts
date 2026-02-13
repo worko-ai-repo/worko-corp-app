@@ -11,11 +11,16 @@ import { centralCandidateProfileDaoObj } from "../daos/CentralCandidateProfile.d
 // Import dtos
 import { CentralCandidateProfileBulkCvPsuToUploadApiDto, CentralCandidateProfileDbPhoneNumberDto, CentralCandidateProfileListingFilterOptions } from "../dtos/CentralCandidateProfile.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
-import { SqsMsgCvExtractedParsedDto } from "../dtos/SqsEvent.dto";
+import { SqsMsgCvExtractedParsedDto, SqsMsgOlderCvAdminCandProfileBulkUploadReqDto } from "../dtos/SqsEvent.dto";
+
+// Import enums
+import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
+import { CentralCandidateProfileDbRefereeTypeEnum } from "../enums/CentralCandidateProfile.enum";
 
 // Import helpers
 import { injectEntityDetailsHelperObj } from "../helpers/injectEntityDetails.helper";
-import { getActionByUserId } from "../helpers/user.helper";
+import { getActionByUserId, getEmailFromPK } from "../helpers/user.helper";
+import { dateHelperObj } from "../helpers/date.helper";
 
 // Import models
 import { DbCentralCandidateProfileDto } from "../db/gcp-firestore-models/CentralCandidateProfile.model";
@@ -23,15 +28,13 @@ import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidatePars
 
 // Import services
 import { fileServiceObj } from "./File.service";
+import { candidateParsedCvServiceObj } from "./CandidateParsedCv.service";
+import UserDetailService from "./UserDetail.service";
+import UlidService from "./Ulid.service";
 
 // Import utils
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
-import UlidService from "./Ulid.service";
-import { dateHelperObj } from "../helpers/date.helper";
-import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
-import { CentralCandidateProfileDbRefereeTypeEnum } from "../enums/CentralCandidateProfile.enum";
-import { candidateParsedCvServiceObj } from "./CandidateParsedCv.service";
 
 class CentralCandidateProfileService {
   async createCentralCandidateProfile(
@@ -123,7 +126,15 @@ class CentralCandidateProfileService {
   }
 
   async generatePsuToBulkCvUploadCentralCandidateProfile(requestBody: CentralCandidateProfileBulkCvPsuToUploadApiDto) {
-    return fileServiceObj.generatePsuToBulkCvUploadCentralCandidateProfile(requestBody);
+    const {
+      actionByUserId
+    } = getActionByUserId(); 
+    if(!actionByUserId) {
+      throw new BaseError("Unauthorized.", HttpStatusCode.UNAUTHORIZED_401);
+    }
+
+    const adminDetails = await UserDetailService.getUserByIdOne(actionByUserId);
+    return fileServiceObj.generatePsuToBulkCvUploadCentralCandidateProfile(requestBody, getEmailFromPK(adminDetails.PK));
   }
 
   async validateCentralCandidateProfileBulkUpload(
@@ -152,7 +163,8 @@ class CentralCandidateProfileService {
       userPreferredDepartments,
       userPreferredIndustries,
       userPreferredlocations,
-      userPreferredRoles
+      userPreferredRoles,
+      multipleCandidateExperience
     } = cvExtractedParsed;
 
     // Get existing candidate data from `CentralCandidateProfile` model
@@ -196,6 +208,7 @@ class CentralCandidateProfileService {
         userPreferredIndustries: userPreferredIndustries,
         userPreferredlocations: userPreferredlocations,
         userPreferredRoles: userPreferredRoles,
+        multipleCandidateExperience,
         cvAwsS3ResourceType:
           CandidateParsedCvAwsS3ResourceTypeEnum.ADMIN_CAND_BULK_CV_UPLOAD,
         cvAwsS3BucketName: process.env
@@ -234,6 +247,114 @@ class CentralCandidateProfileService {
       ]);
 
       if(result.length) {
+        return true;
+      }
+
+      return false;
+    }
+  }
+
+  async validateOlderCvAdminCandProfileBulkUpload (
+    candidateCvAwsS3FileName: string,
+    cvExtractedParsed: SqsMsgCvExtractedParsedDto
+  ) {
+    const {
+      candidateNumber,
+      candidatePhoneCountryCode,
+      candidateName,
+      candidateNoticePeriod,
+      isNoticePeriodNegotiable,
+      about,
+      education,
+      candidateEmail,
+      candidateLocation,
+      candidateCurrentCompany,
+      candidateCurrentDesignation,
+      candidateRelevantYOE,
+      candidateTotalYOE,
+      candidateExpectedCTC,
+      candidateCurrentCTC,
+      candidateReadyToRelocate,
+      coreSkills,
+      technicalSkills,
+      userPreferredDepartments,
+      userPreferredIndustries,
+      userPreferredlocations,
+      userPreferredRoles,
+      multipleCandidateExperience
+    } = cvExtractedParsed;
+
+    // Get existing candidate data from `CentralCandidateProfile` model
+    const existingCentralCandidateProfile: QuerySnapshot<DocumentData, DocumentData> =
+      await this.getDuplicateCentralCandidateProfile(
+        candidateEmail,
+        {
+          number: candidateNumber,
+          countryCode: candidatePhoneCountryCode
+        }
+      );
+    if(existingCentralCandidateProfile.empty) {
+      global.logger.info("Candidate profile does not exist", {
+        candidateEmail,
+        methodName: this.validateOlderCvAdminCandProfileBulkUpload.name
+      });
+      return false;
+    } else {
+      const existingCentralCandidateProfileData = existingCentralCandidateProfile.docs[0].data() as DbCentralCandidateProfileDto;
+      const existingCandidateParsedCv: DbCandidateParsedCvDto | undefined = await candidateParsedCvServiceObj.getCandidateParsedCvById(existingCentralCandidateProfileData.latestCandidateParsedCvId);
+      if(!existingCandidateParsedCv) {
+        global.logger.info(`Candidate parsed CV not found.`, {
+          methodName: this.validateOlderCvAdminCandProfileBulkUpload.name,
+        });
+        return false;
+      }
+      const currentDate: string = dateHelperObj.getISODate();
+      // Prepare Create candidate parsed CV
+      const candidateParsedCvUpdateData: Partial<DbCandidateParsedCvDto> = {
+        updatedAt: currentDate,
+        about,
+        education,
+        currentCompany: candidateCurrentCompany,
+        currentDesignation: candidateCurrentDesignation,
+        totalYOE: candidateTotalYOE,
+        relevantYOE: candidateRelevantYOE,
+        currentCTC: candidateCurrentCTC,
+        expectedCTC: candidateExpectedCTC,
+        noticePeriod: candidateNoticePeriod,
+        location: candidateLocation?.toLowerCase(),
+        readyToRelocate: candidateReadyToRelocate,
+        coreSkills: coreSkills,
+        technicalSkills: technicalSkills,
+        userPreferredDepartments: userPreferredDepartments,
+        userPreferredIndustries: userPreferredIndustries,
+        userPreferredlocations: userPreferredlocations,
+        userPreferredRoles: userPreferredRoles,
+        multipleCandidateExperience,
+        cvAwsS3ResourceType:
+          CandidateParsedCvAwsS3ResourceTypeEnum.ADMIN_CAND_BULK_CV_UPLOAD,
+        cvAwsS3BucketName: process.env
+          .APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE as string,
+        cvAwsS3FilePath:
+          APP_CONSTANTS.AWS_S3_DIR_PATHS.ADMIN_CAND_BULK_CV_UPLOAD,
+        cvAwsS3FileName: candidateCvAwsS3FileName,
+        cvAwsS3FileTracker: [
+          ...existingCandidateParsedCv.cvAwsS3FileTracker,
+          {
+            actionDate: currentDate,
+            resourceType: CandidateParsedCvAwsS3ResourceTypeEnum.ADMIN_CAND_BULK_CV_UPLOAD,
+            bucketName: process.env
+              .APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE as string,
+            filePath:
+              APP_CONSTANTS.AWS_S3_DIR_PATHS.ADMIN_CAND_BULK_CV_UPLOAD,
+            fileName: candidateCvAwsS3FileName,
+          },
+        ],
+        isNoticePeriodNegotiable,
+      };
+
+      const result: DbCandidateParsedCvDto | undefined = await candidateParsedCvServiceObj.updateCandidateParsedCvWithEmbedding(existingCandidateParsedCv.id,candidateParsedCvUpdateData);
+
+      if(result) {
         return true;
       }
 

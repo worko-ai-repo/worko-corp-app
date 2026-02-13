@@ -19,11 +19,11 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsClientCognitoIdentityProviderLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvBulkFindMatchingScoreApiDto, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvParseSubmitFormApiDto, CandidateParsedCvParseSubmitFormResponseDto, CandidateParsedCvSubmitFormCreateApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO, MoveToApplicantSubmitFormCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvBulkFindMatchingScoreApiDto, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvParseSubmitFormApiDto, CandidateParsedCvParseSubmitFormResponseDto, CandidateParsedCvRefreshApiDto, CandidateParsedCvRefreshResponseDto, CandidateParsedCvSubmitFormCreateApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO, MoveToApplicantSubmitFormCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
 import { UserJobApplicationMoveToApplicantCreateApiDTO, UserJobApplicationMoveToApplicantSubmitFormCreateApiDTO } from "../dtos/UserJobApplication.dto";
-import { InvokeLambdaCandidateBulkMoveToApplicantDto, InvokeLambdaSubmitFormCandidateParsedCvActivityDto } from "../dtos/InvokeLambda.dto";
+import { InvokeLambdaCandidateBulkMoveToApplicantDto, InvokeLambdaRefreshCandidateParsedCvTriggerDto, InvokeLambdaSubmitFormCandidateParsedCvActivityDto } from "../dtos/InvokeLambda.dto";
 import { PaginatedResultsWithMatchingConditionsInternalResponse } from "../dtos/Common.dto";
 import { EmailTemplatePlaceholderCAND_DUPLICATE_JOB_APPLICATION_SUBMIT_FORM_FOR_JOB, EmailTemplatePlaceholderCAND_SUCCESS_SUBMIT_FORM_FOR_JOB } from "../dtos/EmailTemplatePlaceholder.dto";
 
@@ -1259,6 +1259,154 @@ class CandidateParsedCvService {
     const embeddingText: string = this.createSearchOptimizedCandidateParsedCvEmbeddingText(mergedData);
 
     return candidateParsedCvDaoObj.updateCandidateParsedCvWithEmbedding(id, updateData, embeddingText);
+  }
+
+  async refreshCandidateParsedCv(
+    reqBody: CandidateParsedCvRefreshApiDto
+  ) {
+    const { candidateParsedCvId } = reqBody;
+    const existingCandidateParsedCv: DbCandidateParsedCvDto | undefined = await this.getCandidateParsedCvById(candidateParsedCvId);
+    if (!existingCandidateParsedCv) {
+      global.logger.error(`Candidate Details does not exist.`, {
+        methodName: this.refreshCandidateParsedCv.name,
+        candidateParsedCvId
+      })
+      throw new BaseError(
+        "Candidate CV does not exist",
+        HttpStatusCode.NOT_FOUND_404
+      )
+    };
+    const {
+      cvAwsS3BucketName,
+      cvAwsS3FilePath,
+      cvAwsS3FileName,
+      cvAwsS3ResourceType
+    } = existingCandidateParsedCv;
+    const parsedCvDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerRefreshCandidateParsedCv({
+      event: "SOURCE_TYPE_REFRESH_CV",
+      candidateParsedCvAwsS3FileName: cvAwsS3FileName!,
+      cvAwsS3FilePath,
+      cvAwsS3ResourceType,
+      cvAwsS3BucketName
+    })
+    if (parsedCvDetails.statusCode !== HttpStatusCode.OK_200) {
+      global.logger.error(`Failed to Refresh Candidate Resume.`, {
+        methodName: this.refreshCandidateParsedCv.name,
+        parsedCvDetails,
+      });
+      throw new BaseError(
+        "Failed to parse CV.",
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const parsedCvData: CandidateParsedCvRefreshResponseDto = JSON.parse(parsedCvDetails.body);
+    const date: string = dateHelperObj.getISODate();
+    const updateData: Partial<DbCandidateParsedCvDto> = {
+      updatedAt: date,
+      isCandidateCvRefreshInProgress: false,
+    }
+    if(!existingCandidateParsedCv.about) {
+      updateData.about = parsedCvData.about;
+    }
+    if(!existingCandidateParsedCv.education) {
+      updateData.education = parsedCvData.education;
+    }
+    if(!existingCandidateParsedCv.currentCompany) {
+      updateData.currentCompany = parsedCvData.currentCompany;
+    }
+    if(!existingCandidateParsedCv.currentDesignation) {
+      updateData.currentDesignation = parsedCvData.currentDesignation;
+    }
+    if(!existingCandidateParsedCv.totalYOE) {
+      updateData.totalYOE = parsedCvData.totalYOE;
+    }
+    if(!existingCandidateParsedCv.relevantYOE) {
+      updateData.relevantYOE = parsedCvData.relevantYOE;
+    }
+    if(!existingCandidateParsedCv.currentCTC) {
+      updateData.currentCTC = parsedCvData.currentCTC;
+    }
+    if(!existingCandidateParsedCv.expectedCTC) {
+      updateData.expectedCTC = parsedCvData.expectedCTC;
+    }
+    if(!existingCandidateParsedCv.noticePeriod) {
+      updateData.noticePeriod = parsedCvData.noticePeriod;
+    }
+    if(!existingCandidateParsedCv.location) {
+      updateData.location = parsedCvData.location;
+    }
+    if(!existingCandidateParsedCv.readyToRelocate) {
+      updateData.readyToRelocate = parsedCvData.readyToRelocate;
+    }
+    if(!existingCandidateParsedCv.multipleCandidateExperience) {
+      updateData.multipleCandidateExperience = parsedCvData.multipleCandidateExperience;
+    }
+    if(!existingCandidateParsedCv.coreSkills) {
+      updateData.coreSkills = parsedCvData.coreSkills;
+    }
+    if(!existingCandidateParsedCv.technicalSkills) {
+      updateData.technicalSkills = parsedCvData.technicalSkills;
+    } 
+    if(!existingCandidateParsedCv.userPreferredDepartments) {
+      updateData.userPreferredDepartments = parsedCvData.userPreferredDepartments;
+    }
+    if(!existingCandidateParsedCv.userPreferredIndustries) {
+      updateData.userPreferredIndustries = parsedCvData.userPreferredIndustries;
+    }
+    if(!existingCandidateParsedCv.userPreferredlocations) {
+      updateData.userPreferredlocations = parsedCvData.userPreferredlocations;
+    }
+    if(!existingCandidateParsedCv.userPreferredRoles) {
+      updateData.userPreferredRoles = parsedCvData.userPreferredRoles;
+    }
+
+    if(Object.keys(updateData).length === 2) {
+      global.logger.error(`Every data is already up to date.`, { methodName: this.refreshCandidateParsedCv.name });
+      return this.updateCandidateParsedCvById(existingCandidateParsedCv.id, updateData);
+    }
+
+    updateData.candidateParsedCvRefreshedAt = date;
+
+    return this.updateCandidateParsedCvWithEmbedding(existingCandidateParsedCv.id, updateData);
+  }
+
+  async refreshCandidateParsedCvAsync(reqBody: CandidateParsedCvRefreshApiDto) {
+    const { candidateParsedCvId } = reqBody;
+    const existingCandidateParsedCv: DbCandidateParsedCvDto | undefined = await this.getCandidateParsedCvById(candidateParsedCvId);
+    if (!existingCandidateParsedCv) {
+      global.logger.error(`Candidate Details does not exist.`, {
+        methodName: this.refreshCandidateParsedCv.name,
+        candidateParsedCvId
+      })
+      throw new BaseError(
+        "Candidate CV does not exist",
+        HttpStatusCode.NOT_FOUND_404
+      )
+    };
+
+    const updatedCandidateParsedCv: DbCandidateParsedCvDto | undefined = await this.updateCandidateParsedCvById(
+      candidateParsedCvId,
+      {
+        updatedAt: dateHelperObj.getISODate(),
+        isCandidateCvRefreshInProgress: true,
+      }
+    );
+    if (!updatedCandidateParsedCv) {
+      global.logger.error(`Failed to update candidate parsed cv.`, {
+        methodName: this.refreshCandidateParsedCv.name,
+        candidateParsedCvId,
+      });
+      throw new BaseError("Failed to update candidate parsed cv.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const invokeData: InvokeLambdaRefreshCandidateParsedCvTriggerDto = {
+      candidateParsedCvId
+    };
+    return InvokeLambdaService.triggerWorkoCorpAppInvokeLambdaTrigger({
+      eventType: InvokeLambdaHandlerEventTypeEnum.REFRESH_CANDIDATE_PARSED_CV,
+      data: invokeData
+    })
   }
 
   async performUpdateCandidateParsedCv(

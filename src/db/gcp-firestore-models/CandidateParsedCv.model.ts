@@ -188,6 +188,9 @@ interface DbCandidateParsedCvDto extends BaseFirestoreModel {
 
   updatedByUserId?: string;
   updatedByCorporateUserId?: string;
+
+  isCandidateCvRefreshInProgress?: boolean;
+  candidateParsedCvRefreshedAt?: string;
 }
 
 export { DbCandidateParsedCvDto };

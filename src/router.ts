@@ -19,6 +19,7 @@ import AgencyCvCreditTransactionRouter from "./routers/AgencyCvCreditTransaction
 import AgencyCvDebitTransactionRouter from "./routers/AgencyCvDebitTransaction.router";
 import AgencyCvRechargeOrderRouter from "./routers/AgencyCvRechargeOrder.router";
 import ScriptRouter from "./routers/Script.router";
+import BulkSourceTypeResumeRouter from "./routers/BulkSourceTypeResume.router";
 
 // Router that contains all the routes/endpoints in the application
 const router = Router();
@@ -111,6 +112,11 @@ router.use("/corporate-candidate-profile", CorporateCandidateProfileRouter);
  * Central Candidate Profile Routers
  */
 router.use("/central-candidate-profile", CentralCandidateProfileRouter);
+
+/**
+ * Candidate Parsed CV Routers
+ */
+router.use("/bulk-source-type-resume", BulkSourceTypeResumeRouter);
 
 /**
  * Candidate Parsed CV Routers

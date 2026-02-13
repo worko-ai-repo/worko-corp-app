@@ -65,4 +65,19 @@ export interface AgencyBulkJdResumeDbCvExtractedParsedDto {
   userPreferredIndustries?: string[];
   userPreferredlocations?: string[];
   userPreferredRoles?: string[];
+  multipleCandidateExperience?: {
+    companyId?: string;
+    companyName: string;
+    designation: string;
+    department?: string;
+    YOE?: number;
+    startDate?: string;
+
+    /**
+     * endDate
+     *
+     * @description if endDate is not provided or empty string, it will be considered as ongoing experience
+     */
+    endDate?: string;
+  }[];
 }

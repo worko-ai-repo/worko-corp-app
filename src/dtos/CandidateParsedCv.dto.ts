@@ -251,6 +251,84 @@ export interface CandidateParsedCvParseSubmitFormResponseDto {
     grade?: string;
     field?: string;
   }[];
+  multipleCandidateExperience?: {
+    companyId?: string;
+    companyName: string;
+    designation: string;
+    department?: string;
+    YOE?: number;
+    startDate?: string;
+
+    /**
+     * endDate
+     *
+     * @description if endDate is not provided or empty string, it will be considered as ongoing experience
+     */
+    endDate?: string;
+  }[];
+  coreSkills?: {
+    skillName: string;
+    years: number;
+    timestamps?: {
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
+  technicalSkills?: {
+    skillName: string;
+    years: number;
+    timestamps?: {
+      createdAt: string;
+      updatedAt: string;
+    };
+  }[];
+  userPreferredDepartments: string[];
+  userPreferredIndustries: string[];
+  userPreferredlocations: string[];
+  userPreferredRoles: string[];
+}
+
+export interface CandidateParsedCvRefreshApiDto {
+  candidateParsedCvId: string;
+}
+
+export interface CandidateParsedCvRefreshResponseDto {
+  name: string;
+  email: string;
+  phoneNumberDetails: CommonPhoneNumberDto;
+  currentCompany: string;
+  currentDesignation: string;
+  totalYOE: number;
+  relevantYOE: number;
+  currentCTC?: number;
+  expectedCTC?: number;
+  noticePeriod?: number;
+  location: string;
+  readyToRelocate: boolean;
+  about?: string;
+  education?: {
+    collage: string;
+    degree: string;
+    startedYear?: number;
+    passingYear: number;
+    grade?: string;
+    field?: string;
+  }[];
+  multipleCandidateExperience?: {
+    companyId?: string;
+    companyName: string;
+    designation: string;
+    department?: string;
+    YOE?: number;
+    startDate?: string;
+
+    /**
+     * endDate
+     *
+     * @description if endDate is not provided or empty string, it will be considered as ongoing experience
+     */
+    endDate?: string;
+  }[];
   coreSkills?: {
     skillName: string;
     years: number;

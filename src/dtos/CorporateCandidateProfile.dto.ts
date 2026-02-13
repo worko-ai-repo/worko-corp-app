@@ -47,6 +47,11 @@ export interface CorporateCandidateProfileBulkCvPsuToUploadApiDto {
     fileName: string; // "sample-cv.pdf"
     fileMimeType: string; // "application/pdf"
   }[];
+
+  /**
+   * @reference "id" field of "BulkSourceTypeResume.model.ts
+   */
+  bulkSourceTypeResumeId: string;
 }
 
 export interface CorporateCandidateProfileBlacklistBulkApiDTO {

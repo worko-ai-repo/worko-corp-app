@@ -50,6 +50,21 @@ export interface SqsMsgCvExtractedParsedDto {
   userPreferredIndustries?: string[];
   userPreferredlocations?: string[];
   userPreferredRoles?: string[];
+  multipleCandidateExperience?: {
+    companyId?: string;
+    companyName: string;
+    designation: string;
+    department?: string;
+    YOE?: number;
+    startDate?: string;
+
+    /**
+     * endDate
+     *
+     * @description if endDate is not provided or empty string, it will be considered as ongoing experience
+     */
+    endDate?: string;
+  }[];
 }
 
 export interface SqsMsgCorporateCandProfileBulkUploadReqDto extends SqsMsgBaseReqDto {
@@ -58,7 +73,18 @@ export interface SqsMsgCorporateCandProfileBulkUploadReqDto extends SqsMsgBaseRe
   cvExtractedParsed: SqsMsgCvExtractedParsedDto;
 }
 
+export interface SqsMsgOlderCvCorporateCandProfileBulkUploadReqDto extends SqsMsgBaseReqDto {
+  companyId: string;
+  candidateCvAwsS3FileName: string;
+  cvExtractedParsed: SqsMsgCvExtractedParsedDto;
+}
+
 export interface SqsMsgAdminCandProfileBulkUploadReqDto extends SqsMsgBaseReqDto {
+  candidateCvAwsS3FileName: string;
+  cvExtractedParsed: SqsMsgCvExtractedParsedDto;
+}
+
+export interface SqsMsgOlderCvAdminCandProfileBulkUploadReqDto extends SqsMsgBaseReqDto {
   candidateCvAwsS3FileName: string;
   cvExtractedParsed: SqsMsgCvExtractedParsedDto;
 }
