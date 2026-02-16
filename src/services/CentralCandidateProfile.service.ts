@@ -167,10 +167,13 @@ class CentralCandidateProfileService {
       multipleCandidateExperience
     } = cvExtractedParsed;
 
+    const lowerCaseCandidateEmail: string = candidateEmail.toLowerCase();
+    const lowerCaseCandidateName: string = candidateName.toLowerCase();
+
     // Get existing candidate data from `CentralCandidateProfile` model
     const existingCentralCandidateProfile: QuerySnapshot<DocumentData, DocumentData> =
       await this.getDuplicateCentralCandidateProfile(
-        candidateEmail,
+        lowerCaseCandidateEmail,
         {
           number: candidateNumber,
           countryCode: candidatePhoneCountryCode
@@ -185,8 +188,8 @@ class CentralCandidateProfileService {
         id: UlidService.getUlidId(),
         createdAt: currentDate,
         updatedAt: currentDate,
-        name: candidateName.toLowerCase(),
-        email: candidateEmail.toLowerCase(),
+        name: lowerCaseCandidateName,
+        email: lowerCaseCandidateEmail,
         phoneNumberDetails: {
           number: candidateNumber,
           countryCode: candidatePhoneCountryCode,
@@ -231,10 +234,10 @@ class CentralCandidateProfileService {
       };
       
       let createCentralCandidateProfileData: DbCentralCandidateProfileDto = {
-        id: candidateEmail,
+        id: lowerCaseCandidateEmail,
         createdAt: currentDate,
         updatedAt: currentDate,
-        candidateEmail: candidateEmail,
+        candidateEmail: lowerCaseCandidateEmail,
         phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
         refereeType: CentralCandidateProfileDbRefereeTypeEnum.INTERNAL,
         candidateParsedCvIds: [candidateParsedCvCreateData.id],

@@ -270,9 +270,12 @@ class CorporateCandidateProfileService {
       multipleCandidateExperience
     } = cvExtractedParsed;
 
+    const lowerCaseCandidateEmail: string = candidateEmail.toLowerCase();
+    const lowerCaseCandidateName: string = candidateName.toLowerCase();
+
     const existingCorporateCandidateProfile: QuerySnapshot<DocumentData, DocumentData> = await this.getDuplicateCorporateCandidateProfile(
       companyId,
-      candidateEmail,
+      lowerCaseCandidateEmail,
       {
         number: candidateNumber,
         countryCode: candidatePhoneCountryCode
@@ -291,8 +294,8 @@ class CorporateCandidateProfileService {
         id: UlidService.getUlidId(),
         createdAt: currentDate,
         updatedAt: currentDate,
-        name: candidateName.toLowerCase(),
-        email: candidateEmail.toLowerCase(),
+        name: lowerCaseCandidateName,
+        email: lowerCaseCandidateEmail,
         phoneNumberDetails: {
           number: candidateNumber,
           countryCode: candidatePhoneCountryCode
@@ -342,7 +345,7 @@ class CorporateCandidateProfileService {
         createdAt: currentDate,
         updatedAt: currentDate,
         companyId: companyId,
-        candidateEmail: candidateEmail,
+        candidateEmail: lowerCaseCandidateEmail,
         refereeType: CorporateCandidateProfileDbRefereeTypeEnum.INTERNAL,
         phoneNumberDetails: {
           number: candidateNumber,
@@ -356,14 +359,14 @@ class CorporateCandidateProfileService {
       // Get existing candidate data from `CentralCandidateProfile` model
       const existingCentralCandidateProfile: DbCentralCandidateProfileDto | undefined =
         await centralCandidateProfileServiceObj.getCentralCandidateProfileById(
-          candidateEmail
+          lowerCaseCandidateEmail
         );
 
       let createOrUpdateCentralCandidateProfile: Promise<DbCentralCandidateProfileDto | undefined>;
 
       if(existingCentralCandidateProfile) {
         createOrUpdateCentralCandidateProfile = centralCandidateProfileServiceObj.updateCentralCandidateProfileById(
-          candidateEmail,
+          lowerCaseCandidateEmail,
           {
             updatedAt: currentDate,
             candidateProfileInCompanies: [
@@ -387,10 +390,10 @@ class CorporateCandidateProfileService {
         corporateCandidateProfileCreateData.candidateParsedCvId = candidateParsedCvCreateData.id;
 
         let createCentralCandidateProfileData: DbCentralCandidateProfileDto = {
-          id: candidateEmail,
+          id: lowerCaseCandidateEmail,
           createdAt: currentDate,
           updatedAt: currentDate,
-          candidateEmail: candidateEmail,
+          candidateEmail: lowerCaseCandidateEmail,
           phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
           refereeType: CentralCandidateProfileDbRefereeTypeEnum.INTERNAL,
           candidateProfileInCompanies: [
@@ -585,10 +588,12 @@ class CorporateCandidateProfileService {
       userPreferredRoles,
       multipleCandidateExperience
     } = cvExtractedParsed;
+    const lowerCaseCandidateEmail: string = candidateEmail.toLowerCase();
+    const lowerCaseCandidateName: string = candidateName.toLowerCase();
 
     const existingCorporateCandidateProfile: QuerySnapshot<DocumentData, DocumentData> = await this.getDuplicateCorporateCandidateProfile(
       companyId,
-      candidateEmail,
+      lowerCaseCandidateEmail,
       {
         number: candidateNumber,
         countryCode: candidatePhoneCountryCode
@@ -607,8 +612,8 @@ class CorporateCandidateProfileService {
         id: UlidService.getUlidId(),
         createdAt: currentDate,
         updatedAt: currentDate,
-        name: candidateName.toLowerCase(),
-        email: candidateEmail.toLowerCase(),
+        name: lowerCaseCandidateName,
+        email: lowerCaseCandidateEmail,
         phoneNumberDetails: {
           number: candidateNumber,
           countryCode: candidatePhoneCountryCode
@@ -656,7 +661,7 @@ class CorporateCandidateProfileService {
         createdAt: currentDate,
         updatedAt: currentDate,
         companyId: companyId,
-        candidateEmail: candidateEmail,
+        candidateEmail: lowerCaseCandidateEmail,
         refereeType: CorporateCandidateProfileDbRefereeTypeEnum.REFERRAL,
         phoneNumberDetails: {
           number: candidateNumber,
@@ -670,14 +675,14 @@ class CorporateCandidateProfileService {
       // Get existing candidate data from `CentralCandidateProfile` model
       const existingCentralCandidateProfile: DbCentralCandidateProfileDto | undefined =
         await centralCandidateProfileServiceObj.getCentralCandidateProfileById(
-          candidateEmail
+          lowerCaseCandidateEmail
         );
 
       let createOrUpdateCentralCandidateProfile: Promise<DbCentralCandidateProfileDto | undefined>;
 
       if(existingCentralCandidateProfile) {
         createOrUpdateCentralCandidateProfile = centralCandidateProfileServiceObj.updateCentralCandidateProfileById(
-          candidateEmail,
+          lowerCaseCandidateEmail,
           {
             updatedAt: currentDate,
             candidateProfileInCompanies: [
@@ -701,10 +706,10 @@ class CorporateCandidateProfileService {
         corporateCandidateProfileCreateData.candidateParsedCvId = candidateParsedCvCreateData.id;
 
         let createCentralCandidateProfileData: DbCentralCandidateProfileDto = {
-          id: candidateEmail,
+          id: lowerCaseCandidateEmail,
           createdAt: currentDate,
           updatedAt: currentDate,
-          candidateEmail: candidateEmail,
+          candidateEmail: lowerCaseCandidateEmail,
           phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
           refereeType: CentralCandidateProfileDbRefereeTypeEnum.REFERRAL,
           candidateProfileInCompanies: [

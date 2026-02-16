@@ -1618,12 +1618,16 @@ class CandidateParsedCvService {
     }
 
     const currentDate: string = dateHelperObj.getISODate();
+    let lowerCaseCandidateEmail: string = reqBody.email.toLowerCase();
+    let lowerCaseCandidateName: string = reqBody.name.toLowerCase();
 
     /**
      * Prepare data to Store Candidate parsed details in "CandidateParsedCv" model
      */
     const candidateParsedCvCreateData: DbCandidateParsedCvDto = {
       ...reqBody,
+      email: lowerCaseCandidateEmail,
+      name: lowerCaseCandidateName,
       id: UlidService.getUlidId(),
       createdAt: currentDate,
       updatedAt: currentDate,
@@ -1664,7 +1668,7 @@ class CandidateParsedCvService {
       updatedAt: currentDate,
       companyId: reqBodyCompanyId,
       jobId: reqBodyJobId,
-      candidateEmail: reqBody.email,
+      candidateEmail: lowerCaseCandidateEmail,
       refereeType: refereeTypeForCorpCandProfile,
       candidateParsedCvId: candidateParsedCvCreateData.id,
       phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
@@ -1706,10 +1710,10 @@ class CandidateParsedCvService {
       )
     } else {
       let createCentralCandidateProfileData: DbCentralCandidateProfileDto = {
-        id: reqBody.email,
+        id: lowerCaseCandidateEmail,
         createdAt: currentDate,
         updatedAt: currentDate,
-        candidateEmail: reqBody.email,
+        candidateEmail: lowerCaseCandidateEmail,
         phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
         refereeType: refereeTypeForCentralCandProfile,
         // userDetailId: candidateDetails?.id,
