@@ -12,4 +12,8 @@ const scriptController = new ScriptController();
 
 ScriptRouter.post("/test", scriptController.scriptTest);
 
+ScriptRouter.post("/email-to-lowercase-central-cand-profile", scriptController.scriptToConvertCentralCandidateProfileEmailToLowerCaseAsync);
+
+ScriptRouter.post("/append-dot-pdf-cv-candidate-parsed-cv", scriptController.scriptToAppendDotPdfInCvAwsS3FileCandidateParsedCvAsync);
+
 export default ScriptRouter;
