@@ -98,6 +98,19 @@ class CorporateCandidateProfileDao implements BaseDao {
     >(db, this.collectionName, baseQuery, filterOptions);
   }
 
+  async getCorporateCandidateProfileByCompIdAndCandEmail(
+    companyId: string,
+    candidateEmail: string
+  ): Promise<QuerySnapshot<DocumentData, DocumentData>> {
+    const db: Firestore = await this.getCorporateCandidateProfileFirestoreDatabase();
+
+    return db
+      .collection(this.collectionName)
+      .where("companyId", "==", companyId)
+      .where("candidateEmail", "==", candidateEmail)
+      .get();
+  }
+
   async updateBulkCorporateCandidateProfileByIds(ids: string[], updateData: Partial<DbCorporateCandidateProfileDto>) {
     return gcpFirestoreLibrary.bulkUpdateDocumentByIds<Partial<DbCorporateCandidateProfileDto>>(this.getCorporateCandidateProfileModelDetails(), ids, updateData);
   }

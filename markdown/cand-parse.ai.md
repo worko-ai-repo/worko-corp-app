@@ -4,3 +4,7 @@
 3. `cvExtractedParsed` in `worko-agency-bulk-jd-resume-matching-dev`
 4. `worko-cand-profile-parser-dev`
 5. `worko-referral-source-cand-profile-parser-dev`
+6. `worko-jd-resume-matching` 
+   1. `SOURCE_TYPE_JOB_APP`
+   2. `JOB_APP`
+7. `worko-sourcetype-jd-resume-matching-dev`

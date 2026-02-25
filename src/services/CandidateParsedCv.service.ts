@@ -31,10 +31,9 @@ import { EmailTemplatePlaceholderCAND_DUPLICATE_JOB_APPLICATION_SUBMIT_FORM_FOR_
 import { candidateParsedCvDaoObj } from "../daos/CandidateParsedCv.dao";
 
 // Import enums
-import { JobApplicationStatus } from "../enums/UserJobApplication.enum";
 import { UserType } from "../enums/User.enum";
 import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
-import { InvokeLambdaHandlerEventTypeEnum } from "../enums/InvokeLambda.enum";
+import { InvokeLambdaHandlerEventTypeEnum, SourceTypeMatchingScoreEntityEnum } from "../enums/InvokeLambda.enum";
 import { CorporateCandidateProfileDbRefereeTypeEnum } from "../enums/CorporateCandidateProfile.enum";
 import { CentralCandidateProfileDbRefereeTypeEnum } from "../enums/CentralCandidateProfile.enum";
 import { EmailTemplateEnum } from "../enums/EmailTemplate.enum";
@@ -421,14 +420,11 @@ class CandidateParsedCvService {
     const moveToApplicantDetails: DbUserJobApplicationDto =
       await userJobApplicationServiceObj.createJobApplicationMoveToApplicant(
       jobApplicationCreateData,
+      candidateParsedCvDetails,
       cognitoUserGroups,
       actionByUserId,
       actionByCorporateUserId
     );
-    if(moveToApplicantDetails.status !== JobApplicationStatus.ACCEPTED) {
-      global.logger.error(`Failed to move to applicant`, { methodName: this.moveToApplicantCandidateParsedCv.name, moveToApplicantDetails });
-      throw new BaseError("Failed to move to applicant", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
-    }
 
     return moveToApplicantDetails;
   }
@@ -447,6 +443,7 @@ class CandidateParsedCvService {
 
     const moveToApplicantDetails: boolean = await userJobApplicationServiceObj.createJobApplicationMoveToApplicantSubmitForm(
       jobApplicationCreateData,
+      candidateParsedCvDetails
     );
 
     return moveToApplicantDetails;
@@ -977,6 +974,7 @@ class CandidateParsedCvService {
 
     const invokedMatchingScoreDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeJdResumeMatchingScore(
       {
+        sourceTypeMatchingScoreEntity: SourceTypeMatchingScoreEntityEnum.CANDIDATE_PARSED_CV,
         candidateJobMatchingId: createCandJobMatchDetails.id,
         cvAwsS3ResourceType: existingCandidateParsedCv.cvAwsS3ResourceType,
         actionByCorporateUserId,
@@ -1115,6 +1113,7 @@ class CandidateParsedCvService {
 
     const invokedMatchingScoreDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeJdResumeMatchingScore(
       {
+        sourceTypeMatchingScoreEntity: SourceTypeMatchingScoreEntityEnum.CANDIDATE_PARSED_CV,
         candidateJobMatchingId: createCandJobMatchDetails.id,
         cvAwsS3ResourceType: existingCandidateParsedCv.cvAwsS3ResourceType,
         actionByCorporateUserId,

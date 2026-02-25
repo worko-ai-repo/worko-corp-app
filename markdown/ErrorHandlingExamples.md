@@ -361,3 +361,11 @@ PS C:\Users\rohit>
     "timeStamp": "2025-12-17T09:58:44.535Z"
 }
 ```
+
+12. 
+```json
+{
+  "__type": "InvalidParameterException",
+  "message": "Cannot reset password for the user as there is no registered/verified email or phone_number"
+}
+```

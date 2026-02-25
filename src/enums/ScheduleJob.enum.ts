@@ -9,6 +9,16 @@ export enum ScheduleJobType {
    *       password will be sent to the candidate as reminder message.
    */
   ADMIN_CAND_ACCOUNT_CREATE_SIGNUP_REMINDER = "ADMIN_CAND_ACCOUNT_CREATE_SIGNUP_REMINDER",
+
+  /**
+   * BLACK_LISTED_USER_JOB_APPLICATION_STATUS_UPDATE
+   * 
+   * Whenever thr `corporate` mark candidate as `BLACK_LISTED` for his company
+   * And at that time whenever candidate applies a job for corporate's company, then
+   * we allow candidate to apply job and after few hours we update the status to `REJECTED` by 
+   * using this schedule job
+   */
+  BLACK_LISTED_USER_JOB_APPLICATION_STATUS_UPDATE = "BLACK_LISTED_USER_JOB_APPLICATION_STATUS_UPDATE",
 }
 
 /**

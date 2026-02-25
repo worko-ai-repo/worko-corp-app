@@ -16,19 +16,17 @@ import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
 
 class ScheduleJobService {
-  private schedulerLambdaArn: string;
+
   private schedulerRoleArn: string;
 
   constructor() {
     /**
      * @note These `APP_AWS_SCHEDULER_HANDLER_LAMBDA_ARN` and `APP_AWS_SCHEDULER_HANDLER_ROLE_ARN` are set in the `serverless.ts` file
      */
-    this.schedulerLambdaArn =
-      process.env.APP_AWS_SCHEDULER_HANDLER_LAMBDA_ARN || "";
     this.schedulerRoleArn =
       process.env.APP_AWS_SCHEDULER_HANDLER_ROLE_ARN || "";
 
-    if (!this.schedulerLambdaArn || !this.schedulerRoleArn) {
+    if (!this.schedulerRoleArn) {
       throw new BaseError("Scheduler ARNs are not properly configured");
     }
   }
@@ -41,7 +39,8 @@ class ScheduleJobService {
    * @throws {BaseError} If the job creation fails or if an unsupported job type is provided.
    */
   async createScheduleJob(
-    scheduleBody: ScheduleJobCreateDto
+    scheduleBody: ScheduleJobCreateDto,
+    schedulerLambdaArn: string
   ): Promise<DbScheduleJobDto> {
     // Log the attempt to create a new schedule job
     global.logger.info("Creating new scheduler job [ScheduleJob Service].", {
@@ -52,18 +51,9 @@ class ScheduleJobService {
     let createdJob: DbScheduleJobDto | null = null;
 
     try {
-      // Determine the appropriate Lambda function and role ARNs based on job type,
-      let schedulerLambdaFunctionArn: string;
       let schedulerLambdaRoleArn: string;
 
-      // // Currently, we only support REFERRAL_REVIEW_ACCEPTANCE_STATUS job type
-      // if (scheduleBody.type !== ScheduleJobType.REFERRAL_REVIEW_ACCEPTANCE_STATUS) {
-      //   throw new BaseError(`The requested schedule job type ${scheduleBody.type} is not supported.`,
-      //     HttpStatusCode.BAD_REQUEST_400);
-      // } else {
-      schedulerLambdaFunctionArn = this.schedulerLambdaArn;
       schedulerLambdaRoleArn = this.schedulerRoleArn;
-      // }
 
       // Create the schedule job in the database
       createdJob = await scheduleJobDaoObj.create(scheduleBody);
@@ -83,7 +73,7 @@ class ScheduleJobService {
           Mode: "OFF",
         },
         Target: {
-          Arn: schedulerLambdaFunctionArn,
+          Arn: schedulerLambdaArn,
           RoleArn: schedulerLambdaRoleArn,
           Input: JSON.stringify({ scheduleJobId: createdJob.id }),
         },

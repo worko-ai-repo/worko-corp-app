@@ -6,7 +6,13 @@ import { awsClientLambdaLibrary } from "../configs/aws-sdk.config";
 import APP_CONSTANTS from "../configs/constants.config";
 
 // import dtos
-import { InvokeLambdaSourceTypeJdResumeMatchingScoreDto, InvokeLambdaParseAgencyUserSubmissionCandidateCvDto, InvokeLambdaHandlerEventPayloadDto, InvokeLambdaParseSubmitFormCandidateParsedCvDto, InvokeLambdaRefreshCandidateParsedCvDto } from "../dtos/InvokeLambda.dto";
+import { InvokeLambdaSourceTypeJdResumeMatchingScoreDto, InvokeLambdaParseAgencyUserSubmissionCandidateCvDto, InvokeLambdaHandlerEventPayloadDto, InvokeLambdaParseSubmitFormCandidateParsedCvDto, InvokeLambdaRefreshCandidateParsedCvDto, InvokeLambdMatchingScoreCalcualtionDto } from "../dtos/InvokeLambda.dto";
+
+// import enums
+import { InvocationTypeEnum } from "../enums/InvokeLambda.enum";
+
+// import utils
+import { BaseError } from "../utils/errors.util";
 
 /**
  * @note
@@ -49,6 +55,37 @@ class InvokeLambdaService {
     );
   }
 
+  async triggerWorkoJobAppInvokeLambdaTrigger(
+    awsLambdaInvocationType: InvocationTypeEnum,
+    payload: InvokeLambdaHandlerEventPayloadDto
+  ) {
+    switch (awsLambdaInvocationType) {
+      case InvocationTypeEnum.EventType:
+        return awsClientLambdaLibrary.triggerLambdaEventInvocationType(
+          APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.WORKO_JOB_APP_INVOKE_LAMBDA_NAME,
+          payload,
+        );
+
+      case InvocationTypeEnum.RequestResponseType:
+        return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType(
+          APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.WORKO_JOB_APP_INVOKE_LAMBDA_NAME,
+          payload,
+        );
+
+      case InvocationTypeEnum.DryRunType:
+        global.logger.error("DryRunType not supported as of now we may implement it in near future if needed.", {
+          methodName: this.triggerWorkoJobAppInvokeLambdaTrigger.name,
+        });
+        throw new BaseError("DryRunType not supported as of now, we may implement it in near future if needed.");
+
+      default:
+        global.logger.error("Invalid Invocation Type", {
+          methodName: this.triggerWorkoJobAppInvokeLambdaTrigger.name,
+        });
+        throw new BaseError("Invalid Invocation Type");
+    }
+  }
+
   async triggerParseSubmitFormCandidateParsedCv(payload: InvokeLambdaParseSubmitFormCandidateParsedCvDto) {
     return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType<InvokeLambdaParseSubmitFormCandidateParsedCvDto>(
       APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.RESUME_EXTRACTION_LAMBDA_NAME,
@@ -60,6 +97,20 @@ class InvokeLambdaService {
     return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType<InvokeLambdaRefreshCandidateParsedCvDto>(
       APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.RESUME_EXTRACTION_LAMBDA_NAME,
       payload,
+    );
+  }
+
+  async triggerMatchingScoreCalculation(
+    payload: InvokeLambdMatchingScoreCalcualtionDto
+  ): Promise<APIGatewayProxyResult> {
+    global.logger.info("Trigger Matching Score Calculation [service]", {
+      methodName: this.triggerMatchingScoreCalculation.name,
+    });
+
+    // Trigger Lambda
+    return awsClientLambdaLibrary.triggerLambdaEventInvocationType<InvokeLambdMatchingScoreCalcualtionDto>(
+      APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.MATCHING_SCORE_LAMBDA_NAME,
+      payload
     );
   }
 }

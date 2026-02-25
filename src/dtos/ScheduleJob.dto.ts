@@ -140,3 +140,8 @@ export interface ScheduleJobAdminCandAcctCreateSignupReminderInputDto {
    */
   reminderSendCount: number;
 }
+
+export interface ScheduleBlacklistedUserJobApplicationStatusUpdateToRejecteInputDto {
+  userJobApplicationId: string;
+  userEmail: string;
+}

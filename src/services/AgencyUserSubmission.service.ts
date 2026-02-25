@@ -37,7 +37,7 @@ import { JobApplicationStatus } from "../enums/UserJobApplication.enum";
 import { AgencyUserSubmissionDbJobApplicationStatusEnum } from "../enums/AgencyUserSubmission.enum";
 import { AgencyJobAssignmentDbStatusEnum } from "../enums/AgencyJobAssignment.enum";
 import { UserType } from "../enums/User.enum";
-import { InvokeLambdaHandlerEventTypeEnum } from "../enums/InvokeLambda.enum";
+import { InvokeLambdaHandlerEventTypeEnum, SourceTypeMatchingScoreEntityEnum } from "../enums/InvokeLambda.enum";
 import { AgencyUserInviteDbActionEnum } from "../enums/AgencyUserInvite.enum";
 
 // Import helpers
@@ -799,12 +799,12 @@ class AgencyUserSubmissionService {
     validatedRequestBody: AgencyUserSubmissionMoveToApplicantCreateApiDTO,
     cognitoUserGroups: string[],
     existingAgencyUserSubmissionDetails: DbAgencyUserSubmissionDto,
+    candidateParsedCvDetails: DbCandidateParsedCvDto,
     actionByUserId?: string,
     actionByCorporateUserId?: string
   ) {
     const {jobTitle, ...restValidatedRequestBody} = validatedRequestBody;
-    const moveToApplicantDetails: DbUserJobApplicationDto =
-      await userJobApplicationServiceObj.createJobApplicationMoveToApplicant(
+    const moveToApplicantDetails = await userJobApplicationServiceObj.createJobApplicationMoveToApplicant(
       {
         ...restValidatedRequestBody,
         applicantEmail: existingAgencyUserSubmissionDetails.candidateEmail,
@@ -812,14 +812,11 @@ class AgencyUserSubmissionService {
         agencyUserId: existingAgencyUserSubmissionDetails.agencyUserId,
         matchingScoreDetails: existingAgencyUserSubmissionDetails?.matchingScoreDetails
       },
+      candidateParsedCvDetails,
       cognitoUserGroups,
       actionByUserId,
       actionByCorporateUserId
-    );
-    if(moveToApplicantDetails.status !== JobApplicationStatus.ACCEPTED) {
-      global.logger.error(`Failed to move to applicant`, { methodName: this.moveToApplicantAgencyUserSubmission.name, moveToApplicantDetails });
-      throw new BaseError("Failed to move to applicant", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
-    }
+    )
 
     const updateAgencyUserSubmission: DbAgencyUserSubmissionDto | undefined = await this.updateAgencyUserSubmissionById(
       validatedRequestBody.agencyUserSubmissionId,
@@ -904,7 +901,14 @@ class AgencyUserSubmissionService {
       candidateEmail
     );
     if(applicantRegisteredDetails.count) {
-      return this.createJobApplAndUpdateAgencyUserSubmission(validatedRequestBody, cognitoUserGroups, existingAgencyUserSubmissionDetails, actionByUserId, actionByCorporateUserId);
+      return this.createJobApplAndUpdateAgencyUserSubmission(
+        validatedRequestBody, 
+        cognitoUserGroups, 
+        existingAgencyUserSubmissionDetails,
+        candidateParsedCvDetails,
+        actionByUserId, 
+        actionByCorporateUserId
+      );
     }
 
     const {
@@ -959,7 +963,7 @@ class AgencyUserSubmissionService {
 
     const userDetailAndJobAppl: [DbUserDetailDto, DbAgencyUserSubmissionDto,boolean, boolean] = await Promise.all([
       UserDetailService.createUserDetail(createUserDetailDto),
-      this.createJobApplAndUpdateAgencyUserSubmission(validatedRequestBody, cognitoUserGroups, existingAgencyUserSubmissionDetails, actionByUserId, actionByCorporateUserId),
+      this.createJobApplAndUpdateAgencyUserSubmission(validatedRequestBody, cognitoUserGroups, existingAgencyUserSubmissionDetails, candidateParsedCvDetails, actionByUserId, actionByCorporateUserId),
       UserDetailService.sendEmailForCandAcctSignupReminder(
         candidateEmail,
         validatedRequestBody.jobTitle,
@@ -1454,6 +1458,7 @@ class AgencyUserSubmissionService {
 
     const invokedMatchingScoreDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeJdResumeMatchingScore(
       {
+        sourceTypeMatchingScoreEntity: SourceTypeMatchingScoreEntityEnum.AGENCY_USER_SUBMISSION,
         cvAwsS3ResourceType: existingCandidateParsedCv.cvAwsS3ResourceType,
         agencyUserSubmissionId: validatedReqBody.agencyUserSubmissionId,
         actionByCorporateUserId,
@@ -1554,6 +1559,7 @@ class AgencyUserSubmissionService {
 
           const invokedMatchingScoreDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeJdResumeMatchingScore(
             {
+              sourceTypeMatchingScoreEntity: SourceTypeMatchingScoreEntityEnum.AGENCY_USER_SUBMISSION,
               cvAwsS3ResourceType: existingCandidateParsedCv.cvAwsS3ResourceType,
               agencyUserSubmissionId,
               actionByCorporateUserId,

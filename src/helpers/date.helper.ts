@@ -142,6 +142,18 @@ class DateHelper {
   getFutureTimestampWithTimezone(days: number, timezone: string): number {
     return DateTime.now().plus({ days }).setZone(timezone).toMillis();
   }
+
+  /**
+   * formatISODateToDDMMYYYY
+   * 
+   * Formats an ISO date string to dd-MM-YYYY format.
+   *
+   * @param {string} isoDate - The ISO date string to format.
+   * @returns {string} The formatted date string in dd-MM-YYYY format.
+   */
+  formatISODateToDDMMYYYY(isoDate: string): string {
+    return DateTime.fromISO(isoDate).toFormat("dd-MM-yyyy");
+  }
 }
 
 const dateHelperObj = new DateHelper();

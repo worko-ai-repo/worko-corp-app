@@ -115,6 +115,20 @@ const APP_CONSTANTS = {
      * you can check in `appInvokeLambda` function in `serverless.ts` file 
      */
     WORKO_CORP_APP_INVOKE_LAMBDA_NAME: `worko-corp-${process.env.APP_STAGE}-appInvokeLambda`,
+
+    /**
+     * MATCHING_SCORE_LAMBDA_NAME
+     *
+     * Lambda function name for "Matching Score"
+     * AWS Lambada Configurations related to triggering "Matching Score"
+     */
+    MATCHING_SCORE_LAMBDA_NAME: "worko-jd-resume-matching",
+
+    /**
+     * @description This lambda is used to invoke other lambda functions in `worko-job-app` repository
+     * you can check in `appInvokeLambda` function in `serverless.ts` file 
+     */
+    WORKO_JOB_APP_INVOKE_LAMBDA_NAME: `worko-job-app-${process.env.APP_STAGE}-appInvokeLambda`,
   },
 
   CASUAL_EMAIL_DOMAINS: [
@@ -216,6 +230,37 @@ const APP_CONSTANTS = {
       ? 3 * 24 * 60 * 60 * 1000 // 3 days in milliseconds
       // : 5 * 60 * 1000; // 5 minutes in milliseconds 
       : 365 * 24 * 60 * 60 * 1000; // 1 year in milliseconds
+  },
+
+  get BLACK_LISTED_USER_JOB_APPLICATION_UPDATE_AFTER_X_HOURS(): number {
+    const PROD_HOURS = 1 * 24; // 24 hours
+    const DEV_HOURS = 10 / 60; // 10 minutes converted to hour
+
+    // return the time based on the environment
+    return this.APP_SLS_STAGE === this.STAGES.PROD ? PROD_HOURS : DEV_HOURS;
+  },
+
+  /**
+   * AWS_EVENT_BRIDGE_SCHEDULER_ARNS
+   */
+  AWS_EVENT_BRIDGE_SCHEDULER_ARNS: {
+    /**
+     * @description
+     *  1. The lamba arn of "worko-job-app-{environment}-app-scheduler-handler"
+     */
+    WORKO_JOB_APP_SCHEDULER_LAMBDA_ARN: `arn:aws:lambda:${process.env.APP_SLS_REGION}:${process.env.APP_AWS_ACCOUNT_ID}:function:worko-job-app-${process.env.APP_SLS_STAGE}-{serverlessFunctionName}`,
+    WORKO_CORP_APP_SCHEDULER_LAMBDA_ARN: `arn:aws:lambda:${process.env.APP_SLS_REGION}:${process.env.APP_AWS_ACCOUNT_ID}:function:worko-corp-${process.env.APP_SLS_STAGE}-{serverlessFunctionName}`,
+    ROLE_ARN: `arn:aws:iam::${process.env.APP_AWS_ACCOUNT_ID}:role/${process.env.APP_AWS_EVENT_BRIDGE_SCHEDULE_INVOKE_LAMBDA_ROLE}`,
+  },
+
+  /**
+   * SERVERLESS_FUNCTION_NAMES
+   *
+   * @description These are the function names in `serverless.ts` file
+   */
+  SERVERLESS_FUNCTION_NAMES: {
+    WORKO_JOB_APP_SCHEDULER_HANDLER: "app-scheduler-handler",
+    WORKO_CORP_APP_SCHEDULER_HANDLER: "appScheduler",
   },
 
   WORKO_LOGO_URL: process.env.APP_WORKO_LOGO_URL,

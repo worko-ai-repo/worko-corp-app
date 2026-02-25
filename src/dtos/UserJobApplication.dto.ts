@@ -1,5 +1,6 @@
 // import dtos
 import { AgencyUserSubmissionDbMatchingScoreDetailDto } from "./AgencyUserSubmission.dto";
+import { CommonMatchingScoreDetailDto } from "./Common.dto";
 
 // import enums
 import {
@@ -47,7 +48,7 @@ export interface UserJobApplicationMoveToApplicantCreateApiDTO {
    */
   applicantEmail: string;
 
-  matchingScoreDetails?: AgencyUserSubmissionDbMatchingScoreDetailDto;
+  matchingScoreDetails?: CommonMatchingScoreDetailDto;
 }
 
 export interface UserJobApplicationMoveToApplicantSubmitFormCreateApiDTO {

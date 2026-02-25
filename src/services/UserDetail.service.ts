@@ -97,9 +97,14 @@ class UserDetailService {
       status: ScheduleJobStatus.SCHEDULED,
     };
 
+    // Prepare scheduler lambda arn
+    const schedulerLambdaArn: string = APP_CONSTANTS.AWS_EVENT_BRIDGE_SCHEDULER_ARNS.WORKO_CORP_APP_SCHEDULER_LAMBDA_ARN.strtr({
+      "{serverlessFunctionName}": APP_CONSTANTS.SERVERLESS_FUNCTION_NAMES.WORKO_CORP_APP_SCHEDULER_HANDLER
+    });
+
     // Schedule the job
     const scheduledJob: DbScheduleJobDto =
-      await scheduleJobServiceObj.createScheduleJob(scheduleJobPayload);
+      await scheduleJobServiceObj.createScheduleJob(scheduleJobPayload, schedulerLambdaArn);
 
     if (!scheduledJob) {
       global.logger.error("Failed to schedule the job", {

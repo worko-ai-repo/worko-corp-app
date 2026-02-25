@@ -57,6 +57,13 @@ class CorporateCandidateProfileService {
     return corporateCandidateProfileDaoObj.createCorporateCandidateProfile(createData);
   }
 
+  async getCorporateCandidateProfileByCompIdAndCandEmail(
+    companyId: string,
+    candidateEmail: string,
+  ): Promise<QuerySnapshot<DocumentData, DocumentData>> {
+    return corporateCandidateProfileDaoObj.getCorporateCandidateProfileByCompIdAndCandEmail(companyId, candidateEmail);
+  }
+
   async getDuplicateCorporateCandidateProfile(
     companyId: string,
     candidateEmailId: string,

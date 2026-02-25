@@ -65,6 +65,7 @@ class UserJobApplicationDao implements BaseDao {
   async createJobApplicationMoveToApplicant(
     applicantEmail: string, // This email is need not to be registered in worko
     jobApplicationRequestBody: UserJobApplicationMoveToApplicantCreateDto,
+    displayToCorporate?: boolean,
   ) {
     // Generate a unique ID
     const ulidId: string = UlidService.getUlidId();
@@ -97,10 +98,12 @@ class UserJobApplicationDao implements BaseDao {
       }),
 
       /**
-       * @description This attribute will be used to display the job application to corporate users
-       * even if the matching score is less than the minimum matching threshold
+       * @description 
+       *  1. This attribute will be `true` to display the job application to corporate users
+       * even if the matching score is less than the minimum matching threshold, only when `corporates` moved to applicant or for `submit form` feature
+       *  2. This attribute will not be set if `worko-admin` moved to applicant(like non-corporate user moving to applicant)
        */
-      displayToCorporate: true,
+      displayToCorporate,
     };
 
     // Create the job application in the database
@@ -189,6 +192,25 @@ class UserJobApplicationDao implements BaseDao {
         pageSize: number;
       }
     >(query, filterOptions);
+  }
+
+  async updateJobApplicationByIdAndPrimaryEmail(
+    jobApplicationId: string,
+    applicantUserEmail: string,
+    updateData: Partial<DbUserJobApplicationDto>
+  ): Promise<DbUserJobApplicationDto> {
+    global.logger.info(`Update Job Application details [DAO]`, {
+      filePath: __filename,
+      methodName: this.updateJobApplicationByIdAndPrimaryEmail.name,
+      jobApplicationId,
+      applicantUserEmail,
+      updateData,
+    });
+
+    return UserJobApplicationModel.update(
+      this.preparePKAndSKForQuery(applicantUserEmail, jobApplicationId),
+      updateData
+    );
   }
 }
 

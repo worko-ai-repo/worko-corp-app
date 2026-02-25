@@ -543,6 +543,10 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
       method: HttpMethodsConstants.POST,
     },
     {
+      path: "/job-application/find-matching-score",
+      method: HttpMethodsConstants.POST,
+    },
+    {
       path: "/job-application-author-note/:jobApplicationId/:authorId",
       method: HttpMethodsConstants.GET,
     },
@@ -709,6 +713,10 @@ var isCorporateAdminUrl = function (url, httpMethod) {
     // User Job Application Author Note Routers
     {
       path: "/job-application-author-note/",
+      method: HttpMethodsConstants.POST,
+    },
+    {
+      path: "/job-application/find-matching-score",
       method: HttpMethodsConstants.POST,
     },
     {
@@ -1023,6 +1031,10 @@ var isAdminUrl = function (url, httpMethod) {
     // User Job Application Author Note Routers
     {
       path: "/job-application-author-note/",
+      method: HttpMethodsConstants.POST,
+    },
+    {
+      path: "/job-application/find-matching-score",
       method: HttpMethodsConstants.POST,
     },
     {

@@ -1,6 +1,7 @@
 // Import enums
 import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
-import { InvokeLambdaHandlerEventTypeEnum } from "../enums/InvokeLambda.enum";
+import { MatchingScoreEntityEnum } from "../enums/Common.enum";
+import { InvokeLambdaHandlerEventTypeEnum, SourceTypeMatchingScoreEntityEnum } from "../enums/InvokeLambda.enum";
 
 export interface InvokeLambdaParseAgencyUserSubmissionCandidateCvDto {
   agencyUserId: string;
@@ -25,11 +26,14 @@ export interface InvokeLambdaRefreshCandidateParsedCvDto {
 }
 
 export interface InvokeLambdaSourceTypeJdResumeMatchingScoreDto {
+  sourceTypeMatchingScoreEntity: SourceTypeMatchingScoreEntityEnum;
+
   /**
    * @description
    *  1. This will be only available whenever find matching score happens from `search in database` page
    *  of `corporate` dashboard
    *  2. Using this id `ai team` will update matching score details in `candidateJobMatchings` collection
+   *  3. Whenever sourceTypeMatchingScoreEntity is "CANDIDATE_PARSED_CV" then this id will be available
    *
    * @reference `id` attribute of `CandidateJobMatching.model.ts`
    */
@@ -37,7 +41,7 @@ export interface InvokeLambdaSourceTypeJdResumeMatchingScoreDto {
 
   /**
    * @reference "id" attribute of "AgencyUserSubmission.model.ts"
-   * @note This is required if "sourceType" is "AGENCY_SUBMIT_USER_CV"
+   * @note "agencyUserSubmissionId" is required if "sourceTypeMatchingScoreEntity" is "AGENCY_SUBMIT_USER_CV"
    */
   agencyUserSubmissionId?: string;
 
@@ -90,6 +94,11 @@ export interface InvokeLambdaSourceTypeJdResumeMatchingScoreDto {
 export interface InvokeLambdaHandlerEventPayloadDto {
   eventType: InvokeLambdaHandlerEventTypeEnum;
   data: unknown;
+}
+
+export interface InvokeLambdaJobApplicationValidationMatchingScoreDto {
+  jobApplicationRequestId: string;
+  userEmail: string;
 }
 
 export interface InvokeLambdaCandidateBulkMoveToApplicantDto {
@@ -155,4 +164,22 @@ export interface InvokeLambdaSubmitFormCandidateParsedCvActivityDto {
 
 export interface InvokeLambdaRefreshCandidateParsedCvTriggerDto {
   candidateParsedCvId: string;
+}
+
+export interface InvokeLambdMatchingScoreCalcualtionDto {
+  USER_PK: string;
+  USER_DETAIL_SK: string;
+  MATCHING_ENTITY: MatchingScoreEntityEnum;
+  ENTITY_SK: string;
+
+  /**
+   * @description
+   *  1. Whenever "MATCHING_ENTITY" is "SOURCE_TYPE_JOB_APP" then this will be required object
+   */
+  sourceTypeCvAwsS3Details?: {
+    resourceType: CandidateParsedCvAwsS3ResourceTypeEnum;
+    bucketName: string;
+    filePath: string;
+    fileName: string;
+  };
 }

@@ -1,5 +1,5 @@
 // Import dtos
-import { CorporateCandidateProfileDbPhoneNumberDto } from "../../dtos/CorporateCandidateProfile.dto";
+import { CorporateCandidateProfileDbPhoneNumberDto, CorporateCandidateProfileDbUnderCoolingPeriodDto } from "../../dtos/CorporateCandidateProfile.dto";
 
 // Import enums
 import { CorporateCandidateProfileDbRefereeTypeEnum } from "../../enums/CorporateCandidateProfile.enum";
@@ -38,6 +38,12 @@ interface DbCorporateCandidateProfileDto extends BaseFirestoreModel {
 
   reasonForBlacklisting?: string;
   detailedReasonForBlacklisting?: string;
+
+  /**
+   * @description
+   *  1. If "hiringEligibilityStatus" is "UNDER_COOLING_PERIOD" then "underCoolingPeriod" object will be available.
+   */
+  underCoolingPeriod?: CorporateCandidateProfileDbUnderCoolingPeriodDto;
 
   /**
    * @description

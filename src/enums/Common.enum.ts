@@ -83,3 +83,18 @@ export enum SortOrderTypeEnum {
    */
   DESCENDING = "descending",
 }
+
+export enum MatchingScoreEntityEnum {
+  REFERRAL = "REFERRAL", // Referral Request
+  JOB_APP = "JOB_APP", // Job Application
+
+  /**
+   * @description
+   *  1. Whenever a candidate is manually moved to applicant page by `worko-admin` then 
+   *  we should calculate matching score for that updated candidate cv.
+   * 
+   * @currentUseCases
+   *  1. Using this for "submit form feature"
+   */
+  SOURCE_TYPE_JOB_APP = "SOURCE_TYPE_JOB_APP", 
+}
