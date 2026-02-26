@@ -174,8 +174,9 @@ export interface InvokeLambdMatchingScoreCalcualtionDto {
 
   /**
    * @description
-   *  1. Whenever "MATCHING_ENTITY" is "SOURCE_TYPE_JOB_APP" then this will be required object
+   *  1. Whenever "MATCHING_ENTITY" is "SOURCE_TYPE_JOB_APP" then "candidateParsedCvId" and "sourceTypeCvAwsS3Details" is required
    */
+  candidateParsedCvId?: string;
   sourceTypeCvAwsS3Details?: {
     resourceType: CandidateParsedCvAwsS3ResourceTypeEnum;
     bucketName: string;

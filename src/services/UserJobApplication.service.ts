@@ -310,6 +310,7 @@ class UserJobApplicationService {
       USER_DETAIL_SK: `ID#`,
       ENTITY_SK: jobApplicationSK,
       MATCHING_ENTITY: MatchingScoreEntityEnum.SOURCE_TYPE_JOB_APP,
+      candidateParsedCvId: reqBodyCandidateParsedCvId,
       sourceTypeCvAwsS3Details: {
         resourceType: cvAwsS3ResourceType,
         bucketName: cvAwsS3BucketName,
@@ -710,6 +711,7 @@ class UserJobApplicationService {
         USER_DETAIL_SK: `ID#`,
         ENTITY_SK: jobApplicationSK,
         MATCHING_ENTITY: MatchingScoreEntityEnum.SOURCE_TYPE_JOB_APP,
+        candidateParsedCvId: candidateParsedCvDetails.id,
         sourceTypeCvAwsS3Details: {
           resourceType: cvAwsS3ResourceType,
           bucketName: cvAwsS3BucketName,
