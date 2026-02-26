@@ -122,7 +122,7 @@ const APP_CONSTANTS = {
      * Lambda function name for "Matching Score"
      * AWS Lambada Configurations related to triggering "Matching Score"
      */
-    MATCHING_SCORE_LAMBDA_NAME: "worko-jd-resume-matching",
+    MATCHING_SCORE_LAMBDA_NAME: `worko-jd-resume-matching-${process.env.APP_STAGE}`,
 
     /**
      * @description This lambda is used to invoke other lambda functions in `worko-job-app` repository

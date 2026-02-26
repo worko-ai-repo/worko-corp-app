@@ -190,7 +190,7 @@ const serverlessConfiguration: AWS = {
         Effect: "Allow",
         Action: ["lambda:InvokeFunction", "lambda:InvokeAsync"],
         Resource: [
-          "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-jd-resume-matching",
+          "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-jd-resume-matching-${self:custom.app.STAGE}",
           "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-resume-parser-${self:custom.app.STAGE}",
           "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-job-app-${self:custom.app.STAGE}-app-opensearch-operations",
           "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-sourcetype-jd-resume-matching-${self:custom.app.STAGE}",
