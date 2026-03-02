@@ -470,6 +470,22 @@ var isEvaluatorUrl = function (url, httpMethod) {
       method: HttpMethodsConstants.POST,
     },
     {
+      path: "/file/gsu2v/CORP_CAND_REFERRAL_CV",
+      method: HttpMethodsConstants.POST,
+    },
+    {
+      path: "/file/gsu2v/CORP_CAND_BULK_CV_UPLOAD",
+      method: HttpMethodsConstants.POST,
+    },
+    {
+      path: "/file/gsu2v/CAND_SUBMIT_CV_JOB",
+      method: HttpMethodsConstants.POST,
+    },
+    {
+      path: "/file/gsu2v/ADMIN_CAND_BULK_CV_UPLOAD",
+      method: HttpMethodsConstants.POST,
+    },
+    {
       path: "/file/:id/:cloudFileName/BULK_CVS*",
       method: HttpMethodsConstants.GET,
     },
