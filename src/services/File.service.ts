@@ -188,8 +188,14 @@ class FileService {
           HttpStatusCode.FORBIDDEN_403
         );
       }
-    } else if(actionByUserId && cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)) {
-      global.logger.info(`User is a worko admin.`, {
+    } else if(
+      actionByUserId && 
+      (
+        cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)
+        || cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.EVALUATOR)
+      )
+    ) {
+      global.logger.info(`User is ${cognitoUserGroups}.`, {
         methodName: this.generatePsuToViewCorpCandBulkCvUpload.name
       })
     } else {
@@ -249,8 +255,11 @@ class FileService {
           HttpStatusCode.FORBIDDEN_403
         );
       }
-    } else if(actionByUserId && cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)) {
-      global.logger.info(`User is a worko admin.`, {
+    } else if(actionByUserId && (
+      cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN))
+      || cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.EVALUATOR)
+    ) {
+      global.logger.info(`User is a ${cognitoUserGroups}.`, {
         methodName: this.generatePsuToViewCorpCandBulkCvUpload.name
       })
     } else {
