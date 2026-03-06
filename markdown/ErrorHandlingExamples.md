@@ -201,3 +201,171 @@ Request ID: fjj1thTsqdAIw1eTu5hXjsR-YSFiE02KYS29nAPuRTR3Cs4LxLRBkQ==
   ]
 }
 ```
+
+
+10. 
+```json
+2025-12-05T03:47:24.384Z	undefined	ERROR	Uncaught Exception 	{
+    "errorType": "Error",
+    "errorMessage": "Scheduler ARNs are not properly configured",
+    "errorCode": 500,
+    "errorMsg": "Scheduler ARNs are not properly configured",
+    "timeStamp": "2025-12-05T03:47:24.383Z",
+    "stack": [
+        "Error: Scheduler ARNs are not properly configured",
+        "    at new BaseError (/var/task/dist/src/app.js:160674:15)",
+        "    at new ScheduleJobService (/var/task/dist/src/app.js:120400:19)",
+        "    at 47106 (/var/task/dist/src/app.js:120456:31)",
+        "    at __webpack_require__ (/var/task/dist/src/app.js:248010:42)",
+        "    at 79808 (/var/task/dist/src/app.js:198985:31)",
+        "    at __webpack_require__ (/var/task/dist/src/app.js:248010:42)",
+        "    at 17523 (/var/task/dist/src/app.js:36645:46)",
+        "    at __webpack_require__ (/var/task/dist/src/app.js:248010:42)",
+        "    at 8947 (/var/task/dist/src/app.js:18796:23)",
+        "    at __webpack_require__ (/var/task/dist/src/app.js:248010:42)"
+    ]
+}
+```
+
+10. 
+```sh
+User: arn:aws:sts::211125353899:assumed-role/worko-corp-dev-ap-south-1-lambdaRole/worko-corp-dev-appScheduler is not authorized to perform: cognito-idp:AdminGetUser on resource: arn:aws:cognito-idp:ap-south-1:211125353899:userpool/c1f33dfa-c0d1-7043-dd6f-046dedb7dfbe because no identity-based policy allows the cognito-idp:AdminGetUser action
+```
+
+11. 
+```json
+{
+    "error": {
+        "code": 3,
+        "details": "Vectors must be at most 2048 dimensions.",
+        "metadata": {
+            "x-debug-tracking-id": [
+                "8900261890962958164;o=1"
+            ]
+        }
+    }
+}
+```
+
+12. 
+```json
+{
+    "error": {
+        "code": 3,
+        "details": "A maximum of 1 'ARRAY_CONTAINS' filter is allowed per disjunction.",
+        "metadata": {
+            "x-debug-tracking-id": [
+                "10846233465156938146;o=1"
+            ]
+        }
+    }
+}
+```
+
+13. 
+```sh
+Error:
+UPDATE_FAILED: AppDashschedulerDashhandlerLambdaFunction (AWS::Lambda::Function)
+
+Resource handler returned message: "Unzipped size must be smaller than 262144000 bytes (Service: Lambda, Status Code: 400, Request ID: 956855d8-4e68-46ca-93df-49c433fb97ef) (SDK Attempt Count: 1)" (RequestToken: 6202dce0-06d6-29f4-f59a-0bcc09218185, HandlerErrorCode: InvalidRequest)
+
+View the full error: https://ap-south-1.console.aws.amazon.com/cloudformation/home?region=ap-south-1#/stack/detail?stackId=arn%3Aaws%3Acloudformation%3Aap-south-1%3A211125353899%3Astack%2Fworko-api-dev%2F62746260-218b-11ef-aa9d-0a3d9fa7ad09
+```
+
+14. 
+```sh
+2025-12-11T13:16:20.165Z	undefined	ERROR	(node:2) Warning: NodeDeprecationWarning: The AWS SDK for JavaScript (v3) will
+no longer support Node.js v18.20.8 in January 2026.
+
+To continue receiving updates to AWS services, bug fixes, and security
+updates please upgrade to a supported Node.js LTS version.
+
+More information can be found at: https://a.co/c895JFp
+(Use `node --trace-warnings ...` to show where the warning was created)
+```
+
+15. 
+```json
+{
+  "error": { "name": "CredentialsProviderError", "tryNextLink": false },
+  "level": "error",
+  "message": "Failed to get secret",
+  "methodName": "getSecret"
+}
+```
+
+16. 
+```json
+{
+  "error": {
+    "$fault": "client",
+    "$metadata": {
+      "attempts": 1,
+      "httpStatusCode": 400,
+      "requestId": "9f409923-5fb3-4355-8a39-026a0ac386db",
+      "totalRetryDelay": 0
+    },
+    "__type": "UnrecognizedClientException",
+    "message": "The security token included in the request is invalid.",
+    "name": "UnrecognizedClientException"
+  },
+  "level": "error",
+  "message": "Failed to get secret",
+  "methodName": "getSecret"
+}
+```
+
+17. 
+```json
+{
+  "error": {
+    "code": 5,
+    "details": "",
+    "metadata": { "x-debug-tracking-id": ["12498081562676102037;o=1"] }
+  },
+  "level": "error",
+  "message": "Get All Candidate Parsed Cv By Corporate Filter Options [Controller]",
+  "methodName": "getAllCandidateParsedCvByCorporateFilterOptions"
+}
+```
+
+18. 
+```json
+{PS C:\Users\rohit> aws sts get-caller-identity
+
+An error occurred (ExpiredToken) when calling the GetCallerIdentity operation: The security token included in the request is expired
+PS C:\Users\rohit>
+  "error": {
+    "$fault": "client",
+    "$metadata": {
+      "attempts": 1,
+      "httpStatusCode": 400,
+      "requestId": "8dd720f6-94c8-4c28-8c47-7a5bfa0d0bcb",
+      "totalRetryDelay": 0
+    },
+    "__type": "ExpiredTokenException",
+    "message": "The security token included in the request is expired",
+    "name": "ExpiredTokenException"
+  },
+  "level": "error",
+  "message": "Failed to get secret",
+  "methodName": "getSecret"
+}
+```
+
+11. 
+```json
+{
+    "errorCode": 500,
+    "errorMsg": "9 FAILED_PRECONDITION: Missing vector index configuration. Please create the required index with the following gcloud command: gcloud firestore indexes composite create --project=worko-dev --database=\"worko-corp-db-dev\" --collection-group=candidateParsedCvs --query-scope=COLLECTION --field-config=order=ASCENDING,field-path=companyId --field-config=vector-config='{\"dimension\":\"768\",\"flat\": \"{}\"}',field-path=embeddingVector",
+    "timeStamp": "2025-12-17T09:58:44.535Z"
+}
+```
+
+12. 
+```json
+{
+  "__type": "InvalidParameterException",
+  "message": "Cannot reset password for the user as there is no registered/verified email or phone_number"
+}
+```

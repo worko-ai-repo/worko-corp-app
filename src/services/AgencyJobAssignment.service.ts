@@ -17,7 +17,7 @@ import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firesto
 
 // Import enums
 import { AgencyJobAssignmentDbStatusEnum } from "../enums/AgencyJobAssignment.enum";
-import { AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
+import { AgencyUserInviteDbActionEnum, AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
 
 // Import helpers
 import { getActionByAgencyUserIds, getActionByUserId } from "../helpers/user.helper";
@@ -29,7 +29,7 @@ import { DbAgencyJobAssignmentDto } from "../db/gcp-firestore-models/AgencyJobAs
 import { DbCorporateUserDto } from "../db/aws-dynamodb-models/CorporateUser.model";
 import { DbUserDetailDto } from "../db/aws-dynamodb-models/UserDetail.model";
 import { DbAgencyUserInviteDto } from "../db/gcp-firestore-models/AgencyUserInvite.model";
-import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
+import { DbGcpFirestoreJobDto } from "../db/gcp-firestore-models/GcpFirestoreJob.model";
 import { DbAgencyUserDto } from "../db/gcp-firestore-models/AgencyUser.model";
 
 // Import services
@@ -86,6 +86,34 @@ class AgencyJobAssignmentService {
         `Agency User Invite is not accepted, so you are not allowed to perform this action.`,
         HttpStatusCode.FORBIDDEN_403
       );
+    }
+
+    if(
+      agencyUserInviteDetails.inviteAction &&
+      [
+        AgencyUserInviteDbActionEnum.DELETE,
+        AgencyUserInviteDbActionEnum.PAUSE
+      ].includes(agencyUserInviteDetails.inviteAction)
+    ) {
+      global.logger.error(`Agency User Invite is deleted or paused.`, {
+        validatedRequestBody,
+        agencyUserInviteDetails,
+        methodName: this.performCreateBulkAgencyJobAssignmentActivities.name,
+      });
+      if(
+        agencyUserInviteDetails.inviteAction ===
+        AgencyUserInviteDbActionEnum.DELETE
+      ) {
+        throw new BaseError(
+          `Invite is deleted, Resend a new invite to continue.`,
+          HttpStatusCode.FORBIDDEN_403
+        );
+      } else {
+        throw new BaseError(
+          `Invite is paused, Resume the invite to continue.`,
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
     }
 
     if (actionByCorporateUserId) {
@@ -160,6 +188,24 @@ class AgencyJobAssignmentService {
         throw new BaseError(
           `Admin User Details not found.`,
           HttpStatusCode.NOT_FOUND_404
+        );
+      }
+
+      if (
+        reqBodyCompanyId !== agencyUserInviteDetails.companyId
+      ) {
+        global.logger.error(
+          `The agency invite is not associated with the company.`,
+          {
+            validatedRequestBody,
+            agencyUserInviteDetails,
+            methodName:
+              this.performCreateBulkAgencyJobAssignmentActivities.name,
+          }
+        );
+        throw new BaseError(
+          `The agency invite is not associated with the company you are trying to perform this action.`,
+          HttpStatusCode.FORBIDDEN_403
         );
       }
     } else {
@@ -358,7 +404,7 @@ class AgencyJobAssignmentService {
     filterOptions: AgencyJobAssignmentListingFilterOptions
   ): Promise<
     GcpFirestoreRecordListingResponseDTO<
-      (DbAgencyJobAssignmentDto & { jobDetails?: DbJobAwsOpensearchDto })[]
+      (DbAgencyJobAssignmentDto & { jobDetails?: DbGcpFirestoreJobDto })[]
     >
   > {
     global.logger.info(
@@ -407,11 +453,20 @@ class AgencyJobAssignmentService {
         );
       }
     } else {
-      global.logger.error(`Agency User Details not found.`, {
-        methodName: this.performGetAllAgencyJobAssignmentsActivities.name,
-        convertedAgencyCognitoUserId,
-      });
-      throw new BaseError("Unauthorized.", HttpStatusCode.UNAUTHORIZED_401);
+      const {actionByCorporateUserId, actionByUserId} = getActionByUserId();
+      if(actionByUserId) {
+        throw new BaseError("Unauthorized.", HttpStatusCode.UNAUTHORIZED_401);
+      } else if(actionByCorporateUserId) {
+        if(!filterOptions.companyId) {
+          throw new BaseError("Company id is required", HttpStatusCode.BAD_REQUEST_400);
+        }
+
+        if(!filterOptions.assignedByCorporateUserId) {
+          throw new BaseError("Assigned by corporate user id is required", HttpStatusCode.BAD_REQUEST_400);
+        }
+      } else {
+        throw new BaseError("Unauthorized.", HttpStatusCode.UNAUTHORIZED_401);
+      }
     }
 
     const { includeJobDetails } = filterOptions;
@@ -427,7 +482,7 @@ class AgencyJobAssignmentService {
       );
 
     const agencyJobAssignmentsWithEntityDetails: (DbAgencyJobAssignmentDto & {
-      jobDetails?: DbJobAwsOpensearchDto;
+      jobDetails?: DbGcpFirestoreJobDto;
     })[] =
       await injectEntityDetailsHelperObj.injectEntityDetailsForAgencyJobAssignment(
         agencyJobAssignments,
@@ -436,7 +491,7 @@ class AgencyJobAssignmentService {
 
     const finalResponse: GcpFirestoreRecordListingResponseDTO<
       (DbAgencyJobAssignmentDto & {
-        jobDetails?: DbJobAwsOpensearchDto;
+        jobDetails?: DbGcpFirestoreJobDto;
       })[]
     > = {
       data: agencyJobAssignmentsWithEntityDetails,

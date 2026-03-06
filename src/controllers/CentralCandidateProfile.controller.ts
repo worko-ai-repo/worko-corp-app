@@ -2,8 +2,9 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { CentralCandidateProfileListingFilterOptions, CentralCandidateProfileListingFilterRequestDTO } from "../dtos/CentralCandidateProfile.dto";
+import { CentralCandidateProfileBulkCvPsuToUploadApiDto, CentralCandidateProfileListingFilterOptions, CentralCandidateProfileListingFilterRequestDTO } from "../dtos/CentralCandidateProfile.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
+import { PreSignedUrlToUploadFileResponseDto } from "../dtos/File.dto";
 
 // Import helpers
 import { GcpFirestoreRequestHelper } from "../helpers/request.gcp-firestore.helper";
@@ -12,7 +13,7 @@ import { GcpFirestoreRequestHelper } from "../helpers/request.gcp-firestore.help
 import { centralCandidateProfileServiceObj } from "../services/CentralCandidateProfile.service";
 
 // Import schemas
-import { centralCandidateProfileFilterDtoValidation } from "../schemas/CentralCandidateProfile.schema";
+import { centralCandidateProfileBulkCvPsuToUploadApiDtoValidation, centralCandidateProfileFilterDtoValidation } from "../schemas/CentralCandidateProfile.schema";
 
 // Import models
 import { DbCentralCandidateProfileDto } from "../db/gcp-firestore-models/CentralCandidateProfile.model";
@@ -23,6 +24,31 @@ import HttpStatusCode from "../utils/http-codes.util";
 import { RequestValidationError } from "../utils/errors.util";
 
 class CentralCandidateProfileController {
+  generatePsuToBulkCvUploadCentralCandidateProfile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const requestBody: CentralCandidateProfileBulkCvPsuToUploadApiDto = req.body;
+      let { error, value: validatedRequestBody } = centralCandidateProfileBulkCvPsuToUploadApiDtoValidation.validate(
+        requestBody,
+        { abortEarly: false }
+      );
+      if(error) {
+        throw new RequestValidationError(error);
+      }
+      const response: PreSignedUrlToUploadFileResponseDto[] = await centralCandidateProfileServiceObj.generatePsuToBulkCvUploadCentralCandidateProfile(
+        validatedRequestBody
+      );
+      res.status(HttpStatusCode.OK_200).json({
+        "bulkCvs": response
+      });
+    } catch (error) {
+      global.logger.error(`Generate PSU To Bulk Cv Upload Central Candidate Profile [Controller]`, {
+        methodName: this.generatePsuToBulkCvUploadCentralCandidateProfile.name,
+        error,
+      })
+      next(error);
+    }
+  }
+
   getAllCentralCandidateProfileByFilterOptions = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const centralCandidateProfileListingFilterRequest: CentralCandidateProfileListingFilterOptions =

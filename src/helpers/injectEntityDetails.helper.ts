@@ -1,5 +1,6 @@
+
 // Import models
-import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
+import { DbGcpFirestoreJobDto } from "../db/gcp-firestore-models/GcpFirestoreJob.model";
 import { DbAgencyJobAssignmentDto } from "../db/gcp-firestore-models/AgencyJobAssignment.model";
 import { DbAgencyUserSubmissionDto } from "../db/gcp-firestore-models/AgencyUserSubmission.model";
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
@@ -7,9 +8,8 @@ import { DbCorporateCandidateProfileDto } from "../db/gcp-firestore-models/Corpo
 import { DbCentralCandidateProfileDto } from "../db/gcp-firestore-models/CentralCandidateProfile.model";
 
 // Import services
-import { jobServiceObj } from "../services/Job.service";
+import { gcpFirestoreJobServiceObj } from "../services/GcpFirestoreJob.service";
 import { candidateParsedCvServiceObj } from "../services/CandidateParsedCv.service";
-
 
 class InjectEntityDetailsHelper {
   async injectEntityDetailsForAgencyJobAssignment(
@@ -17,7 +17,7 @@ class InjectEntityDetailsHelper {
     includeJobDetails?: boolean
   ): Promise<
     (DbAgencyJobAssignmentDto & {
-      jobDetails?: DbJobAwsOpensearchDto;
+      jobDetails?: DbGcpFirestoreJobDto;
     })[]
   > {
     if (!agencyJobAssignments || !agencyJobAssignments.length) {
@@ -39,7 +39,7 @@ class InjectEntityDetailsHelper {
       return agencyJobAssignments;
     }
 
-    let jobDetailsMap: Map<string, DbJobAwsOpensearchDto> = new Map();
+    let jobDetailsMap: Map<string, DbGcpFirestoreJobDto> = new Map();
 
     // If includeJobDetails is true, inject job details
     if (includeJobDetails) {
@@ -51,15 +51,15 @@ class InjectEntityDetailsHelper {
         )
       );
 
-      jobDetailsMap = await jobServiceObj.getJobDetailsMapByIds(uniqueJobIds);
+      jobDetailsMap = await gcpFirestoreJobServiceObj.getJobDetailsMapByIds(uniqueJobIds);
     }
 
     const agencyJobAssignmentsWithEntityDetails: (DbAgencyJobAssignmentDto & {
-      jobDetails?: DbJobAwsOpensearchDto;
+      jobDetails?: DbGcpFirestoreJobDto;
     })[] = agencyJobAssignments.map(
       (eachAgencyJobAssignment: DbAgencyJobAssignmentDto) => {
         const eachAgencyJobAssignmentWithEntityDetails: DbAgencyJobAssignmentDto & {
-          jobDetails?: DbJobAwsOpensearchDto;
+          jobDetails?: DbGcpFirestoreJobDto;
         } = {
           ...eachAgencyJobAssignment,
 
@@ -82,7 +82,7 @@ class InjectEntityDetailsHelper {
     includeCandidateParsedCvDetails?: boolean
   ): Promise<
     (DbAgencyUserSubmissionDto & {
-      jobDetails?: DbJobAwsOpensearchDto;
+      jobDetails?: DbGcpFirestoreJobDto;
       candidateParsedCvDetails?: DbCandidateParsedCvDto;
     })[]
   > {
@@ -93,7 +93,7 @@ class InjectEntityDetailsHelper {
         methodName: this.injectEntityDetailsForAgencyUserSubmission.name,
       });
       return [] as (DbAgencyUserSubmissionDto & {
-        jobDetails?: DbJobAwsOpensearchDto;
+        jobDetails?: DbGcpFirestoreJobDto;
         candidateParsedCvDetails?: DbCandidateParsedCvDto;
       })[];
     }
@@ -108,12 +108,12 @@ class InjectEntityDetailsHelper {
         }
       );
       return agencyUserSubmissions as (DbAgencyUserSubmissionDto & {
-        jobDetails?: DbJobAwsOpensearchDto;
+        jobDetails?: DbGcpFirestoreJobDto;
         candidateParsedCvDetails?: DbCandidateParsedCvDto;
       })[];
     }
 
-    let jobDetailsMap: Map<string, DbJobAwsOpensearchDto> = new Map();
+    let jobDetailsMap: Map<string, DbGcpFirestoreJobDto> = new Map();
 
     // If includeJobDetails is true, inject job details
     if (includeJobDetails) {
@@ -125,7 +125,7 @@ class InjectEntityDetailsHelper {
         )
       );
 
-      jobDetailsMap = await jobServiceObj.getJobDetailsMapByIds(uniqueJobIds);
+      jobDetailsMap = await gcpFirestoreJobServiceObj.getJobDetailsMapByIds(uniqueJobIds);
     }
 
     let candidateParsedCvDetailsMap: Map<string, DbCandidateParsedCvDto> =
@@ -148,12 +148,12 @@ class InjectEntityDetailsHelper {
     }
 
     const agencyUserSubmissionsWithEntityDetails: (DbAgencyUserSubmissionDto & {
-      jobDetails?: DbJobAwsOpensearchDto;
+      jobDetails?: DbGcpFirestoreJobDto;
       candidateParsedCvDetails?: DbCandidateParsedCvDto;
     })[] = agencyUserSubmissions.map(
       (eachAgencyUserSubmission: DbAgencyUserSubmissionDto) => {
         const eachAgencyUserSubmissionWithEntityDetails: DbAgencyUserSubmissionDto & {
-          jobDetails?: DbJobAwsOpensearchDto;
+          jobDetails?: DbGcpFirestoreJobDto;
           candidateParsedCvDetails?: DbCandidateParsedCvDto;
         } = {
           ...eachAgencyUserSubmission,
@@ -218,10 +218,9 @@ class InjectEntityDetailsHelper {
     if (includeCandidateParsedCvDetails) {
       const uniqueCandidateParsedCvIds: string[] = Array.from(
         new Set(
-          corporateCandidateProfiles
-            .map(
-              (item: DbCorporateCandidateProfileDto) => item.candidateParsedCvId
-            )
+          corporateCandidateProfiles.map(
+            (item: DbCorporateCandidateProfileDto) => item.candidateParsedCvId
+          )
         )
       );
 
@@ -233,19 +232,19 @@ class InjectEntityDetailsHelper {
 
     // If includeJobDetails is true, inject job details
 
-    let jobDetailsMap: Map<string, DbJobAwsOpensearchDto> = new Map();
+    let jobDetailsMap: Map<string, DbGcpFirestoreJobDto> = new Map();
 
     // If includeJobDetails is true, inject job details
     if (includeJobDetails) {
       const uniqueJobIds: string[] = Array.from(
         new Set(
-          corporateCandidateProfiles.map(
-            (item: DbCorporateCandidateProfileDto) => item.jobId
-          ).filter((id: string | undefined): id is string => id !== undefined)
+          corporateCandidateProfiles
+            .map((item: DbCorporateCandidateProfileDto) => item.jobId)
+            .filter((id: string | undefined): id is string => id !== undefined)
         )
       );
 
-      jobDetailsMap = await jobServiceObj.getJobDetailsMapByIds(uniqueJobIds);
+      jobDetailsMap = await gcpFirestoreJobServiceObj.getJobDetailsMapByIds(uniqueJobIds);
     }
 
     const corporateCandidateProfilesWithEntityDetails: (DbCorporateCandidateProfileDto & {
@@ -264,11 +263,13 @@ class InjectEntityDetailsHelper {
                 eachCorporateCandidateProfile.candidateParsedCvId
               ),
             }),
-          
+
           // If includeJobDetails is true, inject job details
           ...(includeJobDetails &&
             eachCorporateCandidateProfile.jobId && {
-              jobDetails: jobDetailsMap.get(eachCorporateCandidateProfile.jobId),
+              jobDetails: jobDetailsMap.get(
+                eachCorporateCandidateProfile.jobId
+              ),
             }),
         };
 
@@ -317,10 +318,10 @@ class InjectEntityDetailsHelper {
     if (includeCandidateParsedCvDetails) {
       const uniqueCandidateParsedCvIds: string[] = Array.from(
         new Set(
-          centralCandidateProfiles
-            .map(
-              (item: DbCentralCandidateProfileDto) => item.latestCandidateParsedCvId
-            )
+          centralCandidateProfiles.map(
+            (item: DbCentralCandidateProfileDto) =>
+              item.latestCandidateParsedCvId
+          )
         )
       );
 

@@ -26,7 +26,7 @@ AgencyJobAssignmentRouter.patch("/bulk/remove-jobs", agencyJobAssignmentControll
 
 /**
  * Get All Agency Job Assignment
- * @authorisedRoles ["agency"]
+ * @authorisedRoles ["agency", "corporate-admin","corporate-recruiter"]
  */
 AgencyJobAssignmentRouter.get("/", agencyJobAssignmentController.getAllAgencyJobAssignmentByFilterOptions);
 

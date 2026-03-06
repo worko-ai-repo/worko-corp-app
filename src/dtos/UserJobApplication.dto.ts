@@ -1,5 +1,6 @@
 // import dtos
 import { AgencyUserSubmissionDbMatchingScoreDetailDto } from "./AgencyUserSubmission.dto";
+import { CommonMatchingScoreDetailDto } from "./Common.dto";
 
 // import enums
 import {
@@ -16,7 +17,18 @@ import {
 } from "../types/UserJobApplication.type";
 
 export interface UserJobApplicationMoveToApplicantCreateApiDTO {
-  agencyUserSubmissionId: string;
+  /**
+   * @note
+   *  1. "agencyUserSubmissionId" and "agencyUserId" are required when `agency submitted candidate` is moved to "Applicants page"
+   */
+  agencyUserSubmissionId?: string;
+  /**
+   * @reference "id" field of "AgencyUser.model.ts"
+   * @description The registered agency user 
+   */
+  agencyUserId?: string;
+
+  candidateParsedCvId: string;
 
   /**
    * jobId
@@ -36,11 +48,37 @@ export interface UserJobApplicationMoveToApplicantCreateApiDTO {
    */
   applicantEmail: string;
 
-  matchingScoreDetails?: AgencyUserSubmissionDbMatchingScoreDetailDto;
+  matchingScoreDetails?: CommonMatchingScoreDetailDto;
+}
+
+export interface UserJobApplicationMoveToApplicantSubmitFormCreateApiDTO {
+  candidateParsedCvId: string;
+
+  /**
+   * jobId
+   *
+   * @reference `id` attribute of `CompanyJob.model.ts`
+   */
+  jobId: string;
+
+  companyName: string;
+
+  /**
+   * @description
+   *  1. Applicant need not to be registered in the system.
+   */
+  applicantEmail: string;
 }
 
 export interface UserJobApplicationMoveToApplicantCreateDto {
-  agencyUserSubmissionId: string;
+  /**
+   * @note
+   *  1. "agencyUserSubmissionId" and "agencyUserId" are required when `agency submitted candidate` is moved to "Applicants page"
+   */
+  agencyUserSubmissionId?: string;
+  agencyUserId?: string;
+
+  candidateParsedCvId: string;
   /**
    * jobId
    *
@@ -90,6 +128,8 @@ export interface UserJobApplicationMoveToApplicantCreateDto {
 
 export interface UserJobApplicationSendForEvaluationCreateApiDTO {
   agencyUserSubmissionId: string;
+  agencyUserId: string;
+  candidateParsedCvId: string;
 
   /**
    * jobId

@@ -115,8 +115,20 @@ export interface GcpFirestoreRecordListingPaginationResponseDTO {
    * lastKey 
    *
    * Sample Value: "WzE3NDAzOTY2NDE0MzEsIjE0MzA3MDQwMzIiXQ"
+   * 
+   * @description
+   *  1. Whenever normal firestore pagination is used then "lastKey" will be utilized to determine whether the API should return more results or not.
    */
   lastKey?: string;
+
+  /**
+   * hasMore
+   *
+   * Sample Value: true
+   * @description
+   *  1. Only available for firestore vector search
+   */
+  hasMore?: boolean;
 
   // sortOrder means the order in which the records should be sorted.
   sortOrder?: GcpFirestoreSortOrderTypeEnum;
@@ -130,4 +142,20 @@ export interface GcpFirestoreRecordListingPaginationResponseDTO {
 export interface GcpFirestoreRecordListingResponseDTO<EntityDetails> {
   data: EntityDetails;
   pagination: GcpFirestoreRecordListingPaginationResponseDTO;
+}
+
+
+
+export interface GcpFirestoreSecretResponseDto {
+  type: string; // "service_account";
+  project_id: string; // "worko-dev";
+  private_key_id: string; // "9244b839851136389769ac2d7ae7c1b8c26c1126";
+  private_key: string; // "REDACTED_SECRET\n";
+  client_email: string; // "worko-vertex-ai-dev@worko-dev.iam.gserviceaccount.com";
+  client_id: string; // "109768880960645283299";
+  auth_uri: string; // "https://accounts.google.com/o/oauth2/auth";
+  token_uri: string; // "https://oauth2.googleapis.com/token";
+  auth_provider_x509_cert_url: string; // "https://www.googleapis.com/oauth2/v1/certs";
+  client_x509_cert_url: string; // "https://www.googleapis.com/robot/v1/metadata/x509/worko-vertex-ai-dev%40worko-dev.iam.gserviceaccount.com";
+  universe_domain: string; // "googleapis.com";
 }

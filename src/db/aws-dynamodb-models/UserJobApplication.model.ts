@@ -55,6 +55,8 @@ class DbUserJobApplicationDto extends BaseDbDto {
    * @reference `id` attribute of `AgencyUserSubmission.model.ts`
    */
   agencyUserSubmissionId?: string;
+  agencyUserId?: string;
+  candidateParsedCvId?: string;
 
   status!: JobApplicationStatus;
   statusTracker!: JobApplicationStatusTrackerType;
@@ -144,11 +146,33 @@ class DbUserJobApplicationDto extends BaseDbDto {
   rejectionAwsScheduleId?: string;
 
   /**
+   * rejectionBlacklistedAwsScheduleId
+   *
+   * @description
+   *  1. This attribute is just stored as of now whenever the candidate is blacklisted
+   *     by `corporate` for his company and still candidate applies for this company job
+   *     then we will create a schedule to update the status to `REJECTED`.
+   *  2. As of now this attribute is not being used anywhere but just stored for future use.
+   * @reference
+   *  1. `id` attribute of `ScheduleJob.model.ts`
+   *  2. `Schedule name` in [Amazon EventBridge > Scheduler > Schedules > Schedule name]
+   */
+  rejectionBlacklistedAwsScheduleId?: string;
+
+  /**
    * isEvaluatorResponded
    *
    * If the evaluator has responded to the job application then this attribute will be set to `true`.
    */
   isEvaluatorResponded?: boolean;
+
+  /**
+   * @description 
+   *  Corporate moving applicant without finding matching score and if corporate wants to find matching score
+   *  in applicants page then we will trigger ai match score and set this attribute to `true`
+   *  once matching score calculation is done then we will update this attribute to `false`
+   */
+  isFindMatchingScoreInProgress?: boolean;
 
   /**
    * Attributes Being set after comparing `Job description` and `CV`
@@ -280,6 +304,14 @@ const UserJobApplicationSchema: Schema = new dynamoose.Schema(
       required: true,
     },
     agencyUserSubmissionId: {
+      type: String,
+      required: false,
+    },
+    agencyUserId: {
+      type: String,
+      required: false,
+    },
+    candidateParsedCvId: {
       type: String,
       required: false,
     },
@@ -582,7 +614,15 @@ const UserJobApplicationSchema: Schema = new dynamoose.Schema(
       type: String,
       required: false,
     },
+    rejectionBlacklistedAwsScheduleId: {
+      type: String,
+      required: false,
+    },
     isEvaluatorResponded: {
+      type: Boolean,
+      required: false,
+    },
+    isFindMatchingScoreInProgress: {
       type: Boolean,
       required: false,
     },

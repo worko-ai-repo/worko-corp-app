@@ -1,5 +1,3 @@
-// Import firestore
-import { DocumentData, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import dynamoose
 import { QueryResponse } from "dynamoose/dist/ItemRetriever";
@@ -9,7 +7,9 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsS3ClientLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
+import { AdminCandBulkCvUploadPsuToViewApiDto, AgencyBulkCvsPreSignedUrlToUploadFileDto, AgencyBulkCvsPsuToViewApiDto, AgencyBulkJdResumePreSignedUrlToUploadDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, CandidateSubmissionCvForJobPsuToUploadApiDto, CandidateSubmissionCvForJobPsuToViewApiDto, CorpCandBulkCvUploadPsuToViewApiDto, CorpCandReferralCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
+import { CorporateCandidateProfileBulkCvPsuToUploadApiDto } from "../dtos/CorporateCandidateProfile.dto";
+import { CentralCandidateProfileBulkCvPsuToUploadApiDto } from "../dtos/CentralCandidateProfile.dto";
 
 // Import helpers
 import { getActionByAgencyUserIds, getActionByUserId } from "../helpers/user.helper";
@@ -21,7 +21,6 @@ import { DbCorporateUserDto } from "../db/aws-dynamodb-models/CorporateUser.mode
 import { DbCompanyJobDto } from "../db/aws-dynamodb-models/CompanyJob.model";
 import { DbAgencyUserDto } from "../db/gcp-firestore-models/AgencyUser.model";
 
-
 // Import services
 import { companyDetailServiceObj } from "./CompanyDetail.service";
 import { agencyUserInviteServiceObj } from "./AgencyUserInvite.service";
@@ -29,14 +28,352 @@ import { corporateUserServiceObj } from "./CorporateUser.service";
 import UlidService from "./Ulid.service";
 import { companyJobServiceObj } from "./CompanyJob.service";
 import { agencyUserServiceObj } from "./AgencyUser.service";
-import { agencyJobAssignmentServiceObj } from "./AgencyJobAssignment.service";
-
 
 // Import utils
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
 
 class FileService {
+  async generatePsuToUploadAgencyBulkCvs(
+    agencyUserId: string,
+    psuToUploadBulkCvsParams: AgencyBulkCvsPreSignedUrlToUploadFileDto
+  ): Promise<PreSignedUrlToUploadFileResponseDto[]> {
+    global.logger.info(`Generate the Pre-signed URL to upload Agency bulk cvs`, {
+      methodName: this.generatePsuToUploadAgencyBulkCvs.name,
+      agencyBulkJdId: psuToUploadBulkCvsParams.agencyBulkJdId,
+    });
+
+    // Get the base path where the company job description file would be uploaded
+    const fileUploadPath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.AGENCY_BULK_CVS.strtr({
+        "{agencyUserId}": agencyUserId.toString(),
+        "{agencyBulkJdId}":
+          psuToUploadBulkCvsParams.agencyBulkJdId.toString(),
+      });
+
+    // Generate the Pre-signed URLs to upload the bulk cvs and return
+    return Promise.all(
+      psuToUploadBulkCvsParams.bulkCvs.map(
+        async (eachFileDetail: AgencyBulkJdResumePreSignedUrlToUploadDto) => {
+          // Get the given file extension
+          const fileExtension: string = eachFileDetail.fileName
+            .split(".")
+            .pop() as string; // Sample Output: "pdf"
+
+          // Prepare the given file name
+          const cloudFileName: string = `${UlidService.getUlidId()}.${fileExtension}`;
+
+          // Generate the AWS S3 Signed Url
+          const fileSignedUrl: string =
+            await awsS3ClientLibrary.getSignedUrlForUploadingObject(
+              process.env.APP_AWS_S3_BUCKET_WORKO_AGENCY_BULK_CVS as string,
+              fileUploadPath + "/" + cloudFileName,
+              APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
+              {
+                ContentType: eachFileDetail.fileMimeType,
+              }
+            );
+
+          // Prepare the response object
+          const resObject: PreSignedUrlToUploadFileResponseDto = {
+            userFileName: eachFileDetail.fileName,
+            cloudFileName: cloudFileName,
+            fileMimeType: eachFileDetail.fileMimeType,
+            fileExtension: fileExtension,
+            awsS3SignedUrl: fileSignedUrl,
+          };
+
+          return resObject;
+        }
+      )
+    );
+  }
+
+  async generatePsuToBulkCvUploadCorporateCandidateProfile(
+    requestBody: CorporateCandidateProfileBulkCvPsuToUploadApiDto,
+    corporateUserEmail: string,
+  ): Promise<PreSignedUrlToUploadFileResponseDto[]> {
+    const { companyId, bulkCvs } = requestBody;
+    global.logger.info(
+      `Generate the Pre-signed URL to upload bulk cvs for corporate candidate profile. [File Service]`,
+      {
+        companyId,
+        bulkCvsLength: bulkCvs.length,
+        methodName:
+          this.generatePsuToBulkCvUploadCorporateCandidateProfile.name,
+      }
+    );
+
+    const fileUploadPath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.CORP_CAND_BULK_CV_UPLOAD.strtr({
+        "{companyId}": companyId.toString(),
+      });
+
+    const bucketName: string | undefined = process.env.APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE;
+    if(!bucketName) {
+      throw new BaseError(
+        "AWS S3 bucket name not found",
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    return Promise.all(
+      bulkCvs.map(
+        async (eachFileDetail: { fileName: string; fileMimeType: string }) => {
+          // Get the given file extension
+          const fileExtension: string = eachFileDetail.fileName
+            .split(".")
+            .pop() as string; // Sample Output: "pdf"
+
+          // Prepare the given file name
+          const cloudFileName: string = `${UlidService.getUlidId()}.${fileExtension}`;
+
+          // Generate the AWS S3 Signed Url
+          const fileSignedUrl: string =
+            await awsS3ClientLibrary.getSignedUrlForUploadingObject(
+              bucketName,
+              fileUploadPath + "/" + cloudFileName,
+              APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
+              {
+                ContentType: eachFileDetail.fileMimeType,
+                Metadata: {
+                  "bulkSourceTypeResumeId": requestBody.bulkSourceTypeResumeId,
+                  "corporateUserEmail": corporateUserEmail,
+                }
+              }
+            );
+
+          // Prepare the response object
+          const resObject: PreSignedUrlToUploadFileResponseDto = {
+            userFileName: eachFileDetail.fileName,
+            cloudFileName: cloudFileName,
+            fileMimeType: eachFileDetail.fileMimeType,
+            fileExtension: fileExtension,
+            awsS3SignedUrl: fileSignedUrl,
+          };
+
+          return resObject;
+        }
+      )
+    );
+  }
+
+  async generatePsuToViewCorpCandBulkCvUpload(requestBody: CorpCandBulkCvUploadPsuToViewApiDto) {
+    const { actionByCorporateUserId, actionByUserId } = getActionByUserId();
+    const cognitoUserGroups: string[] = global.requestLocalContext.cognitoUserGroups;
+    const {candCvAwsS3FileName, companyId} = requestBody;
+    if(actionByCorporateUserId) {
+      const corporateUserDetails: QueryResponse<DbCorporateUserDto> = await corporateUserServiceObj.getCorpUserById(actionByCorporateUserId);
+      if (!corporateUserDetails.count) {
+        throw new BaseError(
+          `Corporate User Details not found.`,
+          HttpStatusCode.NOT_FOUND_404
+        );
+      }
+      const corporateUserData: DbCorporateUserDto = corporateUserDetails[0];
+
+      if(corporateUserData.isDeleted) {
+        throw new BaseError(
+          "Your account has been deleted, please contact support.",
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
+
+      if(requestBody.companyId !== corporateUserData.companyId) {
+        global.logger.info(`Corporate user and company id in request mismatch.`, {
+          methodName: this.generatePsuToBulkCvUploadCorporateCandidateProfile.name,
+        })
+        throw new BaseError(
+          "You are not allowed to access this resource",
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
+    } else if(
+      actionByUserId && 
+      (
+        cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN)
+        || cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.EVALUATOR)
+      )
+    ) {
+      global.logger.info(`User is ${cognitoUserGroups}.`, {
+        methodName: this.generatePsuToViewCorpCandBulkCvUpload.name
+      })
+    } else {
+      throw new BaseError("Unauthorized", HttpStatusCode.UNAUTHORIZED_401);
+    }
+
+    const filePath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.CORP_CAND_BULK_CV_UPLOAD.strtr({
+        "{companyId}": companyId.toString(),
+      });
+
+    const bucketName: string | undefined = process.env.APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE;
+    if(!bucketName) {
+      throw new BaseError(
+        "AWS S3 bucket name not found",
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const objectUrl: string = await awsS3ClientLibrary.generateObjectUrl(
+      bucketName,
+      `${filePath}/${candCvAwsS3FileName}`
+    );
+
+    return {
+      objectUrl: objectUrl,
+    };
+  }
+
+  async generatePsuToViewCorpCandReferralCv(requestBody: CorpCandReferralCvPsuToViewApiDto) {
+    const { actionByCorporateUserId, actionByUserId } = getActionByUserId();
+    const cognitoUserGroups: string[] = global.requestLocalContext.cognitoUserGroups;
+    const {candCvAwsS3FileName, companyId} = requestBody;
+    if(actionByCorporateUserId) {
+      const corporateUserDetails: QueryResponse<DbCorporateUserDto> = await corporateUserServiceObj.getCorpUserById(actionByCorporateUserId);
+      if (!corporateUserDetails.count) {
+        throw new BaseError(
+          `Corporate User Details not found.`,
+          HttpStatusCode.NOT_FOUND_404
+        );
+      }
+      const corporateUserData: DbCorporateUserDto = corporateUserDetails[0];
+
+      if(corporateUserData.isDeleted) {
+        throw new BaseError(
+          "Your account has been deleted, please contact support.",
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
+
+      if(requestBody.companyId !== corporateUserData.companyId) {
+        global.logger.info(`Corporate user and company id in request mismatch.`, {
+          methodName: this.generatePsuToBulkCvUploadCorporateCandidateProfile.name,
+        })
+        throw new BaseError(
+          "You are not allowed to access this resource",
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
+    } else if(actionByUserId && (
+      cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN))
+      || cognitoUserGroups.includes(APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.EVALUATOR)
+    ) {
+      global.logger.info(`User is a ${cognitoUserGroups}.`, {
+        methodName: this.generatePsuToViewCorpCandBulkCvUpload.name
+      })
+    } else {
+      throw new BaseError("Unauthorized", HttpStatusCode.UNAUTHORIZED_401);
+    }
+
+    const filePath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.CORP_CAND_REFERRAL_CV.strtr({
+        "{companyId}": companyId.toString(),
+      });
+
+    const bucketName: string | undefined = process.env.APP_AWS_S3_BUCKET_WORKO_CORPORATE_REFERRAL_SOURCE_CV;
+    if(!bucketName) {
+      throw new BaseError(
+        "AWS S3 bucket name not found",
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const objectUrl: string = await awsS3ClientLibrary.generateObjectUrl(
+      bucketName,
+      `${filePath}/${candCvAwsS3FileName}`
+    );
+
+    return {
+      objectUrl: objectUrl,
+    };
+  }
+
+  async generatePsuToBulkCvUploadCentralCandidateProfile(requestBody: CentralCandidateProfileBulkCvPsuToUploadApiDto, workoAdminUserEmail: string) {
+    const { bulkCvs } = requestBody;
+    global.logger.info(
+      `Generate the Pre-signed URL to upload bulk cvs for central candidate profile. [File Service]`,
+      {
+        bulkCvsLength: bulkCvs.length,
+        methodName:
+          this.generatePsuToBulkCvUploadCentralCandidateProfile.name,
+      }
+    );
+
+    const fileUploadPath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.ADMIN_CAND_BULK_CV_UPLOAD;
+
+    const bucketName: string | undefined = process.env.APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE;
+    if(!bucketName) {
+      throw new BaseError(
+        "AWS S3 bucket name not found",
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    return Promise.all(
+      bulkCvs.map(
+        async (eachFileDetail: { fileName: string; fileMimeType: string }) => {
+          // Get the given file extension
+          const fileExtension: string = eachFileDetail.fileName
+            .split(".")
+            .pop() as string; // Sample Output: "pdf"
+
+          // Prepare the given file name
+          const cloudFileName: string = `${UlidService.getUlidId()}.${fileExtension}`;
+
+          // Generate the AWS S3 Signed Url
+          const fileSignedUrl: string =
+            await awsS3ClientLibrary.getSignedUrlForUploadingObject(
+              bucketName,
+              fileUploadPath + "/" + cloudFileName,
+              APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
+              {
+                ContentType: eachFileDetail.fileMimeType,
+                "Metadata": {
+                  "bulkSourceTypeResumeId": requestBody.bulkSourceTypeResumeId,
+                  "workoAdminUserEmail": workoAdminUserEmail
+                }
+              }
+            );
+
+          // Prepare the response object
+          const resObject: PreSignedUrlToUploadFileResponseDto = {
+            userFileName: eachFileDetail.fileName,
+            cloudFileName: cloudFileName,
+            fileMimeType: eachFileDetail.fileMimeType,
+            fileExtension: fileExtension,
+            awsS3SignedUrl: fileSignedUrl,
+          };
+
+          return resObject;
+        }
+      )
+    );
+  }
+
+  async generatePsuToViewAdminCandBulkCvUpload(requestBody: AdminCandBulkCvUploadPsuToViewApiDto) {
+    const filePath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.ADMIN_CAND_BULK_CV_UPLOAD;
+
+    const bucketName: string | undefined = process.env.APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE;
+    if(!bucketName) {
+      throw new BaseError(
+        "AWS S3 bucket name not found",
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const objectUrl: string = await awsS3ClientLibrary.generateObjectUrl(
+      bucketName,
+      `${filePath}/${requestBody.candCvAwsS3FileName}`
+    );
+
+    return {
+      objectUrl: objectUrl,
+    };
+  }
+
   private async validatePsuToUploadOrViewAgencyUserInviteContractCopy(
     requestBodyObject:
       | AgencyUserInviteContractCopyPsuToUploadApiDto
@@ -260,20 +597,6 @@ class FileService {
         HttpStatusCode.NOT_FOUND_404
       );
     }
-
-    // Check whether this `companyJob` is assigned to this `agency` or not by using `companyId` `agencyRegisteredEmail`,`jobId`
-    const reqBodyAgencyJobAssignmentDetails: QuerySnapshot<DocumentData, DocumentData> =
-      await agencyJobAssignmentServiceObj.getAgencyJobAssignmentByCompIdJobIdAndEmail(
-        reqBodyCompanyData.id,
-        jobId,
-        agencyUserDetails.email
-      );
-    if (reqBodyAgencyJobAssignmentDetails.empty) {
-      throw new BaseError(
-        `You are not allowed to perform action on this resource.`,
-        HttpStatusCode.FORBIDDEN_403
-      );
-    }
   }
 
   private async validatePsuToViewAgencyUserSubmissionCv(
@@ -357,19 +680,26 @@ class FileService {
         HttpStatusCode.NOT_FOUND_404
       );
     }
+  }
 
-    // Check whether this `companyJob` is assigned to this `agency` or not by using `companyId` `agencyRegisteredEmail`,`jobId`
-    const reqBodyAgencyJobAssignmentDetails: QuerySnapshot<DocumentData, DocumentData> =
-      await agencyJobAssignmentServiceObj.getAgencyJobAssignmentByCompIdJobIdAndEmail(
-        reqBodyCompanyData.id,
-        jobId,
-        agencyUserDetails.email
+  private async validatePsuToViewAgencyBulkCvs(requestBodyObject: AgencyBulkCvsPsuToViewApiDto): Promise<{agencyUserId: string}> {
+    const {
+      convertedAgencyCognitoUserId
+    } = getActionByAgencyUserIds();
+
+    const agencyUserDetails: DbAgencyUserDto | undefined =
+      await agencyUserServiceObj.getAgencyUserById(
+        convertedAgencyCognitoUserId
       );
-    if (reqBodyAgencyJobAssignmentDetails.empty) {
+    if (!agencyUserDetails) {
       throw new BaseError(
-        `You are not allowed to perform action on this resource.`,
-        HttpStatusCode.FORBIDDEN_403
+        `We couldn’t verify your details. Please log out and sign in again to continue.`,
+        HttpStatusCode.NOT_FOUND_404
       );
+    }
+
+    return {
+      agencyUserId: convertedAgencyCognitoUserId
     }
   }
 
@@ -433,6 +763,127 @@ class FileService {
       fileMimeType: fileMimeType,
       fileExtension: fileExtension,
       awsS3SignedUrl: fileSignedUrl,
+    };
+  }
+
+  private async validatePsuToUploadOrViewCandidateSubmissionCvForJob(
+    companyId: string,
+    jobId: string
+  ) {
+    const reqBodyCompanyDetails: QueryResponse<DbCompanyDetailDto> =
+      await companyDetailServiceObj.getCompanyDetailById(companyId);
+    if (!reqBodyCompanyDetails.count) {
+      throw new BaseError(
+        `Company details not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+    const reqBodyCompanyData: DbCompanyDetailDto = reqBodyCompanyDetails[0];
+
+    const reqBodyJobDetails: QueryResponse<DbCompanyJobDto> =
+      await companyJobServiceObj.getJobById(jobId);
+    if (!reqBodyJobDetails.count) {
+      throw new BaseError(
+        `Job details not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+    const reqBodyJobData: DbCompanyJobDto = reqBodyJobDetails[0];
+
+    if (reqBodyCompanyData.id !== reqBodyJobData.companyId) {
+      throw new BaseError(
+        `Job does not belong to the company.`,
+        HttpStatusCode.CONFLICT_409
+      );
+    }
+  }
+
+  async generatePsuToUploadCandidateSubmissionCvForJob(requestBodyObject: CandidateSubmissionCvForJobPsuToUploadApiDto): Promise<PreSignedUrlToUploadFileResponseDto> {
+    await this.validatePsuToUploadOrViewCandidateSubmissionCvForJob(
+      requestBodyObject.companyId,
+      requestBodyObject.jobId
+    );
+
+    const { companyId, jobId, fileMimeType, fileName } = requestBodyObject;
+
+    const fileUploadPath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.CAND_SUBMIT_CV_JOB.strtr({
+        "{companyId}": companyId,
+        "{jobId}": jobId,
+      });
+
+    const fileExtension: string = fileName.split(".").pop() as string;
+
+    const cloudFileName: string = `${UlidService.getUlidId()}.${fileExtension}`;
+
+    const bucketName: string | undefined =
+      process.env.APP_AWS_S3_BUCKET_WORKO_APP;
+    if (!bucketName) {
+      global.logger.error(`AWS S3 bucket name not found. [File Service]`, {
+        bucketName,
+        methodName: this.generatePsuToUploadCandidateSubmissionCvForJob.name,
+      });
+
+      throw new BaseError(
+        `AWS S3 bucket name not found.`,
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const fileSignedUrl: string =
+      await awsS3ClientLibrary.getSignedUrlForUploadingObject(
+        bucketName,
+        `${fileUploadPath}/${cloudFileName}`,
+        APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
+        {
+          ContentType: fileMimeType,
+        }
+      );
+
+    return {
+      userFileName: fileName,
+      cloudFileName: cloudFileName,
+      fileMimeType: fileMimeType,
+      fileExtension: fileExtension,
+      awsS3SignedUrl: fileSignedUrl,
+    };
+  }
+
+  async generatePsuToViewCandidateSubmissionCvForJob(requestBodyObject: CandidateSubmissionCvForJobPsuToViewApiDto): Promise<PreSignedUrlToViewFileResponseDto> {
+    const { companyId, jobId, candCvAwsS3FileName } = requestBodyObject;
+
+    await this.validatePsuToUploadOrViewCandidateSubmissionCvForJob(
+      requestBodyObject.companyId,
+      requestBodyObject.jobId
+    );
+
+    const filePath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.CAND_SUBMIT_CV_JOB.strtr({
+        "{companyId}": companyId,
+        "{jobId}": jobId,
+      });
+
+    const bucketName: string | undefined =
+      process.env.APP_AWS_S3_BUCKET_WORKO_APP;
+    if (!bucketName) {
+      global.logger.error(`AWS S3 bucket name not found. [File Service]`, {
+        bucketName,
+        methodName: this.generatePsuToViewAgencyUserSubmissionCv.name,
+      });
+
+      throw new BaseError(
+        `Internal server error.`,
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const objectUrl: string = await awsS3ClientLibrary.generateObjectUrl(
+      bucketName,
+      `${filePath}/${candCvAwsS3FileName}`
+    );
+
+    return {
+      objectUrl: objectUrl,
     };
   }
 
@@ -520,6 +971,50 @@ class FileService {
     const objectUrl: string = await awsS3ClientLibrary.generateObjectUrl(
       bucketName,
       `${filePath}/${candidateCvAwsS3FileName}`
+    );
+
+    return {
+      objectUrl: objectUrl,
+    };
+  }
+
+  async generatePsuToViewAgencyBulkCvs(requestBodyObject: AgencyBulkCvsPsuToViewApiDto) {
+    global.logger.info(
+      `Generating pre-signed url to view agency bulk cvs. [File Service]`,
+      {
+        methodName: this.generatePsuToViewAgencyBulkCvs.name,
+      }
+    );
+
+    const {
+      agencyUserId,
+    } = await this.validatePsuToViewAgencyBulkCvs(requestBodyObject);
+
+    const { bulkCvsAwsS3FileName, agencyBulkJdId } = requestBodyObject;
+
+    const filePath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.AGENCY_BULK_CVS.strtr({
+        "{agencyBulkJdId}": agencyBulkJdId,
+        "{agencyUserId}": agencyUserId,
+      });
+
+    const bucketName: string | undefined =
+      process.env.APP_AWS_S3_BUCKET_WORKO_AGENCY_BULK_CVS;
+    if (!bucketName) {
+      global.logger.error(`AWS S3 bucket name not found. [File Service]`, {
+        bucketName,
+        methodName: this.generatePsuToViewAgencyBulkCvs.name,
+      });
+
+      throw new BaseError(
+        `Internal server error.`,
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const objectUrl: string = await awsS3ClientLibrary.generateObjectUrl(
+      bucketName,
+      `${filePath}/${bulkCvsAwsS3FileName}`
     );
 
     return {

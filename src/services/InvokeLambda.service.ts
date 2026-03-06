@@ -6,38 +6,23 @@ import { awsClientLambdaLibrary } from "../configs/aws-sdk.config";
 import APP_CONSTANTS from "../configs/constants.config";
 
 // import dtos
-import { InvokeLambdaSourceTypeBulkJdResumeMatchingScoreDto, InvokeLambdaSourceTypeJdResumeMatchingScoreDto, InvokeLambdParseAgencyUserSubmissionCandidateCvDto } from "../dtos/InvokeLambda.dto";
+import { InvokeLambdaSourceTypeJdResumeMatchingScoreDto, InvokeLambdaParseAgencyUserSubmissionCandidateCvDto, InvokeLambdaHandlerEventPayloadDto, InvokeLambdaParseSubmitFormCandidateParsedCvDto, InvokeLambdaRefreshCandidateParsedCvDto, InvokeLambdMatchingScoreCalcualtionDto } from "../dtos/InvokeLambda.dto";
 
+// import enums
+import { InvocationTypeEnum } from "../enums/InvokeLambda.enum";
+
+// import utils
+import { BaseError } from "../utils/errors.util";
+
+/**
+ * @note
+ *  1. using `APIGatewayProxyResult` as return type is not a valid for all lambda function invoke result.
+ *  2. As of now the return structure is same as APIGatewayProxyResult, so we are using it as return type.
+ *  3. Usually we use `Promise<APIGatewayProxyResult>` as return type for only when Api gateway is used to trigger lambda function.
+ */
 class InvokeLambdaService {
-  /**
-   * triggerOpenSearchOperation
-   *
-   * Triggers an AWS Lambda function to perform operations on an OpenSearch
-   * cluster. This method sends a payload to the Lambda function specified
-   * in the configuration and handles the response.
-   *
-   * @param {OpensearchPayload} payload - The payload containing details of the
-   * OpenSearch operation to be performed.
-   * @returns {Promise<APIGatewayProxyResult>} The response object containing
-   * the status code and message indicating the success or failure of the
-   * operation.
-   */
-  async triggerOpenSearchOperation<OpensearchPayload>(
-    payload: OpensearchPayload
-  ): Promise<APIGatewayProxyResult> {
-    // log the info
-    global.logger.info("Trigger OpenSearch Operation Lambda [service]", {
-      methodName: this.triggerOpenSearchOperation.name,
-    });
-
-    return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType<OpensearchPayload>(
-      APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.WORKO_JOB_APP_OPENSEARCH_OPERATIONS,
-      payload
-    );
-  }
-
   async triggerParseAgencyUserSubmissionCandidateCv(
-    payload: InvokeLambdParseAgencyUserSubmissionCandidateCvDto
+    payload: InvokeLambdaParseAgencyUserSubmissionCandidateCvDto
   ): Promise<APIGatewayProxyResult> {
     // log the info
     global.logger.info(
@@ -47,7 +32,7 @@ class InvokeLambdaService {
       }
     );
 
-    return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType<InvokeLambdParseAgencyUserSubmissionCandidateCvDto>(
+    return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType<InvokeLambdaParseAgencyUserSubmissionCandidateCvDto>(
       APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.RESUME_EXTRACTION_LAMBDA_NAME,
       payload
     );
@@ -55,16 +40,76 @@ class InvokeLambdaService {
 
   async triggerSourceTypeJdResumeMatchingScore(payload: InvokeLambdaSourceTypeJdResumeMatchingScoreDto): Promise<APIGatewayProxyResult> {
     global.logger.info("Trigger Source Type JD Resume Matching Score Lambda [service]", { methodName: this.triggerSourceTypeJdResumeMatchingScore.name });
-    return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType<InvokeLambdaSourceTypeJdResumeMatchingScoreDto>(
+    return awsClientLambdaLibrary.triggerLambdaEventInvocationType<InvokeLambdaSourceTypeJdResumeMatchingScoreDto>(
       APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.WORKO_SOURCE_TYPE_JD_RESUME_MATCHING_SCORE,
       payload
     );
   }
 
-  async triggerSourceTypeBulkJdResumeMatchingScore(payload: InvokeLambdaSourceTypeBulkJdResumeMatchingScoreDto): Promise<APIGatewayProxyResult> {
-    global.logger.info("Trigger Source Type Bulk JD Resume Matching Score Lambda [service]", { methodName: this.triggerSourceTypeBulkJdResumeMatchingScore.name });
-    return awsClientLambdaLibrary.triggerLambdaEventInvocationType<InvokeLambdaSourceTypeBulkJdResumeMatchingScoreDto>(
-      APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.WORKO_SOURCE_TYPE_BULK_JD_RESUME_MATCHING_SCORE,
+  async triggerWorkoCorpAppInvokeLambdaTrigger(
+    payload: InvokeLambdaHandlerEventPayloadDto
+  ) {
+    return awsClientLambdaLibrary.triggerLambdaEventInvocationType(
+      APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.WORKO_CORP_APP_INVOKE_LAMBDA_NAME,
+      payload
+    );
+  }
+
+  async triggerWorkoJobAppInvokeLambdaTrigger(
+    awsLambdaInvocationType: InvocationTypeEnum,
+    payload: InvokeLambdaHandlerEventPayloadDto
+  ) {
+    switch (awsLambdaInvocationType) {
+      case InvocationTypeEnum.EventType:
+        return awsClientLambdaLibrary.triggerLambdaEventInvocationType(
+          APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.WORKO_JOB_APP_INVOKE_LAMBDA_NAME,
+          payload,
+        );
+
+      case InvocationTypeEnum.RequestResponseType:
+        return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType(
+          APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.WORKO_JOB_APP_INVOKE_LAMBDA_NAME,
+          payload,
+        );
+
+      case InvocationTypeEnum.DryRunType:
+        global.logger.error("DryRunType not supported as of now we may implement it in near future if needed.", {
+          methodName: this.triggerWorkoJobAppInvokeLambdaTrigger.name,
+        });
+        throw new BaseError("DryRunType not supported as of now, we may implement it in near future if needed.");
+
+      default:
+        global.logger.error("Invalid Invocation Type", {
+          methodName: this.triggerWorkoJobAppInvokeLambdaTrigger.name,
+        });
+        throw new BaseError("Invalid Invocation Type");
+    }
+  }
+
+  async triggerParseSubmitFormCandidateParsedCv(payload: InvokeLambdaParseSubmitFormCandidateParsedCvDto) {
+    return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType<InvokeLambdaParseSubmitFormCandidateParsedCvDto>(
+      APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.RESUME_EXTRACTION_LAMBDA_NAME,
+      payload
+    );
+  }
+
+  async triggerRefreshCandidateParsedCv(payload: InvokeLambdaRefreshCandidateParsedCvDto) {
+    return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType<InvokeLambdaRefreshCandidateParsedCvDto>(
+      APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.RESUME_EXTRACTION_LAMBDA_NAME,
+      payload,
+    );
+  }
+
+  async triggerMatchingScoreCalculation(
+    payload: InvokeLambdMatchingScoreCalcualtionDto
+  ): Promise<APIGatewayProxyResult> {
+    global.logger.info("Trigger Matching Score Calculation [service]", {
+      methodName: this.triggerMatchingScoreCalculation.name,
+    });
+
+    // Trigger Lambda
+    return awsClientLambdaLibrary.triggerLambdaEventInvocationType<InvokeLambdMatchingScoreCalcualtionDto>(
+      APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.MATCHING_SCORE_LAMBDA_NAME,
       payload
     );
   }

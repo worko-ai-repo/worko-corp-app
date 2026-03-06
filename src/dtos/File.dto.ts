@@ -83,6 +83,19 @@ export interface AgencyUserSubmissionCvPsuToUploadApiDto {
   fileMimeType: string;
 }
 
+export interface CandidateSubmissionCvForJobPsuToUploadApiDto {
+  companyId: string;
+  jobId: string;
+  /**
+   * @example "raj_cv.pdf"
+   */
+  fileName: string;
+
+  /**
+   * @example "application/pdf"
+   */
+  fileMimeType: string;
+}
 
 export interface AgencyUserSubmissionCvPsuToViewApiDto {
   companyId: string;
@@ -98,4 +111,70 @@ export interface AgencyUserSubmissionCvPsuToViewApiDto {
    * @example "{ulidId}.pdf"
    */
   candidateCvAwsS3FileName: string;
+}
+
+/**
+ * AgencyBulkJdResumePreSignedUrlToUploadDto
+ */
+export interface AgencyBulkJdResumePreSignedUrlToUploadDto {
+  /**
+   * fileName
+   *
+   * Sample file name: "TestCV.pdf"
+   */
+  fileName: string;
+
+  /**
+   * fileMimeType
+   *
+   * Sample file mime type: "application/pdf"
+   */
+  fileMimeType: string;
+}
+
+export interface AgencyBulkCvsPreSignedUrlToUploadFileDto {
+  /**
+   * @reference "id" field of "AgencyBulkJd.model.ts"
+   */
+  agencyBulkJdId: string;
+
+  /**
+   * bulkCvs
+   */
+  bulkCvs: Array<AgencyBulkJdResumePreSignedUrlToUploadDto>;
+}
+
+export interface AgencyBulkCvsPsuToViewApiDto {
+  /**
+   * @reference "id" field of "AgencyBulkJd.model.ts"
+   */
+  agencyBulkJdId: string;
+
+  /**
+   * @example "{ulidId}.pdf"
+   */
+  bulkCvsAwsS3FileName: string;
+}
+
+export interface CorpCandBulkCvUploadPsuToViewApiDto {
+  companyId: string // corporate registered companyId
+  candCvAwsS3FileName: string // "57RTFCG.pdf"
+}
+
+export interface CorpCandReferralCvPsuToViewApiDto {
+  companyId: string // corporate registered companyId
+  candCvAwsS3FileName: string // "57RTFCG.pdf"
+}
+
+export interface AdminCandBulkCvUploadPsuToViewApiDto {
+  candCvAwsS3FileName: string
+}
+
+export interface CandidateSubmissionCvForJobPsuToViewApiDto {
+  companyId: string;
+  jobId: string;
+  /**
+   * @example "{ulidId}.pdf"
+   */
+  candCvAwsS3FileName: string;
 }

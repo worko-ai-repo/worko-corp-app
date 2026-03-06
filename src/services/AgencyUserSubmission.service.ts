@@ -8,15 +8,26 @@ import { QueryResponse } from "dynamoose/dist/ItemRetriever";
 // Import google cloud firestore
 import { DocumentData, QuerySnapshot } from "@google-cloud/firestore";
 
+// Import aws packages
+import { AdminCreateUserCommandOutput } from "@aws-sdk/client-cognito-identity-provider";
+
+// Import luxon
+import { DateTime } from "luxon";
+
 // Import configs
 import APP_CONSTANTS from "../configs/constants.config";
+import { awsClientCognitoIdentityProviderLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { AgencyUserSubmissionBulkFindMatchingScoreInternalDto, AgencyUserSubmissionCandidateParseCvApiDto, AgencyUserSubmissionCandidateParseCvResponseDto, AgencyUserSubmissionCreateApiDto, AgencyUserSubmissionFindMatchingScoreApiDto, AgencyUserSubmissionInvokedMatchingScoreResponseDto, AgencyUserSubmissionListingFilterOptions, AgencyUserSubmissionMoveToApplicantCreateApiDTO, AgencyUserSubmissionRejectApplicantCreateApiDTO, AgencyUserSubmissionSendForEvaluationCreateApiDTO } from "../dtos/AgencyUserSubmission.dto";
+import { AgencyUserSubmissionBulkFindMatchingScoreApiDto, AgencyUserSubmissionCandidateParseCvApiDto, AgencyUserSubmissionCandidateParseCvResponseDto, AgencyUserSubmissionCreateApiDto, AgencyUserSubmissionFindMatchingScoreApiDto, AgencyUserSubmissionInvokedMatchingScoreResponseDto, AgencyUserSubmissionListingFilterOptions, AgencyUserSubmissionMoveToApplicantBulkCreateApiDTO, AgencyUserSubmissionMoveToApplicantCreateApiDTO, AgencyUserSubmissionRejectApplicantBulkApiDTO, AgencyUserSubmissionRejectApplicantCreateApiDTO, AgencyUserSubmissionSendForEvaluationBulkCreateApiDTO, AgencyUserSubmissionSendForEvaluationCreateApiDTO } from "../dtos/AgencyUserSubmission.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import daos
 import { agencyUserSubmissionDaoObj } from "../daos/AgencyUserSubmission.dao";
+
+// Import dtos
+import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
+import { InvokeLambdaAgencyUserSubmissionBulkMoveToApplicantDto, InvokeLambdaAgencyUserSubmissionBulkRejectApplicantDto, InvokeLambdaAgencyUserSubmissionBulkSendForEvaluationMoveToApplicantDto } from "../dtos/InvokeLambda.dto";
 
 // Import enums
 import { CorporateCandidateProfileDbRefereeTypeEnum } from "../enums/CorporateCandidateProfile.enum";
@@ -25,6 +36,9 @@ import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsed
 import { JobApplicationStatus } from "../enums/UserJobApplication.enum";
 import { AgencyUserSubmissionDbJobApplicationStatusEnum } from "../enums/AgencyUserSubmission.enum";
 import { AgencyJobAssignmentDbStatusEnum } from "../enums/AgencyJobAssignment.enum";
+import { UserType } from "../enums/User.enum";
+import { InvokeLambdaHandlerEventTypeEnum, SourceTypeMatchingScoreEntityEnum } from "../enums/InvokeLambda.enum";
+import { AgencyUserInviteDbActionEnum } from "../enums/AgencyUserInvite.enum";
 
 // Import helpers
 import { getActionByAgencyUserIds, getActionByUserId } from "../helpers/user.helper";
@@ -42,7 +56,7 @@ import { DbAgencyJobAssignmentDto } from "../db/gcp-firestore-models/AgencyJobAs
 import { DbUserDetailDto } from "../db/aws-dynamodb-models/UserDetail.model";
 import { DbCorporateUserDto } from "../db/aws-dynamodb-models/CorporateUser.model";
 import { DbAgencyUserInviteDto } from "../db/gcp-firestore-models/AgencyUserInvite.model";
-import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
+import { DbGcpFirestoreJobDto } from "../db/gcp-firestore-models/GcpFirestoreJob.model";
 import { DbCentralCandidateProfileDto } from "../db/gcp-firestore-models/CentralCandidateProfile.model";
 import { DbUserJobApplicationDto } from "../db/aws-dynamodb-models/UserJobApplication.model";
 
@@ -176,7 +190,7 @@ class AgencyUserSubmissionService {
       methodName: this.parseAgencyUserSubmissionCandidateCv.name,
     });
 
-    const { companyId: reqBodyCompanyId, jobId: reqBodyJobId } =
+    const { companyId: reqBodyCompanyId, jobId: reqBodyJobId, agencyUserInviteId } =
       validatedReqBody;
 
     const validateAgencyUserCompanyJobDetails: {
@@ -188,6 +202,42 @@ class AgencyUserSubmissionService {
       reqBodyCompanyId,
       reqBodyJobId
     );
+
+    const reqBodyAgencyInviteDetails: DbAgencyUserInviteDto | undefined  =
+      await agencyUserInviteServiceObj.getAgencyUserInviteById(agencyUserInviteId);
+    if (!reqBodyAgencyInviteDetails) {
+      throw new BaseError(
+        `Agency User Invite not found.`,
+        HttpStatusCode.NOT_FOUND_404
+      );
+    }
+
+    if (
+      reqBodyAgencyInviteDetails.inviteAction &&
+      [
+        AgencyUserInviteDbActionEnum.DELETE,
+        AgencyUserInviteDbActionEnum.PAUSE,
+      ].includes(reqBodyAgencyInviteDetails.inviteAction)
+    ) {
+      global.logger.error(`Agency User Invite is deleted or paused.`, {
+        reqBodyAgencyInviteDetails,
+        methodName: this.performCreateAgencyUserSubmissionActivities.name,
+      });
+      if (
+        reqBodyAgencyInviteDetails.inviteAction ===
+        AgencyUserInviteDbActionEnum.DELETE
+      ) {
+        throw new BaseError(
+          `Your invite has been deleted, so you are not allowed to access this resource.`,
+          HttpStatusCode.FORBIDDEN_403,
+        );
+      } else {
+        throw new BaseError(
+          `Your invite has been paused, so you are not allowed to access this resource.`,
+          HttpStatusCode.FORBIDDEN_403,
+        );
+      }
+    }
 
     const parsedCvDetails: APIGatewayProxyResult =
       await InvokeLambdaService.triggerParseAgencyUserSubmissionCandidateCv({
@@ -322,6 +372,33 @@ class AgencyUserSubmissionService {
         `You are not allowed to access this resource.`,
         HttpStatusCode.FORBIDDEN_403
       );
+    }
+
+    if(
+      reqBodyAgencyInviteDetails.inviteAction &&
+      [
+        AgencyUserInviteDbActionEnum.DELETE,
+        AgencyUserInviteDbActionEnum.PAUSE
+      ].includes(reqBodyAgencyInviteDetails.inviteAction)
+    ) {
+      global.logger.error(`Agency User Invite is deleted or paused.`, {
+        reqBodyAgencyInviteDetails,
+        methodName: this.performCreateAgencyUserSubmissionActivities.name,
+      });
+      if(
+        reqBodyAgencyInviteDetails.inviteAction ===
+        AgencyUserInviteDbActionEnum.DELETE
+      ) {
+        throw new BaseError(
+          `Your invite has been deleted, so you are not allowed to access this resource.`,
+          HttpStatusCode.FORBIDDEN_403
+        );
+      } else {
+        throw new BaseError(
+          `Your invite has been paused, so you are not allowed to access this resource.`,
+          HttpStatusCode.FORBIDDEN_403
+        );
+      }
     }
 
     const currentDate: string = dateHelperObj.getISODate();
@@ -494,7 +571,7 @@ class AgencyUserSubmissionService {
       DbAgencyJobAssignmentDto | undefined, 
       DbAgencyUserInviteDto | undefined
     ] = await Promise.all([
-      candidateParsedCvServiceObj.createCandidateParsedCv(
+      candidateParsedCvServiceObj.createCandidateParsedCvWithEmbedding(
         candidateParsedCvCreateData
       ),
       this.createAgencyUserSubmission(agencyUserSubmissionCreateData),
@@ -570,7 +647,7 @@ class AgencyUserSubmissionService {
   ): Promise<
     GcpFirestoreRecordListingResponseDTO<
       (DbAgencyUserSubmissionDto & {
-        jobDetails?: DbJobAwsOpensearchDto;
+        jobDetails?: DbGcpFirestoreJobDto;
         candidateParsedCvDetails?: DbCandidateParsedCvDto;
       })[]
     >
@@ -696,7 +773,7 @@ class AgencyUserSubmissionService {
       await this.getAllAgencyUserSubmissionByFilterOptions(filterOptions);
 
     const agencyUserSubmissionsWithEntityDetails: (DbAgencyUserSubmissionDto & {
-      jobDetails?: DbJobAwsOpensearchDto;
+      jobDetails?: DbGcpFirestoreJobDto;
       candidateParsedCvDetails?: DbCandidateParsedCvDto;
     })[] =
       await injectEntityDetailsHelperObj.injectEntityDetailsForAgencyUserSubmission(
@@ -707,7 +784,7 @@ class AgencyUserSubmissionService {
 
     const finalResponse: GcpFirestoreRecordListingResponseDTO<
       (DbAgencyUserSubmissionDto & {
-        jobDetails?: DbJobAwsOpensearchDto;
+        jobDetails?: DbGcpFirestoreJobDto;
         candidateParsedCvDetails?: DbCandidateParsedCvDto;
       })[]
     > = {
@@ -716,6 +793,54 @@ class AgencyUserSubmissionService {
     };
 
     return finalResponse;
+  }
+
+  private async createJobApplAndUpdateAgencyUserSubmission(
+    validatedRequestBody: AgencyUserSubmissionMoveToApplicantCreateApiDTO,
+    cognitoUserGroups: string[],
+    existingAgencyUserSubmissionDetails: DbAgencyUserSubmissionDto,
+    candidateParsedCvDetails: DbCandidateParsedCvDto,
+    actionByUserId?: string,
+    actionByCorporateUserId?: string
+  ) {
+    const {jobTitle, ...restValidatedRequestBody} = validatedRequestBody;
+    const moveToApplicantDetails = await userJobApplicationServiceObj.createJobApplicationMoveToApplicant(
+      {
+        ...restValidatedRequestBody,
+        applicantEmail: existingAgencyUserSubmissionDetails.candidateEmail,
+        candidateParsedCvId: existingAgencyUserSubmissionDetails.candidateParsedCvId,
+        agencyUserId: existingAgencyUserSubmissionDetails.agencyUserId,
+        matchingScoreDetails: existingAgencyUserSubmissionDetails?.matchingScoreDetails
+      },
+      candidateParsedCvDetails,
+      cognitoUserGroups,
+      actionByUserId,
+      actionByCorporateUserId
+    )
+
+    const updateAgencyUserSubmission: DbAgencyUserSubmissionDto | undefined = await this.updateAgencyUserSubmissionById(
+      validatedRequestBody.agencyUserSubmissionId,
+      {
+        updatedAt: dateHelperObj.getISODate(),
+        userJobApplicationId: moveToApplicantDetails.id,
+        jobApplicationStatus: AgencyUserSubmissionDbJobApplicationStatusEnum.ACCEPTED,
+        moveToApplicantByCorporateUserId: actionByCorporateUserId,
+        moveToApplicantByUserId: actionByUserId,
+        updatedByCorporateUserId: actionByCorporateUserId,
+        updatedByUserId: actionByUserId
+      }
+    );
+
+    if(!updateAgencyUserSubmission) {
+      global.logger.error(`Failed to move to applicant, Failed to update Agency User Submission`, { 
+        methodName: this.moveToApplicantAgencyUserSubmission.name, 
+        validatedRequestBody,
+        updateAgencyUserSubmission
+      });
+      throw new BaseError("Failed to move to applicant", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    return updateAgencyUserSubmission;
   }
 
   async moveToApplicantAgencyUserSubmission(
@@ -752,45 +877,206 @@ class AgencyUserSubmissionService {
       throw new BaseError("Candidate already moved to applicant.", HttpStatusCode.CONFLICT_409);
     }
 
-    const moveToApplicantDetails: DbUserJobApplicationDto =
-      await userJobApplicationServiceObj.createJobApplicationMoveToApplicant(
-      {
-        ...validatedRequestBody,
-        applicantEmail: existingAgencyUserSubmissionDetails.candidateEmail,
-        matchingScoreDetails: existingAgencyUserSubmissionDetails?.matchingScoreDetails
-      },
-      cognitoUserGroups,
-      actionByUserId,
-      actionByCorporateUserId
+    const candidateParsedCvDetails: DbCandidateParsedCvDto | undefined = await candidateParsedCvServiceObj.getCandidateParsedCvById(
+      existingAgencyUserSubmissionDetails.candidateParsedCvId
     );
-    if(moveToApplicantDetails.status !== JobApplicationStatus.ACCEPTED) {
-      global.logger.error(`Failed to move to applicant`, { methodName: this.moveToApplicantAgencyUserSubmission.name, moveToApplicantDetails });
-      throw new BaseError("Failed to move to applicant", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    if(!candidateParsedCvDetails) {
+      global.logger.error(`Failed to move to applicant, Candidate Parsed Cv not found`, { methodName: this.moveToApplicantAgencyUserSubmission.name, validatedRequestBody });
+      throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
     }
 
-    const updateAgencyUserSubmission: DbAgencyUserSubmissionDto | undefined = await this.updateAgencyUserSubmissionById(
-      validatedRequestBody.agencyUserSubmissionId,
+    const {
+      name: candidateName,
+      phoneNumberDetails: candidatePhoneNumberDetails,
+      email: candidateEmail
+    } = candidateParsedCvDetails;
+
+    const workoUserPoolId: string | undefined = process.env.APP_AWS_WORKO_COGNITO_USER_POOL_ID;
+    if(!workoUserPoolId) {
+      global.logger.error(`Failed to move to applicant, Worko User Pool Id not found`, { methodName: this.moveToApplicantAgencyUserSubmission.name, validatedRequestBody });
+      throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const applicantRegisteredDetails: QueryResponse<DbUserDetailDto> = await UserDetailService.get(
+      candidateEmail
+    );
+    if(applicantRegisteredDetails.count) {
+      return this.createJobApplAndUpdateAgencyUserSubmission(
+        validatedRequestBody, 
+        cognitoUserGroups, 
+        existingAgencyUserSubmissionDetails,
+        candidateParsedCvDetails,
+        actionByUserId, 
+        actionByCorporateUserId
+      );
+    }
+
+    const {
+      number: candidatePhoneNumber,
+      countryCode: candidatePhoneNumberCountryCode
+    } = candidatePhoneNumberDetails;
+    const candidateFullPhoneNumber: string = `+${candidatePhoneNumberCountryCode}${candidatePhoneNumber}`;
+    const temporaryPassword: string = `Temp${UlidService.getUlidId().toLowerCase()}!`; // temporary password with lowercase
+
+    const userCreateCognito: AdminCreateUserCommandOutput = await awsClientCognitoIdentityProviderLibrary.createUser(
+      workoUserPoolId,
+      existingAgencyUserSubmissionDetails.candidateEmail,
+      temporaryPassword,
+      [
+        { Name: "name", Value: candidateName },
+        { Name: "phone_number", Value: `+${candidatePhoneNumberCountryCode}${candidatePhoneNumber}` }
+      ],
+      "SUPPRESS"
+    );
+    if(!userCreateCognito.User?.Username) {
+      global.logger.error(`Failed to move to applicant, Failed to create user in cognito`, { methodName: this.moveToApplicantAgencyUserSubmission.name, validatedRequestBody });
+      throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    };
+
+    const createUserDetailDto: UserDetailCreateDto = {
+      id: userCreateCognito.User.Username,
+      userId: userCreateCognito.User.Username,
+      name: candidateName,
+      email: existingAgencyUserSubmissionDetails.candidateEmail,
+      number: candidateFullPhoneNumber,
+      ECTC: candidateParsedCvDetails.expectedCTC,
+      YOE: candidateParsedCvDetails.relevantYOE,
+      emailList: {
+        primary: candidateEmail
+      },
+      userType: [UserType.CAND],
+      isEmailVerified: false,
+      isNumberVerified: false,
+      lastAccessedDash: UserType.CAND,
+      referralCount: 0,
+      isSubscribed: false,
+
+      /**
+       * @note It is dummy value, it is being updated later in the process
+       * @todo Need to check when and where this is updating in the process
+       */
+      expiryDate: DateTime.now().toJSDate(), 
+
+      acceptedTermsAndConditions: false,
+      isUserCreatedInternally: true
+    };
+
+    const userDetailAndJobAppl: [DbUserDetailDto, DbAgencyUserSubmissionDto,boolean, boolean] = await Promise.all([
+      UserDetailService.createUserDetail(createUserDetailDto),
+      this.createJobApplAndUpdateAgencyUserSubmission(validatedRequestBody, cognitoUserGroups, existingAgencyUserSubmissionDetails, candidateParsedCvDetails, actionByUserId, actionByCorporateUserId),
+      UserDetailService.sendEmailForCandAcctSignupReminder(
+        candidateEmail,
+        validatedRequestBody.jobTitle,
+        validatedRequestBody.companyName,
+        candidateName,
+        temporaryPassword
+      ),
+      UserDetailService.scheduleCandChangePassSignupReminder(
+        {
+          candidateEmail,
+          candidateName,
+          jobTitle: validatedRequestBody.jobTitle,
+          companyName: validatedRequestBody.companyName,
+          temporaryPassword,
+          candidateCognitoUserId: userCreateCognito.User.Username,
+          reminderSendCount: 0
+        }
+      )
+    ]);
+
+    if(!userDetailAndJobAppl[0] || !userDetailAndJobAppl[1] || !userDetailAndJobAppl[2] || !userDetailAndJobAppl[3]) {
+      global.logger.error(`Failed to move to applicant, Failed to create user detail OR update agency user submission`, { methodName: this.moveToApplicantAgencyUserSubmission.name, userDetailAndJobAppl });
+      throw new BaseError("Failed to move to applicant.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    return userDetailAndJobAppl[1];
+  }
+
+  async moveToApplicantBulkAgencyUserSubmissionAsync(
+    validatedRequestBody: AgencyUserSubmissionMoveToApplicantBulkCreateApiDTO,
+    cognitoUserGroups: string[],
+    actionByUserId?: string,
+    actionByCorporateUserId?: string
+  ): Promise<APIGatewayProxyResult[]> {
+    const invokeLambdaPromises = validatedRequestBody.agencyUserSubmissions.map(async (eachAgencyUserSubmission: { 
+      agencyUserSubmissionId: string, 
+      currentCTC?: number, 
+      expectedCTC?: number, 
+      noticePeriod?: number 
+      jobId: string,
+      companyName: string,
+      jobTitle: string,
+    }) => {
+      const invokeDataPayload: InvokeLambdaAgencyUserSubmissionBulkMoveToApplicantDto = {
+        jobId: eachAgencyUserSubmission.jobId,
+        agencyUserSubmissionId: eachAgencyUserSubmission.agencyUserSubmissionId,
+        currentCTC: eachAgencyUserSubmission.currentCTC,
+        expectedCTC: eachAgencyUserSubmission.expectedCTC,
+        noticePeriod: eachAgencyUserSubmission.noticePeriod,
+        companyName: eachAgencyUserSubmission.companyName,
+        jobTitle: eachAgencyUserSubmission.jobTitle,
+        cognitoUserGroups,
+        actionByUserId,
+        actionByCorporateUserId
+      }
+      return InvokeLambdaService.triggerWorkoCorpAppInvokeLambdaTrigger({
+        eventType: InvokeLambdaHandlerEventTypeEnum.AGENCY_USER_SUBMISSION_BULK_MOVE_TO_APPLICANT,
+        data: invokeDataPayload
+      });
+    })
+
+    return Promise.all(invokeLambdaPromises);
+  }
+
+  async createJobApplSendForEvalAndUpdateAgencyUserSubmission(
+    validatedReqBody: AgencyUserSubmissionSendForEvaluationCreateApiDTO,
+    cognitoUserGroups: string[],
+    existingAgencyUserSubmissionDetails: DbAgencyUserSubmissionDto,
+    actionByUserId?: string,
+    actionByCorporateUserId?: string
+  ) {
+    const {jobTitle, ...restReqBody} = validatedReqBody;
+    const sendForEvaluationDetails: DbUserJobApplicationDto =
+      await userJobApplicationServiceObj.createJobApplicationSendForEvaluation(
+        {
+          ...restReqBody,
+          candidateParsedCvId: existingAgencyUserSubmissionDetails.candidateParsedCvId,
+          agencyUserId: existingAgencyUserSubmissionDetails.agencyUserId,
+          applicantEmail: existingAgencyUserSubmissionDetails.candidateEmail,
+          matchingScoreDetails: existingAgencyUserSubmissionDetails?.matchingScoreDetails
+        },
+        cognitoUserGroups,
+        actionByUserId,
+        actionByCorporateUserId
+      );
+    if(sendForEvaluationDetails.status !== JobApplicationStatus.UNDER_EVALUATION) {
+      global.logger.error(`Failed to send for evaluation`, { methodName: this.moveToApplicantAgencyUserSubmission.name, sendForEvaluationDetails });
+      throw new BaseError("Failed to send for evaluation", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const updateAgencyUserSubmissionSendForEvaluation: DbAgencyUserSubmissionDto | undefined = await this.updateAgencyUserSubmissionById(
+      validatedReqBody.agencyUserSubmissionId,
       {
         updatedAt: dateHelperObj.getISODate(),
-        userJobApplicationId: moveToApplicantDetails.id,
-        jobApplicationStatus: AgencyUserSubmissionDbJobApplicationStatusEnum.ACCEPTED,
-        moveToApplicantByCorporateUserId: actionByCorporateUserId,
-        moveToApplicantByUserId: actionByUserId,
+        userJobApplicationId: sendForEvaluationDetails.id,
+        jobApplicationStatus: AgencyUserSubmissionDbJobApplicationStatusEnum.UNDER_EVALUATION,
+        sendForEvaluationByCorporateUserId: actionByCorporateUserId,
+        sendForEvaluationByUserId: actionByUserId,
         updatedByCorporateUserId: actionByCorporateUserId,
         updatedByUserId: actionByUserId
       }
     );
 
-    if(!updateAgencyUserSubmission) {
-      global.logger.error(`Failed to move to applicant, Failed to update Agency User Submission`, { 
+    if(!updateAgencyUserSubmissionSendForEvaluation) {
+      global.logger.error(`Failed to send for evaluation, Failed to update Agency User Submission`, { 
         methodName: this.moveToApplicantAgencyUserSubmission.name, 
-        validatedRequestBody,
-        updateAgencyUserSubmission
+        validatedReqBody,
+        updateAgencyUserSubmissionSendForEvaluation
       });
-      throw new BaseError("Failed to move to applicant", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+      throw new BaseError("Failed to send for evaluation", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
     }
 
-    return updateAgencyUserSubmission;
+    return updateAgencyUserSubmissionSendForEvaluation;
   }
 
   async sendForEvaluationAgencyUserSubmission(
@@ -833,45 +1119,145 @@ class AgencyUserSubmissionService {
       }
     }
 
-    const sendForEvaluationDetails: DbUserJobApplicationDto =
-      await userJobApplicationServiceObj.createJobApplicationSendForEvaluation(
+    const candidateParsedCvDetails: DbCandidateParsedCvDto | undefined = await candidateParsedCvServiceObj.getCandidateParsedCvById(
+      existingAgencyUserSubmissionDetails.candidateParsedCvId
+    );
+    if(!candidateParsedCvDetails) {
+      global.logger.error(`Failed to send for evaluation, Candidate Parsed Cv not found`, { methodName: this.moveToApplicantAgencyUserSubmission.name, validatedReqBody });
+      throw new BaseError("Failed to send for evaluation.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const {
+      name: candidateName,
+      phoneNumberDetails: candidatePhoneNumberDetails,
+      email: candidateEmail
+    } = candidateParsedCvDetails;
+
+    const workoUserPoolId: string | undefined = process.env.APP_AWS_WORKO_COGNITO_USER_POOL_ID;
+    if(!workoUserPoolId) {
+      global.logger.error(`Failed to send for evaluation, Worko User Pool Id not found`, { methodName: this.moveToApplicantAgencyUserSubmission.name, validatedReqBody });
+      throw new BaseError("Failed to send for evaluation.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const applicantRegisteredDetails: QueryResponse<DbUserDetailDto> = await UserDetailService.get(
+      candidateEmail
+    );
+    if(applicantRegisteredDetails.count) {
+      const candidateDetails: DbUserDetailDto = applicantRegisteredDetails[0];
+      if(candidateDetails.CV) {
+        return this.createJobApplSendForEvalAndUpdateAgencyUserSubmission(validatedReqBody, cognitoUserGroups, existingAgencyUserSubmissionDetails, actionByUserId, actionByCorporateUserId);
+      }
+    }
+
+    const {
+      number: candidatePhoneNumber,
+      countryCode: candidatePhoneNumberCountryCode
+    } = candidatePhoneNumberDetails;
+    const candidateFullPhoneNumber: string = `+${candidatePhoneNumberCountryCode}${candidatePhoneNumber}`;
+    const temporaryPassword = `Temp${UlidService.getUlidId().toLowerCase()}!`;// temporary password with lowercase
+
+    const userCreateCognito: AdminCreateUserCommandOutput = await awsClientCognitoIdentityProviderLibrary.createUser(
+      workoUserPoolId,
+      existingAgencyUserSubmissionDetails.candidateEmail,
+      temporaryPassword,
+      [
+        { Name: "name", Value: candidateName },
+        { Name: "phone_number", Value: `+${candidatePhoneNumberCountryCode}${candidatePhoneNumber}` }
+      ],
+      "SUPPRESS"
+    );
+    if(!userCreateCognito.User?.Username) {
+      global.logger.error(`Failed to send for evaluation, Failed to create user in cognito`, { methodName: this.moveToApplicantAgencyUserSubmission.name, validatedReqBody });
+      throw new BaseError("Failed to send for evaluation.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    };
+
+    const createUserDetailDto: UserDetailCreateDto = {
+      id: userCreateCognito.User.Username,
+      userId: userCreateCognito.User.Username,
+      name: candidateName,
+      email: existingAgencyUserSubmissionDetails.candidateEmail,
+      number: candidateFullPhoneNumber,
+      ECTC: candidateParsedCvDetails.expectedCTC,
+      YOE: candidateParsedCvDetails.relevantYOE,
+      emailList: {
+        primary: candidateEmail
+      },
+      userType: [UserType.CAND],
+      isEmailVerified: false,
+      isNumberVerified: false,
+      lastAccessedDash: UserType.CAND,
+      referralCount: 0,
+      isSubscribed: false,
+
+      /**
+       * @note It is dummy value, it is being updated later in the process
+       * @todo Need to check when and where this is updating in the process
+       */
+      expiryDate: DateTime.now().toJSDate(), 
+      isUserCreatedInternally: true,
+      acceptedTermsAndConditions: false
+    };
+
+    const userDetailAndJobAppl: [DbUserDetailDto, DbAgencyUserSubmissionDto, boolean, boolean] = await Promise.all([
+      UserDetailService.createUserDetail(createUserDetailDto),
+      this.createJobApplSendForEvalAndUpdateAgencyUserSubmission(validatedReqBody, cognitoUserGroups, existingAgencyUserSubmissionDetails, actionByUserId, actionByCorporateUserId),
+      UserDetailService.sendEmailForCandAcctSignupReminder(
+        candidateEmail,
+        validatedReqBody.jobTitle,
+        validatedReqBody.companyName,
+        candidateName,
+        temporaryPassword
+      ),
+      UserDetailService.scheduleCandChangePassSignupReminder(
         {
-          ...validatedReqBody,
-          applicantEmail: existingAgencyUserSubmissionDetails.candidateEmail,
-          matchingScoreDetails: existingAgencyUserSubmissionDetails?.matchingScoreDetails
-        },
+          candidateEmail,
+          candidateName,
+          jobTitle: validatedReqBody.jobTitle,
+          companyName: validatedReqBody.companyName,
+          temporaryPassword,
+          candidateCognitoUserId: userCreateCognito.User.Username,
+          reminderSendCount: 0
+        }
+      )
+    ]);
+
+    if(!userDetailAndJobAppl[0] || !userDetailAndJobAppl[1]) {
+      global.logger.error(`Failed to send for evaluation, Failed to create user detail OR update agency user submission`, { methodName: this.moveToApplicantAgencyUserSubmission.name, userDetailAndJobAppl });
+      throw new BaseError("Failed to send for evaluation.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    return userDetailAndJobAppl[1];
+  }
+
+  async sendForEvaluationBulkAgencyUserSubmissionAsync(validatedRequestBody: AgencyUserSubmissionSendForEvaluationBulkCreateApiDTO, cognitoUserGroups: string[], actionByUserId?: string, actionByCorporateUserId?: string) {
+    const invokeLambdaPromises = validatedRequestBody.agencyUserSubmissions.map(async (eachAgencyUserSubmission: { 
+      agencyUserSubmissionId: string, 
+      currentCTC?: number, 
+      expectedCTC?: number, 
+      noticePeriod?: number,
+      jobId: string,
+      companyName: string,
+      jobTitle: string
+    })  => {
+      const invokeDataPayload: InvokeLambdaAgencyUserSubmissionBulkSendForEvaluationMoveToApplicantDto = {
+        jobId: eachAgencyUserSubmission.jobId,
+        agencyUserSubmissionId: eachAgencyUserSubmission.agencyUserSubmissionId,
+        currentCTC: eachAgencyUserSubmission.currentCTC,
+        expectedCTC: eachAgencyUserSubmission.expectedCTC,
+        noticePeriod: eachAgencyUserSubmission.noticePeriod,
+        companyName: eachAgencyUserSubmission.companyName,
+        jobTitle: eachAgencyUserSubmission.jobTitle,
         cognitoUserGroups,
         actionByUserId,
         actionByCorporateUserId
-      );
-    if(sendForEvaluationDetails.status !== JobApplicationStatus.UNDER_EVALUATION) {
-      global.logger.error(`Failed to send for evaluation`, { methodName: this.moveToApplicantAgencyUserSubmission.name, sendForEvaluationDetails });
-      throw new BaseError("Failed to send for evaluation", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
-    }
-
-    const updateAgencyUserSubmissionSendForEvaluation: DbAgencyUserSubmissionDto | undefined = await this.updateAgencyUserSubmissionById(
-      validatedReqBody.agencyUserSubmissionId,
-      {
-        updatedAt: dateHelperObj.getISODate(),
-        userJobApplicationId: sendForEvaluationDetails.id,
-        jobApplicationStatus: AgencyUserSubmissionDbJobApplicationStatusEnum.UNDER_EVALUATION,
-        sendForEvaluationByCorporateUserId: actionByCorporateUserId,
-        sendForEvaluationByUserId: actionByUserId,
-        updatedByCorporateUserId: actionByCorporateUserId,
-        updatedByUserId: actionByUserId
       }
-    );
-
-    if(!updateAgencyUserSubmissionSendForEvaluation) {
-      global.logger.error(`Failed to send for evaluation, Failed to update Agency User Submission`, { 
-        methodName: this.moveToApplicantAgencyUserSubmission.name, 
-        validatedReqBody,
-        updateAgencyUserSubmissionSendForEvaluation
+      return InvokeLambdaService.triggerWorkoCorpAppInvokeLambdaTrigger({
+        eventType: InvokeLambdaHandlerEventTypeEnum.AGENCY_USER_SUBMISSION_BULK_SEND_FOR_EVALUATION_MOVE_TO_APPLICANT,
+        data: invokeDataPayload
       });
-      throw new BaseError("Failed to send for evaluation", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
-    }
+    })
 
-    return updateAgencyUserSubmissionSendForEvaluation;
+    return Promise.all(invokeLambdaPromises);
   }
 
   async rejectApplicantAgencyUserSubmission(
@@ -939,6 +1325,30 @@ class AgencyUserSubmissionService {
     return updateAgencyUserSubmission;
   }
 
+  async rejectApplicantBulkAgencyUserSubmissionAsync(
+    validatedRequestBody: AgencyUserSubmissionRejectApplicantBulkApiDTO,
+    cognitoUserGroups: string[],
+    actionByUserId?: string,
+    actionByCorporateUserId?: string
+  ) {
+    const invokeLambdaPromises = validatedRequestBody.agencyUserSubmissionIds.map(async (eachAgencyUserSubmissionId: string)  => {
+      const invokeDataPayload: InvokeLambdaAgencyUserSubmissionBulkRejectApplicantDto = {
+        agencyUserSubmissionId: eachAgencyUserSubmissionId,
+        rejectApplicantReason: validatedRequestBody.rejectApplicantReason,
+        rejectApplicantDetailedReason: validatedRequestBody.rejectApplicantDetailedReason,
+        cognitoUserGroups,
+        actionByUserId,
+        actionByCorporateUserId
+      }
+      return InvokeLambdaService.triggerWorkoCorpAppInvokeLambdaTrigger({
+        eventType: InvokeLambdaHandlerEventTypeEnum.AGENCY_USER_SUBMISSION_BULK_REJECT_APPLICANT,
+        data: invokeDataPayload
+      });
+    })
+
+    return Promise.all(invokeLambdaPromises);
+  }
+
   async getAllAgencyUserSubmissionByFilterOptions(
     filterOptions: AgencyUserSubmissionListingFilterOptions
   ): Promise<
@@ -967,7 +1377,7 @@ class AgencyUserSubmissionService {
     return agencyUserSubmissionDaoObj.updateBulkAgencyUserSubmissionByIds(ids, updateData);
   }
 
-  async findMatchingScoreAgencyUserSubmission(validatedReqBody: AgencyUserSubmissionFindMatchingScoreApiDto) {
+  async findMatchingScoreAgencyUserSubmission(validatedReqBody: AgencyUserSubmissionFindMatchingScoreApiDto): Promise<boolean> {
     const {
       actionByUserId,
       actionByCorporateUserId,
@@ -1046,56 +1456,52 @@ class AgencyUserSubmissionService {
       throw new BaseError("Failed to find matching score.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
     }
 
-    const matchingScoreDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeJdResumeMatchingScore(
+    const invokedMatchingScoreDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeJdResumeMatchingScore(
       {
+        sourceTypeMatchingScoreEntity: SourceTypeMatchingScoreEntityEnum.AGENCY_USER_SUBMISSION,
+        cvAwsS3ResourceType: existingCandidateParsedCv.cvAwsS3ResourceType,
+        agencyUserSubmissionId: validatedReqBody.agencyUserSubmissionId,
+        actionByCorporateUserId,
+        actionByUserId,
         jobId, 
         cvAwsS3BucketName,
         cvAwsS3FilePath,
         cvAwsS3FileName,
-        USER_PK: existingCandidateParsedCv.userDetailId ? `USR#EML#${existingCandidateParsedCv.email}`: undefined
+        USER_PK: existingCandidateParsedCv.cvAwsS3ResourceType === CandidateParsedCvAwsS3ResourceTypeEnum.USER_RESUME ? `USR#EML#${existingCandidateParsedCv.email}`: undefined
       }
     );
-    if(matchingScoreDetails.statusCode !== HttpStatusCode.OK_200) {
+    if(invokedMatchingScoreDetails.statusCode !== HttpStatusCode.ACCEPTED_202) {
       global.logger.error(`Failed to find matching score`, {
         methodName: this.findMatchingScoreAgencyUserSubmission.name,
-        matchingScoreDetails,
+        invokedMatchingScoreDetails,
       });
-      throw new BaseError("Failed to find matching score", matchingScoreDetails.statusCode);
+      throw new BaseError("Failed to find matching score", invokedMatchingScoreDetails.statusCode);
     }
 
-    const parsedMatchingScoreDetails: AgencyUserSubmissionInvokedMatchingScoreResponseDto = JSON.parse(matchingScoreDetails.body);
-
-    const updateAgencyUserSubmission: DbAgencyUserSubmissionDto | undefined = await this.updateAgencyUserSubmissionById(
-      validatedReqBody.agencyUserSubmissionId,
-      {
-        updatedAt: dateHelperObj.getISODate(),
-        updatedByCorporateUserId: actionByCorporateUserId,
-        updatedByUserId: actionByUserId,
-        matchingScoreDetails: {
-          ...parsedMatchingScoreDetails
-        }
-      }
-    );
-    if(!updateAgencyUserSubmission) {
-      global.logger.error(`Failed to update matching score`, {
+    if(invokedMatchingScoreDetails.statusCode === HttpStatusCode.ACCEPTED_202) {
+      global.logger.info(`Matching score processing started`, {
         methodName: this.findMatchingScoreAgencyUserSubmission.name,
-        updateAgencyUserSubmission,
+        invokedMatchingScoreDetails,
       });
-      throw new BaseError("Failed to find matching score", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
-    }
 
-    return updateAgencyUserSubmission;
+      return true;
+    } else {
+      return false;
+    }
   }
 
-  async bulkFindMatchingScoreAgencyUserSubmission(data: AgencyUserSubmissionBulkFindMatchingScoreInternalDto): Promise<boolean> {
+  async bulkFindMatchingScoreAgencyUserSubmission(data: AgencyUserSubmissionBulkFindMatchingScoreApiDto): Promise<boolean> {
     global.logger.info("Bulk Find Matching Score Agency User Submission [service]", { 
       methodName: this.bulkFindMatchingScoreAgencyUserSubmission.name,
       data
     });
     const {
-      actionByCorporateUserId,
       actionByUserId,
-      cognitoUserGroups,
+      actionByCorporateUserId,
+    } = getActionByUserId();
+    const cognitoUserGroups: string[] = global.requestLocalContext.cognitoUserGroups;
+
+    const {
       agencyUserSubmissionIds
     } = data;
 
@@ -1151,24 +1557,22 @@ class AgencyUserSubmissionService {
             return;
           }
 
-          const matchingScoreDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeJdResumeMatchingScore({
-            jobId: existingCandidateParsedCv.jobId,
-            cvAwsS3BucketName: existingCandidateParsedCv.cvAwsS3BucketName,
-            cvAwsS3FilePath: existingCandidateParsedCv.cvAwsS3FilePath,
-            cvAwsS3FileName: existingCandidateParsedCv.cvAwsS3FileName,
-            USER_PK: existingCandidateParsedCv.userDetailId ? `USR#EML#${existingCandidateParsedCv.email}`: undefined
-          });
+          const invokedMatchingScoreDetails: APIGatewayProxyResult = await InvokeLambdaService.triggerSourceTypeJdResumeMatchingScore(
+            {
+              sourceTypeMatchingScoreEntity: SourceTypeMatchingScoreEntityEnum.AGENCY_USER_SUBMISSION,
+              cvAwsS3ResourceType: existingCandidateParsedCv.cvAwsS3ResourceType,
+              agencyUserSubmissionId,
+              actionByCorporateUserId,
+              actionByUserId,
+              jobId: existingCandidateParsedCv.jobId, 
+              cvAwsS3BucketName: existingCandidateParsedCv.cvAwsS3BucketName,
+              cvAwsS3FilePath: existingCandidateParsedCv.cvAwsS3FilePath,
+              cvAwsS3FileName: existingCandidateParsedCv.cvAwsS3FileName,
+              USER_PK: existingCandidateParsedCv.cvAwsS3ResourceType === CandidateParsedCvAwsS3ResourceTypeEnum.USER_RESUME ? `USR#EML#${existingCandidateParsedCv.email}`: undefined
+            }
+          );
 
-          if (matchingScoreDetails.statusCode === HttpStatusCode.OK_200) {
-            const parsedMatchingScoreDetails: AgencyUserSubmissionInvokedMatchingScoreResponseDto = JSON.parse(matchingScoreDetails.body);
-            
-            await this.updateAgencyUserSubmissionById(agencyUserSubmissionId, {
-              updatedAt: dateHelperObj.getISODate(),
-              updatedByCorporateUserId: actionByCorporateUserId,
-              updatedByUserId: actionByUserId,
-              matchingScoreDetails: parsedMatchingScoreDetails
-            });
-
+          if (invokedMatchingScoreDetails.statusCode === HttpStatusCode.ACCEPTED_202) {
             global.logger.info(`Bulk matching score completed for submission.`, {
               methodName: this.bulkFindMatchingScoreAgencyUserSubmission.name,
               agencyUserSubmissionId,
@@ -1177,8 +1581,8 @@ class AgencyUserSubmissionService {
             global.logger.error(`Failed to calculate matching score for bulk processing.`, {
               methodName: this.bulkFindMatchingScoreAgencyUserSubmission.name,
               agencyUserSubmissionId,
-              statusCode: matchingScoreDetails.statusCode,
-              matchingScoreDetails
+              statusCode: invokedMatchingScoreDetails.statusCode,
+              invokedMatchingScoreDetails
             });
           }
         } catch (error) {

@@ -1,6 +1,6 @@
 
 // Import firestore package
-import { DocumentData, Filter, Firestore, Query, QuerySnapshot } from "@google-cloud/firestore";
+import { DocumentData, FieldPath, Filter, Firestore, Query, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import configs
 import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
@@ -36,7 +36,7 @@ class AgencyUserInviteDao implements BaseDao {
     };
   }
 
-  getAgencyUserInviteFirestoreDatabase(): Firestore {
+  getAgencyUserInviteFirestoreDatabase(): Promise<Firestore> {
     return gcpFirestoreLibrary.getFirestoreDatabase(this.databaseName);
   }
 
@@ -70,17 +70,18 @@ class AgencyUserInviteDao implements BaseDao {
       methodName: this.getAllAgencyUserInvitesByFilterOptions.name,
     });
 
-    const { companyId, invitedByCorporateUserId, inviteStatus, agencyEmail } =
+    const { companyId, invitedByCorporateUserId, inviteStatus, agencyEmail, sortOrder } =
       filterOptions;
 
-    const db: Firestore = this.getAgencyUserInviteFirestoreDatabase();
+    const db: Firestore = await this.getAgencyUserInviteFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db.collection(
       this.collectionName
     );
 
-    // If no filter options are provided, order by createdAt in specific order
-    if(!companyId && !invitedByCorporateUserId && !inviteStatus && !agencyEmail) {
-      baseQuery = baseQuery.orderBy("createdAt", filterOptions.sortOrder);
+    if(
+      !companyId && !invitedByCorporateUserId && !inviteStatus && !agencyEmail
+    ) {
+      baseQuery = baseQuery.orderBy("createdAt", sortOrder)
     } else {
       if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
       if (invitedByCorporateUserId)
@@ -92,8 +93,10 @@ class AgencyUserInviteDao implements BaseDao {
       if (inviteStatus)
         baseQuery = baseQuery.where("inviteStatus", "==", inviteStatus);
       if (agencyEmail) baseQuery = baseQuery.where("email", "==", agencyEmail);
-    }
 
+      if(sortOrder) baseQuery = baseQuery.orderBy(FieldPath.documentId(), sortOrder);
+    }
+    
     return gcpFirestoreUtilObj.paginateGcpFirestore<
       AgencyUserInviteListingFilterOptions,
       DbAgencyUserInviteDto
@@ -136,7 +139,7 @@ class AgencyUserInviteDao implements BaseDao {
       GSTIN
     } = data
 
-    const db: Firestore = this.getAgencyUserInviteFirestoreDatabase();
+    const db: Firestore = await this.getAgencyUserInviteFirestoreDatabase();
 
     /**
      * @see https://firebase.google.com/docs/firestore/query-data/queries#or_queries

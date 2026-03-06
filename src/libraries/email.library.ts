@@ -158,7 +158,7 @@ class EmailLibrary {
     );
 
     // Prepare request body as required by the AWS SES "sendTemplatedEmail" method
-    let sendTemplatedEmailAwsSesRequest: AWS.SES.Types.SendTemplatedEmailRequest =
+    let sendTemplatedEmailAwsSesRequest =
       {
         Source: fromAddressStr,
         Destination: {

@@ -1,6 +1,6 @@
 
 // Import firestore package
-import { DocumentData, Firestore, Query, QuerySnapshot } from "@google-cloud/firestore";
+import { DocumentData, FieldPath, Firestore, Query, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import configs
 import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
@@ -23,7 +23,7 @@ class AgencyUserSubmissionDao implements BaseDao {
   databaseName: string = `worko-corp-db-${process.env.APP_SLS_STAGE}`;
   collectionName: string = "agencyUserSubmissions";
 
-  getAgencyUserSubmissionFirestoreDatabase() {
+  getAgencyUserSubmissionFirestoreDatabase(): Promise<Firestore> {
     return gcpFirestoreLibrary.getFirestoreDatabase(this.databaseName);
   }
 
@@ -52,17 +52,27 @@ class AgencyUserSubmissionDao implements BaseDao {
       methodName: this.getAllAgencyUserSubmissionByFilterOptions.name,
     });
 
-    const { companyId, jobId, agencyRegisteredEmail, candidateEmail } =
+    const { 
+      companyId, jobId, agencyRegisteredEmail, 
+      candidateEmail, agencyName, agencyJobAssignedByCorporateUserId,
+      sortOrder
+    } =
       filterOptions;
 
-    const db: Firestore = this.getAgencyUserSubmissionFirestoreDatabase();
+    const db: Firestore = await this.getAgencyUserSubmissionFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db.collection(
       this.collectionName
     );
 
-    // If no filter options are provided, order by createdAt in specific order
-    if(!companyId && !jobId && !agencyRegisteredEmail && !candidateEmail) {
-      baseQuery = baseQuery.orderBy("createdAt", filterOptions.sortOrder);
+    if(
+      !companyId &&
+      !jobId &&
+      !agencyRegisteredEmail &&
+      !candidateEmail &&
+      !agencyName &&
+      !agencyJobAssignedByCorporateUserId
+    ) {
+      baseQuery = baseQuery.orderBy("createdAt", sortOrder)
     } else {
       if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
       if (jobId)
@@ -74,7 +84,10 @@ class AgencyUserSubmissionDao implements BaseDao {
       if (agencyRegisteredEmail)
         baseQuery = baseQuery.where("agencyRegisteredEmail", "==", agencyRegisteredEmail);
       if (candidateEmail) baseQuery = baseQuery.where("candidateEmail", "==", candidateEmail);
-      if (filterOptions.agencyName) baseQuery = baseQuery.where("agencyName", "==", filterOptions.agencyName);
+      if (agencyName) baseQuery = baseQuery.where("agencyName", "==", filterOptions.agencyName);
+      if (agencyJobAssignedByCorporateUserId) baseQuery = baseQuery.where("agencyJobAssignedByCorporateUserId", "==", agencyJobAssignedByCorporateUserId);
+
+      if(sortOrder) baseQuery = baseQuery.orderBy(FieldPath.documentId(), sortOrder);
     }
 
     return gcpFirestoreUtilObj.paginateGcpFirestore<

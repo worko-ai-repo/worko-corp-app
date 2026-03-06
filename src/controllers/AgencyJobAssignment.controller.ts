@@ -10,7 +10,7 @@ import { GcpFirestoreRequestHelper } from "../helpers/request.gcp-firestore.help
 
 // Import models
 import { DbAgencyJobAssignmentDto } from "../db/gcp-firestore-models/AgencyJobAssignment.model";
-import { DbJobAwsOpensearchDto } from "../db/aws-opensearch-models/Job.model";
+import { DbGcpFirestoreJobDto } from "../db/gcp-firestore-models/GcpFirestoreJob.model";
 
 // Import services
 import { agencyJobAssignmentServiceObj } from "../services/AgencyJobAssignment.service";
@@ -108,7 +108,7 @@ class AgencyJobAssignmentController {
 
       const jobDetails: GcpFirestoreRecordListingResponseDTO<
         (DbAgencyJobAssignmentDto & {
-          jobDetails?: DbJobAwsOpensearchDto;
+          jobDetails?: DbGcpFirestoreJobDto;
         })[]
       > =
         await agencyJobAssignmentServiceObj.performGetAllAgencyJobAssignmentsActivities(

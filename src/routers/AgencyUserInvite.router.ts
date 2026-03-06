@@ -32,6 +32,12 @@ AgencyUserInviteRouter.get("/:id",agencyUserInviteController.getAgencyUserInvite
 AgencyUserInviteRouter.patch("/corp-action",agencyUserInviteController.updateAgencyUserInviteByCorpUser);
 
 /**
+ * We will update the action type to "PAUSE" or "RESUME" or "DELETE"
+ * @authorisedRoles ["corporate-admin","corporate-recruiter"]
+ */
+AgencyUserInviteRouter.patch("/action-type",agencyUserInviteController.updateAgencyUserInviteAction);
+
+/**
  * Agency User Invite Update by agency user
  * @authorisedRoles ["agency"]
  */

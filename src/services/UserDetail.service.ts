@@ -1,17 +1,38 @@
+
+// import luxon
+import { DateTime } from "luxon";
+
+// import dynamoose
 import { QueryResponse } from "dynamoose/dist/ItemRetriever";
+
+// import aws packages
+import { AdminGetUserCommandOutput, AttributeType, UserStatusType } from "@aws-sdk/client-cognito-identity-provider";
 
 // import configs
 import APP_CONSTANTS from "../configs/constants.config";
-import { awsS3ClientLibrary } from "../configs/aws-sdk.config";
+import { awsClientCognitoIdentityProviderLibrary, awsS3ClientLibrary } from "../configs/aws-sdk.config";
 
 // Load the local daos
 import userDetailDao from "../daos/UserDetail.dao";
 
-// Load the local dtos
-import { UserDetailDTO } from "../dtos/UserDetail.dto";
+// Import dtos
+import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
+import { ScheduleJobAdminCandAcctCreateSignupReminderInputDto, ScheduleJobCreateDto } from "../dtos/ScheduleJob.dto";
+import { EmailTemplatePlaceholderCAND_ACCOUNT_CHANGE_PASS_SIGNUP_REMINDER } from "../dtos/EmailTemplatePlaceholder.dto";
+
+// Import enums
+import { ScheduleJobStatus, ScheduleJobType } from "../enums/ScheduleJob.enum";
+import { EmailTemplateEnum } from "../enums/EmailTemplate.enum";
+
+// Import libraries
+import { emailLibrary, EmailSourceDestinationAddress } from "../libraries/email.library";
 
 // Load the local models
 import { DbUserDetailDto } from "../db/aws-dynamodb-models/UserDetail.model";
+import { DbScheduleJobDto } from "../db/aws-dynamodb-models/ScheduleJob.model";
+
+// Load the local services
+import { scheduleJobServiceObj } from "./ScheduleJob.service";
 
 // Load the local types
 import { UserDetailProfileInfoType } from "../types/UserDetail.type";
@@ -20,13 +41,207 @@ import { UserDetailProfileInfoType } from "../types/UserDetail.type";
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
 
-// @todo all methods from everything (Dao, Service, etc) should return the response,
-// it will help the caller to know what happed with the action and what is the response.
-
 /**
  *  UserDetailService class responsible for managing user-related operations.
  */
 class UserDetailService {
+
+  async sendEmailForCandAcctSignupReminder(
+    candidateEmail: string,
+    jobTitle: string,
+    companyName: string,
+    candidateName: string,
+    temporaryPassword: string,
+  ): Promise<boolean> {
+    const toAddress: EmailSourceDestinationAddress = {
+      email: candidateEmail,
+      fullName: candidateName.toTitleCase(),
+    };
+
+    const emailPlaceholders: EmailTemplatePlaceholderCAND_ACCOUNT_CHANGE_PASS_SIGNUP_REMINDER =
+      {
+        candidateName: candidateName.toTitleCase(),
+        candidateEmail: candidateEmail,
+        jobTitle: jobTitle.toTitleCase(),
+        companyName: companyName.toTitleCase(),
+        candidateLoginUrl: APP_CONSTANTS.FRONTEND_URLS.WORKO_LOGIN_URL,
+        candidateTemporaryPassword: temporaryPassword,
+        ...APP_CONSTANTS.GET_WORKO_SOCIAL_PROFILES_TO_SEND_EMAIL
+      };
+
+    await emailLibrary.sendEmail(
+      EmailTemplateEnum.CAND_ACCOUNT_CHANGE_PASS_SIGNUP_REMINDER,
+      toAddress,
+      emailPlaceholders
+    );
+
+    return true;
+  }
+
+  async scheduleCandChangePassSignupReminder(
+    scheduleJobCandAcctCreateSignupReminderInput: ScheduleJobAdminCandAcctCreateSignupReminderInputDto
+  ): Promise<boolean> {
+    const delay: number = APP_CONSTANTS.CAND_CHANGE_PASS_SIGNUP_REMINDER_DELAY;
+
+    // Calculate the schedule time
+    const scheduleTime: DateTime<true> = DateTime.now().plus({
+      milliseconds: delay,
+    });
+
+    // Create the payload for scheduling the job
+    const scheduleJobPayload: ScheduleJobCreateDto = {
+      type: ScheduleJobType.ADMIN_CAND_ACCOUNT_CREATE_SIGNUP_REMINDER,
+      scheduleTime: scheduleTime.toUTC().toFormat("yyyy-MM-dd'T'HH:mm:ss"),
+      input: scheduleJobCandAcctCreateSignupReminderInput,
+      desc: `Check candidate signup reminder for ${scheduleJobCandAcctCreateSignupReminderInput.candidateEmail} if still not registered.`,
+      status: ScheduleJobStatus.SCHEDULED,
+    };
+
+    // Prepare scheduler lambda arn
+    const schedulerLambdaArn: string = APP_CONSTANTS.AWS_EVENT_BRIDGE_SCHEDULER_ARNS.WORKO_CORP_APP_SCHEDULER_LAMBDA_ARN.strtr({
+      "{serverlessFunctionName}": APP_CONSTANTS.SERVERLESS_FUNCTION_NAMES.WORKO_CORP_APP_SCHEDULER_HANDLER
+    });
+
+    // Schedule the job
+    const scheduledJob: DbScheduleJobDto =
+      await scheduleJobServiceObj.createScheduleJob(scheduleJobPayload, schedulerLambdaArn);
+
+    if (!scheduledJob) {
+      global.logger.error("Failed to schedule the job", {
+        methodName: this.scheduleCandChangePassSignupReminder.name,
+        scheduledJob,
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  async reviewCandidateChangePassSignupReminder(
+    candAcctCreateSignupReminderInput: ScheduleJobAdminCandAcctCreateSignupReminderInputDto
+  ): Promise<boolean> {
+    const { 
+      candidateCognitoUserId, candidateEmail, reminderSendCount,
+      candidateName, jobTitle, companyName, temporaryPassword
+    } =
+      candAcctCreateSignupReminderInput;
+
+    const workoUserPoolId: string | undefined =
+      process.env.APP_AWS_WORKO_COGNITO_USER_POOL_ID;
+    if (!workoUserPoolId) {
+      global.logger.error(`Worko User Pool Id not found`, {
+        methodName: this.reviewCandidateChangePassSignupReminder.name,
+        candAcctCreateSignupReminderInput,
+      });
+      throw new BaseError(
+        "Worko User Pool Id not found.",
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const candidateCognitoUserDetails: AdminGetUserCommandOutput =
+      await awsClientCognitoIdentityProviderLibrary.getUserDetails(
+        workoUserPoolId,
+        candidateCognitoUserId
+      );
+    if (!candidateCognitoUserDetails) {
+      global.logger.error(`Cognito user details not found`, {
+        methodName: this.reviewCandidateChangePassSignupReminder.name,
+        candAcctCreateSignupReminderInput,
+      });
+      throw new BaseError(
+        "Cognito user details not found.",
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const candidateCognitoUserEmail: string | undefined =
+      candidateCognitoUserDetails?.UserAttributes?.find(
+        (attr: AttributeType) => attr.Name === "email"
+      )?.Value;
+
+    if(candidateCognitoUserEmail !== candidateEmail) {
+      global.logger.error(`Candidate email not found`, {
+        methodName: this.reviewCandidateChangePassSignupReminder.name,
+        candAcctCreateSignupReminderInput,
+        candidateCognitoUserDetails,
+      });
+      throw new BaseError(
+        "Candidate email not found.",
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const isCandidateCognitoUserEmailVerified: boolean =
+      candidateCognitoUserDetails?.UserAttributes?.find(
+        (attr: AttributeType) => attr.Name === "email_verified"
+      )?.Value === "true";
+
+    if (
+      candidateCognitoUserDetails.UserStatus === UserStatusType.CONFIRMED &&
+      isCandidateCognitoUserEmailVerified 
+    ) {
+      global.logger.info(
+        `Candidate account is already verified, so no need to send signup reminder.`,
+        {
+          methodName: this.reviewCandidateChangePassSignupReminder.name,
+          candAcctCreateSignupReminderInput,
+          candidateCognitoUserDetails,
+        }
+      )
+      return true;
+    }
+
+    global.logger.info(
+      `Candidate account not verified, so check reminder limit and send signup reminder accordingly.`,
+      {
+        methodName: this.reviewCandidateChangePassSignupReminder.name,
+        candAcctCreateSignupReminderInput,
+        candidateCognitoUserDetails,
+      }
+    );
+
+    if(reminderSendCount >= 7) {
+      global.logger.info(
+        `Candidate signup reminder limit reached, so no need to send signup reminder.`,
+        {
+          methodName: this.reviewCandidateChangePassSignupReminder.name,
+          candAcctCreateSignupReminderInput,
+          candidateCognitoUserDetails,
+        }
+      )
+      return true;
+    }
+
+    await this.sendEmailForCandAcctSignupReminder(
+      candidateEmail,
+      jobTitle,
+      companyName,
+      candidateName,
+      temporaryPassword
+    );
+
+    await this.scheduleCandChangePassSignupReminder(
+      {
+        candidateEmail,
+        candidateName,
+        jobTitle,
+        companyName,
+        temporaryPassword,
+        candidateCognitoUserId,
+        reminderSendCount : reminderSendCount + 1
+      }
+    );
+
+    return true;
+  }
+
+  async createUserDetail(
+    createUserDetailDto: UserDetailCreateDto
+  ): Promise<DbUserDetailDto> {
+    return userDetailDao.createUserDetail(createUserDetailDto);
+  }
+
   /**
    * Retrieves user details by email id.
    *
@@ -66,34 +281,6 @@ class UserDetailService {
     }
 
     return candidateDetails[0];
-  }
-
-  /**
-   * getUserDetailsByEmailIds
-   *
-   * Retrieves user details by given email id list.
-   *
-   * @param emailIds - List of email ids of the users
-   * @returns {Promise<UserDetailProfileInfoType[]>} - List of user details
-   */
-  async getUserDetailsByEmailIds(
-    emailIds: string[]
-  ): Promise<UserDetailProfileInfoType[]> {
-    // Log the action
-    global.logger.info("Get user details by ids [service]", {
-      filePath: __filename,
-      methodName: this.getUserDetailsByEmailIds.name,
-    });
-
-    // Get user details by email
-    const userDetailsArray: Promise<UserDetailProfileInfoType>[] = emailIds.map(
-      (emailId: string) => {
-        return this.getUserProfileDetailsByEmail(emailId);
-      }
-    );
-
-    // Return the user details
-    return Promise.all(userDetailsArray);
   }
 
   /**
@@ -190,29 +377,6 @@ class UserDetailService {
   }
 
   /**
-   * getUserByIds
-   *
-   * Retrieves user details for a list of user IDs.
-   *
-   * @param {string[]} userIds - The list of user IDs.
-   * @returns {Promise<DbUserDetailDto[]>} - A promise that resolves to an array of user details.
-   */
-  async getUserByIds(userIds: string[]): Promise<DbUserDetailDto[]> {
-    // Log the action
-    global.logger.info("Get user details by ids [service]", {
-      filePath: __filename,
-      methodName: this.getUserByIds.name,
-    });
-
-    // return all user details by ids
-    return Promise.all(
-      userIds.map(async (userId: string): Promise<DbUserDetailDto> => {
-        return (await userDetailDao.getUserById(userId))[0];
-      })
-    );
-  }
-
-  /**
    * getUserByIdOne
    *
    * Retrieves user details by user id and parses the result.
@@ -240,64 +404,6 @@ class UserDetailService {
 
     // Return the parsed user details
     return userDetail[0];
-  }
-
-  /**
-   * Updates an existing user Detail.
-   *
-   * @param email - Email of the user
-   * @param userDetailDTO - Data Transfer Object containing updated user Detail details
-   * @returns {Promise<any>} - A Promise that resolves when the Detail is successfully updated
-   */
-  async update(
-    email: string,
-    SK: string,
-    userDetailDTO: Partial<UserDetailDTO>
-  ): Promise<any> {
-    // Logging the action of updating user Detail in the service layer
-    logger.info("Updating user Detail [UserDetailService]");
-
-    return userDetailDao.update(email, SK, userDetailDTO);
-  }
-
-  /**
-   * updateLastAccessedDash
-   *
-   * Updates the last accessed dashboard for a user
-   *
-   * @param email - Email of the user
-   * @param userlastAccessedDash - User's Last Accessed Dashboard
-   */
-  async updateLastAccessedDash(email: string, userLastAccessedDash: string) {
-    // Fetch the User Details .
-    let userDetails = await this.get(email);
-
-    // Throw BaseError if user not present
-    if (!userDetails.count) {
-      throw new BaseError(
-        `The user details not found for the provided email "${email}" address.`
-      );
-    }
-
-    // Prepare the details required to be updated for the user
-    let userModifiedDetails: Partial<UserDetailDTO> = {
-      lastAccessedDash: userLastAccessedDash,
-    };
-
-    // Check if userType exists or does not exist
-    const updatedUserType = userDetails[0].userType || [];
-
-    // If the userType is not present then add it.
-    if (!updatedUserType.includes(userLastAccessedDash)) {
-      // Push the user type as it is not present
-      updatedUserType.push(userLastAccessedDash);
-
-      // Update the user type
-      userModifiedDetails.userType = updatedUserType;
-    }
-
-    // Update the user details
-    return this.update(email, userDetails[0].SK, userModifiedDetails);
   }
 }
 

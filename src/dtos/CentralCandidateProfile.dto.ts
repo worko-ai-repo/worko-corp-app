@@ -18,3 +18,14 @@ export interface CentralCandidateProfileListingFilterRequestDTO extends GcpFires
  candidateEmail?: string;
  includeCandidateParsedCvDetails?: boolean;
 }
+
+export interface CentralCandidateProfileBulkCvPsuToUploadApiDto {
+  bulkCvs: {
+    fileName: string; // "sample-cv.pdf"
+    fileMimeType: string; // "application/pdf"
+  }[];
+  /**
+   * @reference "id" field of "BulkSourceTypeResume.model.ts
+   */
+  bulkSourceTypeResumeId: string;
+}

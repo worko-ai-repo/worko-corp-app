@@ -49,6 +49,28 @@ const APP_CONSTANTS = {
     USER_PROFILE_PIC: "users/{userId}/profilePics", // To upload the individual user's profile pics
     AGENCY_INVITE_CONTRACT_COPY: `companies/{companyId}/agency-invites/{agencyInviteId}/contract-copies`,
     AGENCY_SUBMIT_USER_CV: `agencies/{agencyUserId}/companies/{companyId}/jobs/{jobId}/user-profiles`,
+    CAND_SUBMIT_CV_JOB: `candidate-submit-cvs/companies/{companyId}/jobs/{jobId}/cvs`,
+    AGENCY_BULK_CVS: `agencies/{agencyUserId}/bulk-cvs/{agencyBulkJdId}`,
+
+    /**
+     * @description
+     *  1. In `My database` page of `Corporate dashboard` whenever corporate upload bulk candidate cvs
+     *  we store in this path.
+     */
+    CORP_CAND_BULK_CV_UPLOAD: `companies/{companyId}/bulk-cvs`,
+
+    /**
+     * @description
+     *  1. Whenever "corporate-admin" submits a referral email and whatever cvs recieved to that email will be parsed and path will be used.
+     */
+    CORP_CAND_REFERRAL_CV: `companies/{companyId}/referral-source-cvs`,
+
+    /**
+     * @description
+     *  1. In `My database` page of `Admin dashboard` whenever admin upload bulk candidate cvs 
+     *  we store in this path.
+     */
+    ADMIN_CAND_BULK_CV_UPLOAD: `bulk-cvs`
   },
 
   /**
@@ -65,7 +87,7 @@ const APP_CONSTANTS = {
   },
 
   // If "pageSize" from the request does not match with one of the "PAGE_LENGTH_OPTIONS" value, then this value would be used.
-  PAGE_LENGTH_DEFAULT: 25,
+  PAGE_LENGTH_DEFAULT: 10,
 
   LAMBDA_FUNCTION_NAMES: {
     /**
@@ -83,12 +105,30 @@ const APP_CONSTANTS = {
      */
     WORKO_SOURCE_TYPE_JD_RESUME_MATCHING_SCORE: `worko-sourcetype-jd-resume-matching-${process.env.APP_SLS_STAGE}`,
 
-    WORKO_SOURCE_TYPE_BULK_JD_RESUME_MATCHING_SCORE: `worko-corp-${process.env.APP_SLS_STAGE}-app-sourcetype-bulk-find-jd-cv-match-score`,
-
     /**
      * RESUME_EXTRACTION_LAMBDA_NAME
      */
-    RESUME_EXTRACTION_LAMBDA_NAME: "resume-parser",
+    RESUME_EXTRACTION_LAMBDA_NAME: `worko-resume-parser-${process.env.APP_STAGE}`,
+
+    /**
+     * @description This lambda is used to invoke other lambda functions in `worko-corp-app` repository
+     * you can check in `appInvokeLambda` function in `serverless.ts` file 
+     */
+    WORKO_CORP_APP_INVOKE_LAMBDA_NAME: `worko-corp-${process.env.APP_STAGE}-appInvokeLambda`,
+
+    /**
+     * MATCHING_SCORE_LAMBDA_NAME
+     *
+     * Lambda function name for "Matching Score"
+     * AWS Lambada Configurations related to triggering "Matching Score"
+     */
+    MATCHING_SCORE_LAMBDA_NAME: `worko-jd-resume-matching-${process.env.APP_STAGE}`,
+
+    /**
+     * @description This lambda is used to invoke other lambda functions in `worko-job-app` repository
+     * you can check in `appInvokeLambda` function in `serverless.ts` file 
+     */
+    WORKO_JOB_APP_INVOKE_LAMBDA_NAME: `worko-job-app-${process.env.APP_STAGE}-appInvokeLambda`,
   },
 
   CASUAL_EMAIL_DOMAINS: [
@@ -122,12 +162,19 @@ const APP_CONSTANTS = {
   },
 
   FRONTEND_URLS: {
-    WORKO_AGENCY_LOGIN_URL: `${process.env.APP_WORKO_AGENCY_FRONTEND_BASE_URL}`,
+    WORKO_SIGNUP_URL: `${process.env.APP_WORKO_FRONTEND_BASE_URL}/auth/signup`,
+    WORKO_LOGIN_URL: `${process.env.APP_WORKO_FRONTEND_BASE_URL}/auth/login`,
+
+    WORKO_AGENCY_LOGIN_URL: `${process.env.APP_WORKO_AGENCY_FRONTEND_BASE_URL}/auth/agency/login`,
 
     /**
      * @example "https://agency.worko.work/auth/agency/signup/01KA0Z4YZF598N7WA3ETMEWAV6"
      */
     WORKO_AGENCY_SIGNUP_URL: `${process.env.APP_WORKO_AGENCY_FRONTEND_BASE_URL}/auth/agency/signup/{agencyUserInviteId}`,
+  },
+
+  MATCHING_SCORES: {
+    AGENCY_BULK_JD_RESUME_MINIMUM_MATCHING_SCORE: 70,
   },
 
   SOURCE_EMAIL_ADDRESS: {
@@ -173,6 +220,47 @@ const APP_CONSTANTS = {
       };
 
     return socialProfielForEmails;
+  },
+
+  /**
+   * @todo: If not signup we will send 8 reminders, Days: 1-3-5-9-12-18-21-30
+   */
+  get CAND_CHANGE_PASS_SIGNUP_REMINDER_DELAY(): number {
+    return process.env.APP_SLS_STAGE === APP_CONSTANTS.STAGES.PROD
+      ? 3 * 24 * 60 * 60 * 1000 // 3 days in milliseconds
+      // : 5 * 60 * 1000; // 5 minutes in milliseconds 
+      : 365 * 24 * 60 * 60 * 1000; // 1 year in milliseconds
+  },
+
+  get BLACK_LISTED_USER_JOB_APPLICATION_UPDATE_AFTER_X_HOURS(): number {
+    const PROD_HOURS = 1 * 24; // 24 hours
+    const DEV_HOURS = 10 / 60; // 10 minutes converted to hour
+
+    // return the time based on the environment
+    return this.APP_SLS_STAGE === this.STAGES.PROD ? PROD_HOURS : DEV_HOURS;
+  },
+
+  /**
+   * AWS_EVENT_BRIDGE_SCHEDULER_ARNS
+   */
+  AWS_EVENT_BRIDGE_SCHEDULER_ARNS: {
+    /**
+     * @description
+     *  1. The lamba arn of "worko-job-app-{environment}-app-scheduler-handler"
+     */
+    WORKO_JOB_APP_SCHEDULER_LAMBDA_ARN: `arn:aws:lambda:${process.env.APP_SLS_REGION}:${process.env.APP_AWS_ACCOUNT_ID}:function:worko-job-app-${process.env.APP_SLS_STAGE}-{serverlessFunctionName}`,
+    WORKO_CORP_APP_SCHEDULER_LAMBDA_ARN: `arn:aws:lambda:${process.env.APP_SLS_REGION}:${process.env.APP_AWS_ACCOUNT_ID}:function:worko-corp-${process.env.APP_SLS_STAGE}-{serverlessFunctionName}`,
+    ROLE_ARN: `arn:aws:iam::${process.env.APP_AWS_ACCOUNT_ID}:role/${process.env.APP_AWS_EVENT_BRIDGE_SCHEDULE_INVOKE_LAMBDA_ROLE}`,
+  },
+
+  /**
+   * SERVERLESS_FUNCTION_NAMES
+   *
+   * @description These are the function names in `serverless.ts` file
+   */
+  SERVERLESS_FUNCTION_NAMES: {
+    WORKO_JOB_APP_SCHEDULER_HANDLER: "app-scheduler-handler",
+    WORKO_CORP_APP_SCHEDULER_HANDLER: "appScheduler",
   },
 
   WORKO_LOGO_URL: process.env.APP_WORKO_LOGO_URL,

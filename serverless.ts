@@ -40,6 +40,29 @@ const serverlessConfiguration: AWS = {
   ],
 
   custom: {
+    webpack: {
+      webpackConfig: './webpack.config.js',
+      packager: 'npm',
+      includeModules: {
+
+        /**
+         * @description We are passing the configuration for the serverless-webpack plugin. 
+         * You can explicitly exclude and include third party libraries based on your requirement. 
+         * Since @aws-sdk v3 is already provided in the lambda environment by AWS , 
+         * we don’t need to package it in the build hence it’s been excluded forcefully.
+         */
+        forceExclude: [
+          "@aws-sdk/client-cognito-identity-provider",
+          "@aws-sdk/client-lambda",
+          "@aws-sdk/client-scheduler",
+          "@aws-sdk/client-secrets-manager",
+          "@aws-sdk/client-ses",
+          "@aws-sdk/client-s3",
+          "@aws-sdk/s3-request-presigner",
+          "@aws-sdk/lib-storage"
+        ]
+      }
+    },
     app: {
       STAGE: "${env:APP_SLS_STAGE}",
     },
@@ -52,15 +75,33 @@ const serverlessConfiguration: AWS = {
       APP_AWS_SUBNET2: "${env:APP_AWS_SUBNET2}",
       APP_SLS_REGION: "${env:APP_SLS_REGION}",
       APP_AWS_AGENCY_COGNITO_USER_POOL_ID: "${env:APP_AWS_AGENCY_COGNITO_USER_POOL_ID}",
+      APP_AWS_WORKO_COGNITO_USER_POOL_ID: "${env:APP_AWS_WORKO_COGNITO_USER_POOL_ID}",
+      APP_AWS_SECRETS_MANAGER_GCP_FIRESTORE_ARN_SECRET: "${env:APP_AWS_SECRETS_MANAGER_GCP_FIRESTORE_ARN_SECRET}",
+      APP_AWS_SECRETS_MANAGER_GCP_AI_PLATFORM_ARN_SECRET: "${env:APP_AWS_SECRETS_MANAGER_GCP_AI_PLATFORM_ARN_SECRET}",
+      APP_AWS_S3_BUCKET_WORKO_CORPORATE: "${env:APP_AWS_S3_BUCKET_WORKO_CORPORATE}",
+      APP_AWS_S3_BUCKET_WORKO_APP: "${env:APP_AWS_S3_BUCKET_WORKO_APP}",
+      APP_AWS_S3_BUCKET_WORKO_AGENCY_BULK_CVS: "${env:APP_AWS_S3_BUCKET_WORKO_AGENCY_BULK_CVS}",
+      APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE: "${env:APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE}",
+      APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE: "${env:APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE}",
+      APP_AWS_S3_BUCKET_WORKO_CORPORATE_REFERRAL_SOURCE_CV: "${env:APP_AWS_S3_BUCKET_WORKO_CORPORATE_REFERRAL_SOURCE_CV}",
+    },
+    awsLambdaFunctions: {
+      APP_AWS_SCHEDULER_HANDLER_LAMBDA_ARN: "arn:aws:lambda:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-corp-${self:custom.app.STAGE}-appScheduler",
+      APP_AWS_SCHEDULER_HANDLER_ROLE_ARN: "arn:aws:iam::${self:custom.aws.APP_AWS_ACCOUNT_ID}:role/worko-schedule-invoke-lambda-role",
     },
   },
 
   provider: {
     name: "aws",
 
-    runtime: "nodejs18.x",
+    runtime: "nodejs20.x",
 
     stage: process.env.APP_SLS_STAGE,
+
+    environment: {
+      APP_AWS_SCHEDULER_HANDLER_LAMBDA_ARN: "${self:custom.awsLambdaFunctions.APP_AWS_SCHEDULER_HANDLER_LAMBDA_ARN}",
+      APP_AWS_SCHEDULER_HANDLER_ROLE_ARN: "${self:custom.awsLambdaFunctions.APP_AWS_SCHEDULER_HANDLER_ROLE_ARN}",
+    },
 
     /**
      * region
@@ -129,26 +170,95 @@ const serverlessConfiguration: AWS = {
       {
         Effect: "Allow",
         Action: ["s3:PutObject", "s3:GetObject", "s3:ListBucket"],
-        Resource: ["arn:aws:s3:::worko-app-*", "arn:aws:s3:::*/*"],
+        Resource: [
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_CORPORATE}",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_CORPORATE}/*",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_APP}",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_APP}/*",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_AGENCY_BULK_CVS}",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_AGENCY_BULK_CVS}/*",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE}",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE}/*",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE}",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE}/*",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_CORPORATE_REFERRAL_SOURCE_CV}",
+          "arn:aws:s3:::${self:custom.aws.APP_AWS_S3_BUCKET_WORKO_CORPORATE_REFERRAL_SOURCE_CV}/*",
+        ],
       },
 
       {
         Effect: "Allow",
         Action: ["lambda:InvokeFunction", "lambda:InvokeAsync"],
         Resource: [
-          "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:resume-parser",
+          "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-jd-resume-matching-${self:custom.app.STAGE}",
+          "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-resume-parser-${self:custom.app.STAGE}",
           "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-job-app-${self:custom.app.STAGE}-app-opensearch-operations",
           "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-sourcetype-jd-resume-matching-${self:custom.app.STAGE}",
           "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-corp-${self:custom.app.STAGE}-app-sourcetype-bulk-find-jd-cv-match-score",
+          "arn:aws:lambda:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:function:worko-corp-${self:custom.app.STAGE}-appInvokeLambda",
         ],
       },
-
+      {
+        Effect: "Allow",
+        Action: [
+          "iam:PassRole",
+          "scheduler:GetSchedule",
+          "scheduler:UpdateSchedule",
+          "scheduler:CreateSchedule",
+          "scheduler:DeleteSchedule"
+        ],
+        Resource: [
+          "arn:aws:iam::${self:custom.aws.APP_AWS_ACCOUNT_ID}:role/worko-schedule-invoke-lambda-role",
+          "arn:aws:scheduler:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:schedule/*/*"
+        ]
+      },
+      {
+        Effect: "Allow",
+        "Action": [
+          "scheduler:GetScheduleGroup",
+          "scheduler:DeleteScheduleGroup",
+          "scheduler:CreateScheduleGroup"
+        ],
+        "Resource": "arn:aws:scheduler:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:schedule-group/*"
+      },
       {
         Effect : "Allow",
         "Action": [
           "cognito-idp:AdminGetUser",
+          "cognito-idp:AdminCreateUser",
         ],
-        "Resource":"arn:aws:cognito-idp:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:userpool/${self:custom.aws.APP_AWS_AGENCY_COGNITO_USER_POOL_ID}"
+        "Resource":[
+          /**
+           * @example "arn:aws:cognito-idp:ap-south-1:211125353899:userpool/ap-south-1_xGreJKkNc"
+           */
+          "arn:aws:cognito-idp:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:userpool/${self:custom.aws.APP_AWS_WORKO_COGNITO_USER_POOL_ID}",
+
+          /**
+           * @example "arn:aws:cognito-idp:ap-south-1:211125353899:userpool/ap-south-1_KB3omxXcw"
+           */
+          "arn:aws:cognito-idp:ap-south-1:${self:custom.aws.APP_AWS_ACCOUNT_ID}:userpool/${self:custom.aws.APP_AWS_AGENCY_COGNITO_USER_POOL_ID}"
+        ]
+      },
+      {
+        "Effect": "Allow",
+        "Action": [
+            "secretsmanager:GetSecretValue",
+        ],
+        "Resource":[
+          "arn:aws:secretsmanager:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:secret:${self:custom.aws.APP_AWS_SECRETS_MANAGER_GCP_FIRESTORE_ARN_SECRET}",
+          "arn:aws:secretsmanager:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:secret:${self:custom.aws.APP_AWS_SECRETS_MANAGER_GCP_AI_PLATFORM_ARN_SECRET}"
+        ] 
+      },
+  
+      {
+        Effect: "Allow",
+        Action: [
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes",
+        ],
+        Resource:
+          "arn:aws:sqs:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:worko-corp-app-event-queue",
       },
     ],
   },
@@ -195,16 +305,58 @@ const serverlessConfiguration: AWS = {
     },
 
     /**
-     * app-sourcetype-bulk-find-jd-cv-match-score
-     * 
+     * appScheduler
+     *
      * AWS Lambda Function Format:- {service}-{enviroment}-{functionName}
-     * Ex:
-     *  1. `worko-corp-local-app-sourcetype-bulk-find-jd-cv-match-score`
-     *  2. `worko-corp-dev-app-sourcetype-bulk-find-jd-cv-match-score`
-     *  3. `worko-corp-prod-app-sourcetype-bulk-find-jd-cv-match-score`
+     * Example:
+     *  1. `worko-corp-local-appScheduler`
+     *  2. `worko-corp-dev-appScheduler`
+     *  3. `worko-corp-prod-appScheduler`
      */
-    "app-sourcetype-bulk-find-jd-cv-match-score": {
-      handler: "dist/src/app-sourcetype-bulk-find-jd-cv-match-score.handler",
+    appScheduler: {
+      handler: "dist/src/app-scheduler.handler",
+    },
+
+    /**
+     * Event Trigger
+     *
+     * AWS Lambda Function Format:- {service}-{enviroment}-{functionName}
+     * Example:
+     *  1. `worko-corp-local-appeventtrigger`
+     *  2. `worko-corp-dev-appeventtrigger`
+     *  3. `worko-corp-prod-appeventtrigger`
+     */
+    appeventtrigger:{
+      handler: "dist/src/app-event-trigger.handler",
+      events: [
+        {
+          sqs: {
+            arn: "arn:aws:sqs:${self:custom.aws.APP_SLS_REGION}:${self:custom.aws.APP_AWS_ACCOUNT_ID}:worko-corp-app-event-queue",
+            batchSize: 1,
+            maximumBatchingWindow: 0
+          }
+        }
+      ]
+    },
+
+    /**
+     * appInvokeLambda
+     * 
+     * @note
+     *  1. This lambda function is used for direct lambda to lambda invocations,
+     *  like if a lambda needs to invoke a another lambda without any sqs queue,
+     *  then in this "worko-corp-app" repository this lambda is used,
+     *  for every different kind of use cases if direct lambda to lambda invocation is needed 
+     *  then this lambda can be used.
+     *
+     * AWS Lambda Function Format:- {service}-{enviroment}-{functionName}
+     * Example:
+     *  1. `worko-corp-local-appInvokeLambda`
+     *  2. `worko-corp-dev-appInvokeLambda`
+     *  3. `worko-corp-prod-appInvokeLambda`
+     */
+    appInvokeLambda: {
+      handler: "dist/src/app-invoke-lambda.handler",
       timeout: 900, // Set timeout to 900 seconds (15 minutes)
     },
   },

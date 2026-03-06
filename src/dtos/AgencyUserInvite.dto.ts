@@ -7,7 +7,8 @@ import {
 import { CommonPhoneNumberDto } from "./Common.dto";
 
 // Import enums
-import { AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
+import { AgencyUserInviteDbActionEnum, AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
+import { CorporateUserTypeEnum } from "../enums/CorporateUser.enum";
 
 export interface AgencyUserInviteCreateApiDto {
   companyId: string;
@@ -127,4 +128,21 @@ export interface AgencyUserInviteListingFilterRequestDTO extends GcpFirestoreRec
 export interface AgencyUserInviteAgencyUpdateApiDto {
   agencyInviteId: string,
   inviteStatus: AgencyUserInviteDbStatusEnum
+}
+
+export interface AgencyUserInviteDbActionTrackerDto {
+  oldAction?: AgencyUserInviteDbActionEnum;
+  newAction: AgencyUserInviteDbActionEnum;
+  actionDate?: string;
+  actionByCorporateUserId?: string;
+  actionByUserType?: CorporateUserTypeEnum;
+  reason?: string;
+  detailedDescription?: string;
+}
+
+export interface AgencyUserInviteActionUpdateApiDto {
+  inviteAction: AgencyUserInviteDbActionEnum;
+  agencyInviteId: string;
+  reason?: string;
+  detailedDescription?: string;
 }

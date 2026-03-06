@@ -12,6 +12,8 @@ export interface AgencyUserSubmissionCandidateParseCvApiDto {
    * @reference "Amazon S3 > Buckets > worko-app-{environment}/agencies/{agencyUserId}/companies/{companyId}/jobs/{jobId}/user-profiles/<ulidId>.pdf"
    */
   candidateParsedCvAwsS3FileName: string;
+
+  agencyUserInviteId: string;
 }
 
 export interface AgencyUserSubmissionCandidateParseCvResponseDto {
@@ -27,6 +29,30 @@ export interface AgencyUserSubmissionCandidateParseCvResponseDto {
   noticePeriod: number;
   location: string;
   readyToRelocate: boolean;
+  about?: string;
+  education?: {
+    collage: string;
+    degree: string;
+    startedYear?: number;
+    passingYear: number;
+    grade?: string;
+    field?: string;
+  }[];
+  multipleCandidateExperience?: {
+    companyId?: string;
+    companyName: string;
+    designation: string;
+    department?: string;
+    YOE?: number;
+    startDate?: string;
+
+    /**
+      * endDate
+      *
+      * @description if endDate is not provided or empty string, it will be considered as ongoing experience
+      */
+    endDate?: string;
+  }[];
   coreSkills?: {
     skillName: string;
     years: number;
@@ -61,6 +87,30 @@ export interface AgencyUserSubmissionCreateApiDto {
   expectedCTC: number;
   noticePeriod: number;
   isNoticePeriodNegotiable: boolean;
+  about?: string;
+  education?: {
+    collage: string;
+    degree: string;
+    startedYear?: number;
+    passingYear: number;
+    grade?: string;
+    field?: string;
+  }[];
+  multipleCandidateExperience?: {
+    companyId?: string;
+    companyName: string;
+    designation: string;
+    department?: string;
+    YOE?: number;
+    startDate?: string;
+
+    /**
+      * endDate
+      *
+      * @description if endDate is not provided or empty string, it will be considered as ongoing experience
+      */
+    endDate?: string;
+  }[];
   location: string;
   readyToRelocate: boolean;
   coreSkills?: {
@@ -127,13 +177,6 @@ export interface AgencyUserSubmissionBulkFindMatchingScoreApiDto {
   agencyUserSubmissionIds: string[];
 }
 
-export interface AgencyUserSubmissionBulkFindMatchingScoreInternalDto {
-  agencyUserSubmissionIds: string[];
-  actionByUserId?: string;
-  actionByCorporateUserId?: string;
-  cognitoUserGroups: string[]
-}
-
 export interface AgencyUserSubmissionDbMatchingScoreDetailDto extends CommonMatchingScoreDetailDto {
 
 }
@@ -159,6 +202,7 @@ export interface AgencyUserSubmissionMoveToApplicantCreateApiDTO {
    * companyName
    */
   companyName: string;
+  jobTitle: string;
 }
 
 export interface AgencyUserSubmissionSendForEvaluationCreateApiDTO {
@@ -178,10 +222,41 @@ export interface AgencyUserSubmissionSendForEvaluationCreateApiDTO {
    * companyName
    */
   companyName: string;
+  jobTitle: string;
+}
+
+export interface AgencyUserSubmissionSendForEvaluationBulkCreateApiDTO {
+  agencyUserSubmissions: {
+    agencyUserSubmissionId: string;
+    currentCTC?: number;
+    expectedCTC?: number;
+    noticePeriod?: number;
+    jobId: string;
+    companyName: string;
+    jobTitle: string;
+  }[];
 }
 
 export interface AgencyUserSubmissionRejectApplicantCreateApiDTO {
   agencyUserSubmissionId: string;
   rejectApplicantReason: string;
   rejectApplicantDetailedReason?: string;
+}
+
+export interface AgencyUserSubmissionRejectApplicantBulkApiDTO {
+  agencyUserSubmissionIds: string[];
+  rejectApplicantReason: string;
+  rejectApplicantDetailedReason?: string;
+}
+
+export interface AgencyUserSubmissionMoveToApplicantBulkCreateApiDTO {
+  agencyUserSubmissions: {
+    agencyUserSubmissionId: string;
+    currentCTC?: number;
+    expectedCTC?: number;
+    noticePeriod?: number;
+    jobId: string;
+    companyName: string;
+    jobTitle: string;
+  }[];
 }

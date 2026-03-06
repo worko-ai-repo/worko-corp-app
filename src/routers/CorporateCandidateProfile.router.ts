@@ -8,6 +8,11 @@ const corporateCandidateProfileController = new CorporateCandidateProfileControl
 const CorporateCandidateProfileRouter = Router();
 
 /**
+ * @authorisedRoles ["corporate-admin", "corporate-recruiter"]
+ */
+CorporateCandidateProfileRouter.post("/resumes", corporateCandidateProfileController.generatePsuToBulkCvUploadCorporateCandidateProfile);
+
+/**
  * Create Corporate Candidate Profile
  * @authorisedRoles ["agency"]
  */
@@ -17,5 +22,10 @@ CorporateCandidateProfileRouter.get("/duplicate", corporateCandidateProfileContr
  * @authorisedRoles ["corporate-admin", "corporate-recruiter"]
  */
 CorporateCandidateProfileRouter.get("/", corporateCandidateProfileController.getAllCorporateCandidateProfileByFilterOptions);
+
+/**
+ * @authorisedRoles ["corporate-admin", "corporate-recruiter"]
+ */
+CorporateCandidateProfileRouter.patch("/blacklist/bulk", corporateCandidateProfileController.blacklistBulkCorporateCandidateProfile);
 
 export default CorporateCandidateProfileRouter;

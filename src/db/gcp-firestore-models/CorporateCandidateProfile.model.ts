@@ -1,8 +1,9 @@
 // Import dtos
-import { CorporateCandidateProfileDbPhoneNumberDto } from "../../dtos/CorporateCandidateProfile.dto";
+import { CorporateCandidateProfileDbPhoneNumberDto, CorporateCandidateProfileDbUnderCoolingPeriodDto } from "../../dtos/CorporateCandidateProfile.dto";
 
 // Import enums
 import { CorporateCandidateProfileDbRefereeTypeEnum } from "../../enums/CorporateCandidateProfile.enum";
+import { HiringEligibilityStatusEnum } from "../../enums/Common.enum";
 
 // Import models
 import { BaseFirestoreModel } from "./Base.model";
@@ -22,10 +23,6 @@ interface DbCorporateCandidateProfileDto extends BaseFirestoreModel {
 
   candidateEmail: string;
 
-  /**
-   * @todo:
-   *  1. If "phoneNumberDetails" is updated by someone then we need to update it in other collections accordingly.
-   */
   phoneNumberDetails: CorporateCandidateProfileDbPhoneNumberDto;
 
   refereeType: CorporateCandidateProfileDbRefereeTypeEnum;
@@ -34,6 +31,19 @@ interface DbCorporateCandidateProfileDto extends BaseFirestoreModel {
    * @reference "id" field of "CandidateParsedCv.model.ts"
    */
   candidateParsedCvId: string;
+
+  updatedByCorporateUserId?: string;
+
+  hiringEligibilityStatus?: HiringEligibilityStatusEnum;
+
+  reasonForBlacklisting?: string;
+  detailedReasonForBlacklisting?: string;
+
+  /**
+   * @description
+   *  1. If "hiringEligibilityStatus" is "UNDER_COOLING_PERIOD" then "underCoolingPeriod" object will be available.
+   */
+  underCoolingPeriod?: CorporateCandidateProfileDbUnderCoolingPeriodDto;
 
   /**
    * @description

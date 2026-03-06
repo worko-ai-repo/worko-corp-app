@@ -16,7 +16,7 @@ import {
   NewUserEmpSignUpDTO,
   UserSubscriptionDetailsUpdateDto,
 } from "../dtos/User.dto";
-import { UserDetailDTO } from "../dtos/UserDetail.dto";
+import { UserDetailCreateDto, UserDetailDTO } from "../dtos/UserDetail.dto";
 
 // UserDetailDao class implementing the BaseDao interface
 class UserDetailDao implements BaseDao {
@@ -90,55 +90,12 @@ class UserDetailDao implements BaseDao {
     return UserDetailModel.query("PK").eq(PK).where("SK").eq(SK).exec();
   }
 
-  /**
-   * Fetches user Subscription status based on the provided PK and SK.
-   * @param email - Email address of the user
-   * @returns User Subscription-Status corresponding to the email and SK
-   */
-  async getUserSubscriptionStatus(email: string, SK: string) {
-    global.logger.info("Get user Subscription-Status [DAO]");
-    const PK = this.partitianKey.strtr({
-      "{primaryEmail}": email,
-    });
-    return UserDetailModel.query("PK")
-      .eq(PK)
-      .where("SK")
-      .eq(SK)
-      .attributes(["isSubscribed", "referralCount"])
-      .exec();
-  }
-
-  async getUserDetailSK(email: string) {
-    global.logger.info("get UserDetail SK [DAO]");
-    const PK = this.partitianKey.strtr({
-      "{primaryEmail}": email,
-    });
-
-    // @todo we should never use the await in DTO unless extremly required. Kindly have await in controller;
-    // Or in service if the value is required there.
-    const user = await UserDetailModel.query("PK")
-      .eq(PK)
-      .where("SK")
-      .beginsWith("ID#")
-      .exec();
-
-    return user[0].SK;
-  }
-
-  /**
-   * add
-   *
-   * Adds a new user by creating a user sign-up DTO and saving it.
-   *
-   * @param userSignUpDTO - User sign-up data transfer object
-   */
-  async add(
-    userSignUpDTO: NewUserCandSignUpDTO | NewUserEmpSignUpDTO
+  async createUserDetail(
+    userSignUpDTO: UserDetailCreateDto
   ): Promise<DbUserDetailDto> {
-    global.logger.info("Create candidate/employee [DAO]");
-    /* if (!userSignUpDTO.CV) {
-        userSignUpDTO.CV = "";
-      } */
+    global.logger.info("Create user detail [DAO]", {
+      methodName: this.createUserDetail.name,
+    });
 
     const newUserSignUpDTO = {
       ...userSignUpDTO,
@@ -155,6 +112,7 @@ class UserDetailDao implements BaseDao {
       GSI2PK: this.GSI2PK,
       GSI2SK: new Date().toISOString(), // Sample value: "2025-06-11T16:15:36.0678Z"
     };
+    
     return UserDetailModel.create(newUserSignUpDTO);
   }
 
@@ -174,119 +132,6 @@ class UserDetailDao implements BaseDao {
     });
 
     return UserDetailModel.update({ PK: PK, SK: SK }, userDetailDTO);
-  }
-
-  /**
-   *
-   * @param email
-   * @returns
-   */
-  async updateEmailVerify(SK: String, email: string) {
-    global.logger.info("Update user primary email status to true [DAO]");
-    const PK = this.partitianKey.strtr({
-      "{primaryEmail}": email,
-    });
-    return UserDetailModel.update(
-      { PK: PK, SK: SK },
-      { isEmailVerified: true }
-    );
-  }
-
-  /**
-   *
-   * @param SK
-   * @param email
-   * @param resume
-   * @returns
-   */
-  async updateCv(SK: String, email: string, resume: string) {
-    global.logger.info("Update user resume [DAO]");
-    const PK = this.partitianKey.strtr({
-      "{primaryEmail}": email,
-    });
-    return UserDetailModel.update({ PK: PK, SK: SK }, { CV: resume });
-  }
-
-  /**
-   * updateReferralCount
-   *
-   * Updates the referral count for a user.
-   *
-   * @param id - The user's unique identifier.
-   * @param email - The user's email address.
-   * @param updateBodyObject - Object containing the updated user subscription details.
-   * @returns A promise that resolves to the updated user details.
-   */
-  async updateReferralCount(
-    id: string,
-    email: string,
-    updateBodyObject: UserSubscriptionDetailsUpdateDto
-  ): Promise<DbUserDetailDto> {
-    global.logger.info("Calculate referral count [DAO]");
-
-    // Generate the partition key using the user's email
-    const PK = this.partitianKey.strtr({
-      "{primaryEmail}": email,
-    });
-
-    // Generate the sort key using the user's ID
-    const SK = this.sortKeys.SK_ID.strtr({
-      "{userId}": id,
-    });
-
-    // Update the user's details in the database
-    return UserDetailModel.update({ PK: PK, SK: SK }, updateBodyObject);
-  }
-
-  /**
-   *
-   * @param SK
-   * @param email
-   * @param status
-   * @returns
-   */
-  async updateIsSubscribedStatus(SK: string, email: string, status: boolean) {
-    global.logger.info("update subscription status [DAO]");
-    const PK = this.partitianKey.strtr({
-      "{primaryEmail}": email,
-    });
-    return UserDetailModel.update({ PK: PK, SK: SK }, { isSubscribed: status });
-  }
-
-  async scriptUpdateUsersToLowerCase(): Promise<boolean> {
-    global.logger.info("update user details to lower case [DAO]");
-
-    // Query the table to get all user details
-    const allUsers: QueryResponse<DbUserDetailDto> =
-      await UserDetailModel.query("GSI1PK")
-        .eq(this.GSI1PK)
-        .where("GSI1SK")
-        .beginsWith("ID#")
-        .exec();
-
-    // Array to store the update operations (promise)
-    const updateOperations = [];
-
-    // Loop through all the users and update their name to lowercase
-    for (const user of allUsers) {
-      const originalName = user.name;
-      const lowercasedName = originalName.toLowerCase();
-
-      // Save the updated user back to the database
-      updateOperations.push(
-        UserDetailModel.update(
-          { PK: user.PK, SK: user.SK },
-          {
-            name: lowercasedName,
-          }
-        )
-      );
-    }
-
-    // Execute the update operations in parallel
-    await Promise.all(updateOperations);
-
-    return true;
   }
 }
 

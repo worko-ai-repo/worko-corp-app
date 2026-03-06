@@ -26,6 +26,7 @@ import { AgencyUserInviteDbStatusEnum } from "../enums/AgencyUserInvite.enum";
 
 // Import helpers
 import { dateHelperObj } from "../helpers/date.helper";
+import { getActionByAgencyUserIds } from "../helpers/user.helper";
 
 // Import services
 import { agencyUserInviteServiceObj } from "./AgencyUserInvite.service";
@@ -64,6 +65,19 @@ class AgencyUserService {
     });
     return agencyUserDaoObj.getAgencyUserById(id);
   }
+
+  async validateAgencyUserAuthAccess(): Promise<DbAgencyUserDto | undefined> {
+    const {
+      convertedAgencyCognitoUserId,
+      agencyCognitoUserId
+    } = getActionByAgencyUserIds();
+
+    const agencyUserDetails: DbAgencyUserDto | undefined = await agencyUserServiceObj.getAgencyUserById(
+      convertedAgencyCognitoUserId
+    );
+
+    return agencyUserDetails;
+  };
 
   async updateAgencyUserById(
     id: string,

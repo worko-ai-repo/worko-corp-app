@@ -3,7 +3,7 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { AgencyUserInviteCreateApiDto, AgencyUserInviteListingFilterOptions, AgencyUserInviteListingFilterRequestDTO, AgencyUserInviteCorpUpdateApiDto, AgencyUserInviteAgencyUpdateApiDto } from "../dtos/AgencyUserInvite.dto";
+import { AgencyUserInviteCreateApiDto, AgencyUserInviteListingFilterOptions, AgencyUserInviteListingFilterRequestDTO, AgencyUserInviteCorpUpdateApiDto, AgencyUserInviteAgencyUpdateApiDto, AgencyUserInviteActionUpdateApiDto } from "../dtos/AgencyUserInvite.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import helpers
@@ -16,7 +16,7 @@ import { DbAgencyUserInviteDto } from "../db/gcp-firestore-models/AgencyUserInvi
 import { agencyUserInviteServiceObj } from "../services/AgencyUserInvite.service";
 
 // Import schemas
-import { agencyUserInviteCreateApiValidationDto, agencyUserInviteFilterDtoValidation, agencyUserInviteCorpUpdateApiValidationDto, agencyUserInviteAgencyUpdateApiValidationDto } from "../schemas/AgencyUserInvite.schema";
+import { agencyUserInviteCreateApiValidationDto, agencyUserInviteFilterDtoValidation, agencyUserInviteCorpUpdateApiValidationDto, agencyUserInviteAgencyUpdateApiValidationDto, agencyUserInviteActionUpdateApiValidationDto } from "../schemas/AgencyUserInvite.schema";
 
 // import utils
 import HttpStatusCode from "../utils/http-codes.util";
@@ -158,6 +158,39 @@ class AgencyUserInviteController {
     } catch (error) {
       global.logger.error(`Update Agency User Invite [Controller]`, {
         methodName: this.updateAgencyUserInviteByCorpUser.name,
+        error,
+      });
+      next(error);
+    }
+  };
+
+  updateAgencyUserInviteAction = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      global.logger.info(`Update Agency User Invite [Controller]`, {
+        methodName: this.updateAgencyUserInviteAction.name,
+      });
+
+      const requestBody: AgencyUserInviteActionUpdateApiDto = req.body;
+      const { error: reqBodyError, value: validatedRequestBody } =
+        agencyUserInviteActionUpdateApiValidationDto.validate(requestBody, {
+          abortEarly: false,
+        });
+      if (reqBodyError) {
+        throw new RequestValidationError(reqBodyError);
+      }
+
+      const agencyUserInviteDetails: DbAgencyUserInviteDto = await agencyUserInviteServiceObj.performUpdateAgencyUserInviteActionActivities(
+        validatedRequestBody
+      );
+
+      res.status(HttpStatusCode.OK_200).json(agencyUserInviteDetails);
+    } catch (error) {
+      global.logger.error(`Update Agency User Invite [Controller]`, {
+        methodName: this.updateAgencyUserInviteAction.name,
         error,
       });
       next(error);

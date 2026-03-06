@@ -32,6 +32,10 @@ class AgencyUserDao implements BaseDao {
     };
   }
 
+  getAgencyUserFirestoreDatabase(): Promise<Firestore> {
+    return gcpFirestoreLibrary.getFirestoreDatabase(this.databaseName);
+  }
+
   async createAgencyUser(
     createDto: AgencyUserCreateDto
   ): Promise<DbAgencyUserDto | undefined> {
@@ -66,9 +70,7 @@ class AgencyUserDao implements BaseDao {
       methodName: this.getAgencyUserByRegisteredEmail.name,
       registeredEmail,
     });
-    const db: Firestore = gcpFirestoreLibrary.getFirestoreDatabase(
-      this.databaseName
-    );
+    const db: Firestore = await this.getAgencyUserFirestoreDatabase();
 
     return db
       .collection(this.collectionName)

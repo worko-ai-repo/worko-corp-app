@@ -79,3 +79,72 @@ export const agencyUserSubmissionCvPsuToUploadApiDtoValidation =
       }),
     })
   );
+
+export const candidateSubmissionCvForJobPsuToUploadApiDtoValidation =
+  filePsuToUploadDtoValidation.concat(
+    Joi.object({
+      companyId: Joi.string().required().messages({
+        "string.empty": "Company id is required",
+        "any.required": "Company id is required",
+      }),
+      jobId: Joi.string().required().messages({
+        "string.empty": "Job id is required",
+        "any.required": "Job id is required",
+      }),
+    })
+  );
+
+export const agencyBulkCvsPsuToViewApiDtoValidation = Joi.object({
+  agencyBulkJdId: Joi.string().required().messages({
+    "string.empty": "Agency bulk jd id is required",
+    "any.required": "Agency bulk jd id is required",
+  }),
+  bulkCvsAwsS3FileName: Joi.string().required().messages({
+    "string.empty": "Bulk cvs aws s3 file name is required",
+    "any.required": "Bulk cvs aws s3 file name is required",
+  }),
+})
+
+export const corpCandBulkCvUploadPsuToViewApiDtoValidation = Joi.object({
+  companyId: Joi.string().required().messages({
+    "string.empty": "Company id is required",
+    "any.required": "Company id is required",
+  }),
+  candCvAwsS3FileName: Joi.string().required().messages({
+    "string.empty": "Candidate cv aws s3 file name is required",
+    "any.required": "Candidate cv aws s3 file name is required",
+  }),
+})
+
+export const candidateSubmissionCvForJobPsuToViewApiDtoValidation = Joi.object({
+  companyId: Joi.string().required().messages({
+    "string.empty": "Company id is required",
+    "any.required": "Company id is required",
+  }),
+  jobId: Joi.string().required().messages({
+    "string.empty": "Job id is required",
+    "any.required": "Job id is required",
+  }),
+  candCvAwsS3FileName: Joi.string().required().messages({
+    "string.empty": "Candidate cv aws s3 file name is required",
+    "any.required": "Candidate cv aws s3 file name is required",
+  }),
+})
+
+export const corpCandReferralCvPsuToViewApiDtoValidation = Joi.object({
+  companyId: Joi.string().required().messages({
+    "string.empty": "Company id is required",
+    "any.required": "Company id is required",
+  }),
+  candCvAwsS3FileName: Joi.string().required().messages({
+    "string.empty": "Candidate cv aws s3 file name is required",
+    "any.required": "Candidate cv aws s3 file name is required",
+  }),
+});
+
+export const adminCandBulkCvUploadPsuToViewApiDtoValidation = Joi.object({
+  candCvAwsS3FileName: Joi.string().required().messages({
+    "string.empty": "Candidate cv aws s3 file name is required",
+    "any.required": "Candidate cv aws s3 file name is required",
+  }),
+});

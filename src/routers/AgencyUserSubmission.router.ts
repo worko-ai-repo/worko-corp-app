@@ -48,11 +48,21 @@ AgencyUserSubmissionRouter.post(
 AgencyUserSubmissionRouter.post("/move-to-applicant", agencyUserSubmissionController.moveToApplicantAgencyUserSubmission);
 
 /**
+ * @authorisedRoles ["corporate-recruiter", "corporate-admin", "admin"]
+ */
+AgencyUserSubmissionRouter.post("/move-to-applicant/bulk", agencyUserSubmissionController.moveToApplicantBulkAgencyUserSubmission);
+
+/**
  * @description 
  *  1. We are using "post" http method because we are creating job application with "UNDER_EVALUATION" status and updating agency user submission at the same time
  * @authorisedRoles ["corporate-recruiter", "corporate-admin", "admin"]
  */
 AgencyUserSubmissionRouter.post("/send-for-evaluation", agencyUserSubmissionController.sendForEvaluationAgencyUserSubmission);
+
+/**
+ * @authorisedRoles ["corporate-recruiter", "corporate-admin", "admin"]
+ */
+AgencyUserSubmissionRouter.post("/send-for-evaluation/bulk", agencyUserSubmissionController.sendForEvaluationBulkAgencyUserSubmission);
 
 /**
  * @description 
@@ -63,18 +73,18 @@ AgencyUserSubmissionRouter.post("/send-for-evaluation", agencyUserSubmissionCont
 AgencyUserSubmissionRouter.patch("/reject-applicant", agencyUserSubmissionController.rejectApplicantAgencyUserSubmission);
 
 /**
- * @authorisedRoles ["corporate-recruiter", "corporate-admin"]
+ * @authorisedRoles ["corporate-admin", "corporate-recruiter", "admin"]
  */
-// AgencyUserSubmissionRouter.post("/move-to-applicant/bulk/corp-action", agencyUserSubmissionController.moveToApplicantBulkAgencyUserSubmissionByCorp);
-
-/**
- * @authorisedRoles ["admin"]
- */
-// AgencyUserSubmissionRouter.post("/move-to-applicant/bulk/admin-action", agencyUserSubmissionController.moveToApplicantBulkAgencyUserSubmissionByAdmin);
+AgencyUserSubmissionRouter.patch("/reject-applicant/bulk", agencyUserSubmissionController.rejectApplicantBulkAgencyUserSubmission);
 
 /**
  * @authorisedRoles ["agency", "corporate-admin", "corporate-recruiter", "admin"]
  */
 AgencyUserSubmissionRouter.get("/", agencyUserSubmissionController.getAllAgencyUserSubmissionByFilterOptions);
+
+/**
+ * @authorisedRoles ["corporate-admin", "corporate-recruiter", "admin"]
+ */
+AgencyUserSubmissionRouter.get("/:id", agencyUserSubmissionController.getAgencyUserSubmissionById);
 
 export default AgencyUserSubmissionRouter;

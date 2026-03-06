@@ -1,27 +1,36 @@
 
 // Import firestore package
-import { DocumentData, Firestore, Query } from "@google-cloud/firestore";
+import { DocumentData, Firestore, QueryDocumentSnapshot } from "@google-cloud/firestore";
 
 // Import configs
 import { gcpFirestoreLibrary } from "../configs/gcp-sdk.config";
+import APP_CONSTANTS from "../configs/constants.config";
 
 // Import dtos
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
-import { CandidateParsedCvCorporateListingFilterOptions } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterOptions } from "../dtos/CandidateParsedCv.dto";
+import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import daos
 import BaseDao from "./BaseGcpFirestore.dao";
+
+// Import libraries
+import { gcpFirestoreVectorLibrary } from "../libraries/gcp-firestore-vector.library";
 
 // Import models
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
 
 // Import utils
-import { gcpFirestoreUtilObj } from "../utils/gcp-firestore.util";
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
 
+
 class CandidateParsedCvDao implements BaseDao {
-  databaseName: string = `worko-corp-db-${process.env.APP_SLS_STAGE}`;
+  constructor() {
+    if(!process.env.APP_STAGE) throw new BaseError("APP_STAGE is not defined in .env file.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+  }
+
+  databaseName: string =  APP_CONSTANTS.STAGES.PROD===process.env.APP_STAGE ? "worko-corp-db-prod" : `worko-corp-db-dev`;
   collectionName: string = "candidateParsedCvs";
 
   getCandidateParsedCvModelDetails(): GcpFirestoreInteractionDto {
@@ -31,18 +40,19 @@ class CandidateParsedCvDao implements BaseDao {
     };
   }
 
-  getCandidateParsedCvFirestoreDatabase() {
+  getCandidateParsedCvFirestoreDatabase(): Promise<Firestore> {
     return gcpFirestoreLibrary.getFirestoreDatabase(this.databaseName);
   }
 
-  async createCandidateParsedCv(createData: DbCandidateParsedCvDto) {
+  async createCandidateParsedCvWithEmbedding(createData: DbCandidateParsedCvDto, embeddingText: string): Promise<DbCandidateParsedCvDto | undefined> {
     global.logger.info(`Create Candidate Parsed CV [DAO]`, {
-      methodName: this.createCandidateParsedCv.name,
+      methodName: this.createCandidateParsedCvWithEmbedding.name,
     });
 
-    return gcpFirestoreLibrary.createDocument<DbCandidateParsedCvDto>(
+    return gcpFirestoreVectorLibrary.createDocumentWithEmbedding<DbCandidateParsedCvDto>(
       this.getCandidateParsedCvModelDetails(),
-      createData
+      createData,
+      embeddingText,
     );
   }
 
@@ -53,47 +63,55 @@ class CandidateParsedCvDao implements BaseDao {
     );
   }
 
-  async getAllCandidateParsedCvsByCorporateFilterOptions(filterOptions: CandidateParsedCvCorporateListingFilterOptions) {
-    const { 
-      companyId,
-      jobId,
-      currentCompany,
-      currentDesignation,
-      totalYOE,
-      relevantYOE,
-      currentCTC,
-      expectedCTC,
-      noticePeriod,
-      location,
-      readyToRelocate,
-      isNoticePeriodNegotiable
-    } = filterOptions;
+  async getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
+    filterOptions: CandidateParsedCvAdminEmbeddingListingFilterOptions,
+    distanceThreshold: number,
+    searchByJobDescription?: string
+  ) {
+    if(!filterOptions.searchByPrompt && !searchByJobDescription) throw new BaseError("Search by prompt or job description is required.", HttpStatusCode.BAD_REQUEST_400);
 
-    if(!companyId) {
-      throw new BaseError("CompanId is required", HttpStatusCode.BAD_REQUEST_400);
-    }
+    let searchPrompt: string = searchByJobDescription ? searchByJobDescription : (filterOptions.searchByPrompt as string);
 
-    const db: Firestore = this.getCandidateParsedCvFirestoreDatabase();
-    let baseQuery: Query<DocumentData, DocumentData> = db
-      .collection(this.collectionName)
-      .where("companyId", "==", companyId);
+    return gcpFirestoreVectorLibrary.getDocumentsByEmbedding<DbCandidateParsedCvDto>(
+      this.getCandidateParsedCvModelDetails(),
+      searchPrompt,
+      {
+        pageSize: filterOptions.pageSize,
+        pageNumber: filterOptions.pageNumber,
+        distanceThreshold,
+      },
+    );
+  }
 
-    if(jobId) baseQuery = baseQuery.where("jobId", "==", jobId);
-    if(currentCompany) baseQuery = baseQuery.where("currentCompany", "==", currentCompany);
-    if(currentDesignation) baseQuery = baseQuery.where("currentDesignation", "==", currentDesignation);
-    if(totalYOE) baseQuery = baseQuery.where("totalYOE", "==", totalYOE);
-    if(relevantYOE) baseQuery = baseQuery.where("relevantYOE", "==", relevantYOE);
-    if(currentCTC) baseQuery = baseQuery.where("currentCTC", "==", currentCTC);
-    if(expectedCTC) baseQuery = baseQuery.where("expectedCTC", "==", expectedCTC);
-    if(noticePeriod) baseQuery = baseQuery.where("noticePeriod", "==", noticePeriod);
-    if(location) baseQuery = baseQuery.where("location", "==", location);
-    if(readyToRelocate) baseQuery = baseQuery.where("readyToRelocate", "==", readyToRelocate);
-    if(isNoticePeriodNegotiable) baseQuery = baseQuery.where("isNoticePeriodNegotiable", "==", isNoticePeriodNegotiable);
+  async getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
+    filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions,
+    distanceThreshold: number,
+    companyId: string,
+    searchByJobDescription?: string
+  ): Promise<
+    GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]>
+  > {
+    if(!companyId) throw new BaseError("You Can only list candidates for particular your company.", HttpStatusCode.BAD_REQUEST_400);
+    if(!filterOptions.searchByPrompt && !searchByJobDescription) throw new BaseError("Search by prompt or job description is required.", HttpStatusCode.BAD_REQUEST_400);
 
-    return gcpFirestoreUtilObj.paginateGcpFirestore<
-      CandidateParsedCvCorporateListingFilterOptions,
-      DbCandidateParsedCvDto
-    >(db, this.collectionName, baseQuery, filterOptions);
+    let searchPrompt: string = searchByJobDescription ? searchByJobDescription : (filterOptions.searchByPrompt as string);
+
+    return gcpFirestoreVectorLibrary.getDocumentsByEmbedding<DbCandidateParsedCvDto>(
+      this.getCandidateParsedCvModelDetails(),
+      searchPrompt,
+      {
+        preFilters: [
+          {
+            field: "companyId",
+            operator: "==",
+            value: companyId
+          }
+        ],
+        pageSize: filterOptions.pageSize,
+        pageNumber: filterOptions.pageNumber,
+        distanceThreshold,
+      },
+    );
   }
 
   async getCandidateParsedCvById(id: string): Promise<DbCandidateParsedCvDto | undefined> {
@@ -101,6 +119,31 @@ class CandidateParsedCvDao implements BaseDao {
       this.getCandidateParsedCvModelDetails(),
       id
     );
+  }
+
+  async updateCandidateParsedCvById(
+    id: string,
+    updateData: Partial<DbCandidateParsedCvDto>,
+  ): Promise<DbCandidateParsedCvDto | undefined> {
+    return gcpFirestoreLibrary.updateDocumentById<
+      Partial<DbCandidateParsedCvDto>,
+      DbCandidateParsedCvDto
+    >(this.getCandidateParsedCvModelDetails(), id, updateData);
+  }
+
+  async updateCandidateParsedCvWithEmbedding(
+    id: string,
+    updateData: Partial<DbCandidateParsedCvDto>,
+    embeddingText: string,
+  ): Promise<DbCandidateParsedCvDto | undefined> {
+    global.logger.info(`Update Candidate Parsed CV with Embedding [DAO]`, {
+      methodName: this.updateCandidateParsedCvWithEmbedding.name,
+    });
+
+    return gcpFirestoreVectorLibrary.updateDocumentWithEmbedding<
+      Partial<DbCandidateParsedCvDto>,
+      DbCandidateParsedCvDto
+    >(this.getCandidateParsedCvModelDetails(), id, updateData, embeddingText);
   }
 }
 

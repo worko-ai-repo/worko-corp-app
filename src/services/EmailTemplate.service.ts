@@ -32,7 +32,7 @@ class EmailTemplateService {
   ): Promise<DbEmailTemplateDto | null> {
     // == Create email template in AWS SES.
     // Email template data required for AWS SES create
-    let createEmailTempSesData: AWS.SES.Types.CreateTemplateRequest = {
+    let createEmailTempSesData = {
       Template: {
         TemplateName: emailTemplate.templateName,
         SubjectPart: emailTemplate.subject,
@@ -42,7 +42,7 @@ class EmailTemplateService {
     };
 
     // Create email template in AWS SES
-    let createEmailTempSesResponse: any =
+    let createEmailTempSesResponse =
       await awsSesClientLibrary.createEmailTemplate(createEmailTempSesData);
 
     // Logger message
@@ -56,7 +56,7 @@ class EmailTemplateService {
     );
 
     // Check if the Email Template was not created in the AWS SES
-    if (!createEmailTempSesResponse?.ResponseMetadata?.RequestId) {
+    if (!createEmailTempSesResponse?.$metadata.requestId) {
       return null;
     }
 
@@ -99,7 +99,7 @@ class EmailTemplateService {
   ): Promise<DbEmailTemplateDto | null> {
     // == Update email template in AWS SES.
     // Email template data required for AWS SES update
-    let updateEmailTempData: AWS.SES.Types.UpdateTemplateRequest = {
+    let updateEmailTempData = {
       Template: {
         TemplateName: emailTemplate.templateName,
         SubjectPart: emailTemplate.subject,
