@@ -35,6 +35,7 @@ import UlidService from "./Ulid.service";
 // Import utils
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
+import { gcpFirestoreBase64EncodeStrToLastKey } from "../helpers/gcp-firestore.helper";
 
 class CentralCandidateProfileService {
   async createCentralCandidateProfile(
@@ -123,6 +124,62 @@ class CentralCandidateProfileService {
     return centralCandidateProfileDaoObj.getAllCentralCandidateProfileByFilterOptions(
       filterOptions
     );
+  }
+
+  async getAllCentralCandidateProfileByFilterOptionsWithoutPagination(reqBody: CentralCandidateProfileListingFilterOptions): Promise<DbCentralCandidateProfileDto[]> {
+    let lastKeyInternal: string | undefined = undefined;
+    let pageSizeInternal: number = reqBody.pageSize ?? 50;
+    let allDataWithoutPagination: DbCentralCandidateProfileDto[] = [];
+
+    // Continue fetching the data until all the data is fetched
+    do {
+      const filterOptions: CentralCandidateProfileListingFilterOptions = {
+        lastKey: lastKeyInternal ? {
+          gcpFirestoreDocumentId: lastKeyInternal,
+        } : undefined,
+        pageSize: pageSizeInternal,
+      };
+
+      const response: GcpFirestoreRecordListingResponseDTO<DbCentralCandidateProfileDto[]> =
+        await this.getAllCentralCandidateProfileByFilterOptions(
+          {
+            ...reqBody,
+            ...filterOptions,
+          }
+        );
+
+      const {
+        data, 
+        pagination
+      } = response;
+      const {
+        lastKey
+      } = pagination;
+
+      allDataWithoutPagination =
+        allDataWithoutPagination.concat(
+          data
+        );
+
+      let lastKeyCheck = undefined;
+      if (lastKey && lastKey !== "undefined") {
+        let decodedLastKey:
+          | {
+              gcpFirestoreDocumentId: string;
+            }
+          | undefined = gcpFirestoreBase64EncodeStrToLastKey(
+            lastKey
+        ); // decoding base64 string to original value(possibly array of values)
+        global.logger.info(`Decoded Firestore LastKey: `, { decodedLastKey });
+        if (decodedLastKey) {
+          lastKeyCheck = decodedLastKey.gcpFirestoreDocumentId;
+        }
+      }
+
+      lastKeyInternal = lastKeyCheck;
+    } while (lastKeyInternal);
+
+    return allDataWithoutPagination;
   }
 
   async generatePsuToBulkCvUploadCentralCandidateProfile(requestBody: CentralCandidateProfileBulkCvPsuToUploadApiDto) {
@@ -237,6 +294,7 @@ class CentralCandidateProfileService {
         id: lowerCaseCandidateEmail,
         createdAt: currentDate,
         updatedAt: currentDate,
+        candidateName: lowerCaseCandidateName,
         candidateEmail: lowerCaseCandidateEmail,
         phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
         refereeType: CentralCandidateProfileDbRefereeTypeEnum.INTERNAL,
@@ -363,6 +421,10 @@ class CentralCandidateProfileService {
 
       return false;
     }
+  }
+
+  async scriptAddCandNameInCentralCandidateProfile(updateCentralCandidateData: { id: string; updateData: Partial<DbCentralCandidateProfileDto> }[]) {
+    return centralCandidateProfileDaoObj.scriptAddCandNameInCentralCandidateProfile(updateCentralCandidateData);
   }
 }
 

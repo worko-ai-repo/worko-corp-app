@@ -2,13 +2,13 @@
 import { Request, Response, NextFunction } from "express";
 
 // Import dtos
-import { AdminCandBulkCvUploadPsuToViewApiDto, AgencyBulkCvsPsuToViewApiDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, CandidateSubmissionCvForJobPsuToUploadApiDto, CandidateSubmissionCvForJobPsuToViewApiDto, CorpCandBulkCvUploadPsuToViewApiDto, CorpCandReferralCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
+import { AdminCandBulkCvPsuToUploadApiDto, AdminCandBulkCvUploadPsuToViewApiDto, AgencyBulkCvsPsuToViewApiDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, CandidateSubmissionCvForJobPsuToUploadApiDto, CandidateSubmissionCvForJobPsuToViewApiDto, CorpCandBulkCvPsuToUploadApiDto, CorpCandBulkCvUploadPsuToViewApiDto, CorpCandReferralCvPsuToUploadApiDto, CorpCandReferralCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
 
 // Import enums
 import { FileResourceKeyEnum } from "../enums/File.enum";
 
 // Import schemas
-import { adminCandBulkCvUploadPsuToViewApiDtoValidation, agencyBulkCvsPsuToViewApiDtoValidation, agencyUserInviteContractCopyPsuToUploadApiDtoValidation, agencyUserInviteContractCopyPsuToViewApiDtoValidation, agencyUserSubmissionCvPsuToUploadApiDtoValidation, agencyUserSubmissionCvPsuToViewApiDtoValidation, candidateSubmissionCvForJobPsuToUploadApiDtoValidation, candidateSubmissionCvForJobPsuToViewApiDtoValidation, corpCandBulkCvUploadPsuToViewApiDtoValidation, corpCandReferralCvPsuToViewApiDtoValidation } from "../schemas/File.schema";
+import { adminCandBulkCvPsuToUploadApiDtoValidation, adminCandBulkCvUploadPsuToViewApiDtoValidation, agencyBulkCvsPsuToViewApiDtoValidation, agencyUserInviteContractCopyPsuToUploadApiDtoValidation, agencyUserInviteContractCopyPsuToViewApiDtoValidation, agencyUserSubmissionCvPsuToUploadApiDtoValidation, agencyUserSubmissionCvPsuToViewApiDtoValidation, candidateSubmissionCvForJobPsuToUploadApiDtoValidation, candidateSubmissionCvForJobPsuToViewApiDtoValidation, corpCandBulkCvPsuToUploadApiDtoValidation, corpCandBulkCvUploadPsuToViewApiDtoValidation, corpCandReferralCvPsuToUploadApiDtoValidation, corpCandReferralCvPsuToViewApiDtoValidation } from "../schemas/File.schema";
 
 // Import services
 import { fileServiceObj } from "../services/File.service";
@@ -361,6 +361,110 @@ class FileController {
     }
   }
 
+  generatePsuToUploadSingleCorpCandBulkCv = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      let requestBodyObject: CorpCandBulkCvPsuToUploadApiDto = req.body;
+
+      const { error } =
+        corpCandBulkCvPsuToUploadApiDtoValidation.validate(requestBodyObject, {
+          abortEarly: false,
+        });
+      if (error) {
+        throw new RequestValidationError(error);
+      }
+
+      const response: PreSignedUrlToUploadFileResponseDto =
+        await fileServiceObj.generatePsuToUploadSingleCorpCandBulkCv(
+          requestBodyObject,
+          true
+        );
+
+      return res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(
+        `Error at catch block in while generating pre-signed url for file upload. [File Controller]`,
+        {
+          error,
+          methodName: this.generatePsuToUploadSingleCorpCandBulkCv.name,
+        }
+      );
+      next(error);
+    }
+  }
+
+  generatePsuToUploadSingleAdminCandBulkCv = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      let requestBodyObject: AdminCandBulkCvPsuToUploadApiDto = req.body;
+
+      const { error } =
+        adminCandBulkCvPsuToUploadApiDtoValidation.validate(requestBodyObject, {
+          abortEarly: false,
+        });
+      if (error) {
+        throw new RequestValidationError(error);
+      }
+
+      const response: PreSignedUrlToUploadFileResponseDto =
+        await fileServiceObj.generatePsuToUploadSingleAdminCandBulkCv(
+          requestBodyObject,
+          true
+        );
+
+      return res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(
+        `Error at catch block in while generating pre-signed url for file upload. [File Controller]`,
+        {
+          error,
+          methodName: this.generatePsuToUploadSingleAdminCandBulkCv.name,
+        }
+      );
+      next(error);
+    }
+  }
+
+  generatePsuToUploadCorpCandReferralCv = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      let requestBodyObject: CorpCandReferralCvPsuToUploadApiDto = req.body;
+
+      const { error } =
+        corpCandReferralCvPsuToUploadApiDtoValidation.validate(requestBodyObject, {
+          abortEarly: false,
+        });
+      if (error) {
+        throw new RequestValidationError(error);
+      }
+
+      const response: PreSignedUrlToUploadFileResponseDto =
+        await fileServiceObj.generatePsuToUploadCorpCandReferralCv(
+          requestBodyObject
+        );
+
+      return res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(
+        `Error at catch block in while generating pre-signed url for file upload. [File Controller]`,
+        {
+          error,
+          methodName: this.generatePsuToUploadCorpCandReferralCv.name,
+        }
+      );
+      next(error);
+    }
+  }
+
   generatePreSignedUrlsToUpload = async (
     req: Request,
     res: Response,
@@ -392,6 +496,18 @@ class FileController {
 
         case FileResourceKeyEnum.CAND_SUBMIT_CV_JOB: 
           await this.generatePsuToUploadCandidateSubmissionCvForJob(req, res, next);
+          break;
+
+        case FileResourceKeyEnum.CORP_CAND_BULK_CV_UPLOAD:
+          await this.generatePsuToUploadSingleCorpCandBulkCv(req, res, next);
+          break;
+
+        case FileResourceKeyEnum.ADMIN_CAND_BULK_CV_UPLOAD:
+          await this.generatePsuToUploadSingleAdminCandBulkCv(req, res, next);
+          break;
+
+        case FileResourceKeyEnum.CORP_CAND_REFERRAL_CV: 
+          await this.generatePsuToUploadCorpCandReferralCv(req, res, next);
           break;
 
         default:

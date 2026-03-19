@@ -160,6 +160,7 @@ export interface CandidateParsedCvUpdateApiDto {
   userPreferredIndustries?: string[];
   userPreferredlocations?: string[];
   userPreferredRoles?: string[];
+  cvAwsS3FileName?: string;
 }
 
 export interface CandidateParsedCvParseSubmitFormApiDto {
@@ -349,4 +350,8 @@ export interface CandidateParsedCvRefreshResponseDto {
   userPreferredIndustries: string[];
   userPreferredlocations: string[];
   userPreferredRoles: string[];
+}
+
+export interface CandidateParsedCvResetTempPasswordApiDto {
+  candidateEmail: string;
 }

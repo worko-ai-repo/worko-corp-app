@@ -3,6 +3,7 @@ import Joi from "joi";
 // Import enums
 import { CorporateCandidateProfileDbRefereeTypeEnum } from "../enums/CorporateCandidateProfile.enum";
 import { HiringEligibilityStatusEnum } from "../enums/Common.enum";
+import { BulkSourceTypeParseResumeStatusEnum } from "../enums/BulkSourceTypeParseResume.enum";
 
 // Import schemas
 import { gcpFirestoreCommonSchema } from "./Common.gcp-firestore.schema";
@@ -25,11 +26,6 @@ export const corporateCandidateProfileFilterDtoValidation = gcpFirestoreCommonSc
       "string.base": "The company id field must be a string.",
       "string.empty": "The company id field should not be empty.",
       "any.required": "The company id field is required.",
-    }),
-
-    candidateEmail: Joi.string().email().optional().lowercase().messages({
-      "string.empty": "Candidate Email should not be empty",
-      "string.email": "Invalid email",
     }),
 
     includeCandidateParsedCvDetails: Joi.boolean().optional().messages({
@@ -76,6 +72,13 @@ export const corporateCandidateProfileBulkCvPsuToUploadApiDtoValidation = Joi.ob
         "string.empty": "File mime type is required",
         "any.required": "File mime type is required",
       }),
+      bulkSourceTypeParseResumeStatus: Joi.string().optional().valid(
+        BulkSourceTypeParseResumeStatusEnum.LARGE_RESUME_FILE,
+        BulkSourceTypeParseResumeStatusEnum.INVALID_FILE_NAME
+      ).messages({
+        "any.only": `Invalid bulk source type parse resume status. Please provide a valid value from 
+        ${BulkSourceTypeParseResumeStatusEnum.INVALID_FILE_NAME}, ${BulkSourceTypeParseResumeStatusEnum.LARGE_RESUME_FILE}.`,
+      })
     })
   ).required().min(1).max(50).messages({
     "array.base": "Bulk cvs should be an array",

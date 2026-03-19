@@ -11,6 +11,7 @@ import { candidateParsedCvDaoObj } from "../daos/CandidateParsedCv.dao";
 
 // Import dtos
 import { CandidateParsedCvAwsS3FileTrackerDto } from "../dtos/CandidateParsedCv.dto";
+import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import enums
 import { InvokeLambdaHandlerEventTypeEnum } from "../enums/InvokeLambda.enum";
@@ -19,10 +20,13 @@ import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsed
 // Import models
 import { DbCentralCandidateProfileDto } from "../db/gcp-firestore-models/CentralCandidateProfile.model";
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
+import { DbCorporateCandidateProfileDto } from "../db/gcp-firestore-models/CorporateCandidateProfile.model";
 
 // Import services
 import { centralCandidateProfileServiceObj } from "./CentralCandidateProfile.service";
 import InvokeLambdaService from "./InvokeLambda.service";
+import { corporateCandidateProfileServiceObj } from "./CorporateCandidateProfile.service";
+import { candidateParsedCvServiceObj } from "./CandidateParsedCv.service";
 
 class ScriptService {
    async scriptToConvertCentralCandidateProfileEmailToLowerCaseAsync() {
@@ -175,6 +179,91 @@ class ScriptService {
       //    eventType: InvokeLambdaHandlerEventTypeEnum.SCRIPT_TO_APPEND_DOT_PDF,
       //    data: {}
       // })
+   }
+
+   async scriptToAddCandNameInCorporateCandidateProfileAsync() {
+      return InvokeLambdaService.triggerWorkoCorpAppInvokeLambdaTrigger({
+         eventType: InvokeLambdaHandlerEventTypeEnum.SCRIPT_TO_ADD_CAND_NAME_IN_CORPORATE_CANDIDATE_PROFILES,
+         data: {}
+      })
+   }
+
+   async scriptToAddCandNameInCentralCandidateProfileAsync() {
+      return InvokeLambdaService.triggerWorkoCorpAppInvokeLambdaTrigger({
+         eventType: InvokeLambdaHandlerEventTypeEnum.SCRIPT_TO_ADD_CAND_NAME_IN_CENTRAL_CANDIDATE_PROFILES,
+         data: {}
+      })
+   }
+
+   async scriptToAddCandNameInCentralCandidateProfile() {
+      const centralCandidateProfiles: DbCentralCandidateProfileDto[] = await centralCandidateProfileServiceObj.getAllCentralCandidateProfileByFilterOptionsWithoutPagination({
+         pageSize: 1000
+      });
+      
+      // Filter out profiles without latestCandidateParsedCvId
+      const validProfiles = centralCandidateProfiles.filter(profile => profile.latestCandidateParsedCvId);
+      
+      const uniqueCandidateParsedCvIds: string[] = Array.from(
+        new Set(
+          validProfiles.map(
+            (item: DbCentralCandidateProfileDto) => item.latestCandidateParsedCvId
+         )
+        )
+      );
+
+      const candidateParsedCvs: Map<string, DbCandidateParsedCvDto> = await candidateParsedCvServiceObj.getCandidateParsedCvDetailsMapByIds(uniqueCandidateParsedCvIds);
+      
+      const updateCentralCandidateData: {
+         id: string;
+         updateData: Partial<DbCentralCandidateProfileDto>;
+      }[] = validProfiles.map((centralCandidateProfile: DbCentralCandidateProfileDto) => {
+         const candidateParsedCv: DbCandidateParsedCvDto | undefined = candidateParsedCvs.get(centralCandidateProfile.latestCandidateParsedCvId);
+         return {
+            id: centralCandidateProfile.id,
+            updateData: {
+               candidateName: candidateParsedCv?.name || "",
+               candidateProfileInCompaniesList: centralCandidateProfile?.candidateProfileInCompanies?.map((item) => item.companyName)
+            }
+         };
+      });
+      
+      global.logger.info(`Processing ${updateCentralCandidateData.length} central candidate profiles for name update`);
+      
+      const response: boolean = await centralCandidateProfileServiceObj.scriptAddCandNameInCentralCandidateProfile(updateCentralCandidateData);
+      
+      global.logger.info(`Central candidate profile update completed: ${response}`);
+      
+      return response;
+   }
+   
+   async scriptToAddCandNameInCorporateCandidateProfile() {
+      const corporateCandidateProfiles: GcpFirestoreRecordListingResponseDTO<DbCorporateCandidateProfileDto[]> = await corporateCandidateProfileServiceObj.scriptGetAllCorporateCandidateProfileForCandNameAdd(1000);
+      const uniqueCandidateParsedCvIds: string[] = Array.from(
+        new Set(
+          corporateCandidateProfiles.data.map(
+            (item: DbCorporateCandidateProfileDto) => item.candidateParsedCvId
+         )
+        )
+      );
+
+      const candidateParsedCvs: Map<string, DbCandidateParsedCvDto> = await candidateParsedCvServiceObj.getCandidateParsedCvDetailsMapByIds(uniqueCandidateParsedCvIds);
+      
+      const updateCorporateCandidateData: {
+         id: string;
+         updateData: {
+            candidateName: string;
+         };
+      }[] = corporateCandidateProfiles.data.map((corporateCandidateProfile: DbCorporateCandidateProfileDto) => {
+         const candidateParsedCv: DbCandidateParsedCvDto | undefined = candidateParsedCvs.get(corporateCandidateProfile.candidateParsedCvId);
+         return {
+            id: corporateCandidateProfile.id,
+            updateData: {
+               candidateName: candidateParsedCv?.name || ""
+            }
+         };
+      });
+      
+      const updateCorporateCandidate = await corporateCandidateProfileServiceObj.scriptAddCandNameInCorporateCandidateProfile(updateCorporateCandidateData);
    }
 }
 

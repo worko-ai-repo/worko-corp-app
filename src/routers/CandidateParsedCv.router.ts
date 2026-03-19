@@ -71,6 +71,11 @@ CandidateParsedCvRouter.post("/refresh", candidateParsedCvController.refreshCand
 /**
  * @authorisedRoles ["corporate-admin", "corporate-recruiter", "admin"]
  */
+CandidateParsedCvRouter.post("/reset-temporary-credentials", candidateParsedCvController.resetTempPasswordCandidateParsedCv);
+
+/**
+ * @authorisedRoles ["corporate-admin", "corporate-recruiter", "admin"]
+ */
 CandidateParsedCvRouter.patch("/:id", candidateParsedCvController.updateCandidateParsedCvById);
 
 export default CandidateParsedCvRouter;

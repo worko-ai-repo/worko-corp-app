@@ -1,5 +1,5 @@
 // Import firestore package
-import { Firestore, Settings, DocumentData, WriteResult, DocumentSnapshot, WriteBatch, DocumentReference, QuerySnapshot, QueryDocumentSnapshot } from "@google-cloud/firestore";
+import { Firestore, Settings, DocumentData, WriteResult, DocumentSnapshot, WriteBatch, DocumentReference, QuerySnapshot, QueryDocumentSnapshot, SetOptions } from "@google-cloud/firestore";
 
 // Import sdk configs
 import { awsClientSecretsManagerLibrary } from "../configs/aws-sdk.config";
@@ -125,6 +125,61 @@ class GcpFirestoreLibrary {
     return true;
   }
 
+  async bulkCreateDocumentWithoutLimit<DbEntityDto extends DocumentData>(
+    commonDbDetails: GcpFirestoreInteractionDto,
+    documents: DbEntityDto[],
+    options?: SetOptions,
+  ) {
+    const db: Firestore = await this.getFirestoreDatabase(
+      commonDbDetails.databaseName,
+    );
+
+    const BATCH_LIMIT: number = 300;
+    let successCount: number = 0;
+
+    for (let i = 0; i < documents.length; i += BATCH_LIMIT) {
+      const chunk: DbEntityDto[] = documents.slice(i, i + BATCH_LIMIT);
+
+      const batch: WriteBatch = db.batch();
+
+      chunk.forEach((doc: DbEntityDto) => {
+        const docRef: DocumentReference<DocumentData, DocumentData> = db
+          .collection(commonDbDetails.collectionName)
+          .doc(doc.id);
+
+        if (options) {
+          batch.set(docRef, { ...doc }, options);
+        } else {
+          batch.set(docRef, { ...doc });
+        }
+      });
+
+      const response: WriteResult[] = await batch.commit();
+
+      global.logger.info("Bulk Create Document Chunk Response", {
+        chunkSize: chunk.length,
+        responseLength: response.length,
+      });
+
+      if (!response || response.length !== chunk.length) {
+        global.logger.error("Bulk Create Chunk Failed", {
+          chunkSize: chunk.length,
+          responseLength: response?.length,
+        });
+        return false;
+      }
+
+      successCount += response.length;
+    }
+
+    global.logger.info("Bulk Create Documents Completed", {
+      totalDocuments: documents.length,
+      successCount,
+    });
+
+    return successCount === documents.length;
+  }
+
   async getDocumentById<DbEntityDto>(
     commonDbDetails: GcpFirestoreInteractionDto,
     id: string
@@ -241,6 +296,60 @@ class GcpFirestoreLibrary {
         idsLength: ids.length
       });
       return false;
+    }
+
+    return true;
+  }
+
+  async bulkUpdateDocumentByIdsWithDifferentData<
+    UpdateEntityDto extends DocumentData
+  >(
+    commonDbDetails: GcpFirestoreInteractionDto,
+    updates: {
+      id: string;
+      updateData: UpdateEntityDto;
+    }[],
+  ) {
+    if (!updates.length) return true;
+
+    const db: Firestore = await this.getFirestoreDatabase(
+      commonDbDetails.databaseName,
+    );
+
+    const chunks: typeof updates[] = [];
+
+    let batchLimit: number = 300;
+    for (let i = 0; i < updates.length; i += batchLimit) {
+      chunks.push(updates.slice(i, i + batchLimit));
+    }
+
+    for (const chunk of chunks) {
+      const batch: WriteBatch = db.batch();
+
+      chunk.forEach(({ id, updateData }) => {
+        if (!id) return;
+
+        const docRef: DocumentReference<DocumentData, DocumentData> = db
+          .collection(commonDbDetails.collectionName)
+          .doc(id);
+
+        batch.update(docRef, updateData);
+      });
+
+      const response: WriteResult[] = await batch.commit();
+
+      global.logger.info("Bulk Update (Different Data) Response", {
+        responseLength: response.length,
+        chunkLength: chunk.length,
+      });
+
+      if (!response || response.length !== chunk.length) {
+        global.logger.error("Bulk Update Failed", {
+          responseLength: response?.length,
+          expected: chunk.length,
+        });
+        return false;
+      }
     }
 
     return true;

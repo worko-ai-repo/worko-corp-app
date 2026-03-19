@@ -54,8 +54,8 @@ class AgencyUserSubmissionDao implements BaseDao {
 
     const { 
       companyId, jobId, agencyRegisteredEmail, 
-      candidateEmail, agencyName, agencyJobAssignedByCorporateUserId,
-      sortOrder
+      agencyName, agencyJobAssignedByCorporateUserId,
+      sortOrder, searchText
     } =
       filterOptions;
 
@@ -68,9 +68,9 @@ class AgencyUserSubmissionDao implements BaseDao {
       !companyId &&
       !jobId &&
       !agencyRegisteredEmail &&
-      !candidateEmail &&
       !agencyName &&
-      !agencyJobAssignedByCorporateUserId
+      !agencyJobAssignedByCorporateUserId &&
+      !searchText
     ) {
       baseQuery = baseQuery.orderBy("createdAt", sortOrder)
     } else {
@@ -83,7 +83,15 @@ class AgencyUserSubmissionDao implements BaseDao {
         );
       if (agencyRegisteredEmail)
         baseQuery = baseQuery.where("agencyRegisteredEmail", "==", agencyRegisteredEmail);
-      if (candidateEmail) baseQuery = baseQuery.where("candidateEmail", "==", candidateEmail);
+      if (searchText) {
+        if(
+          searchText?.includes("@")
+        ) {
+          baseQuery = baseQuery.where("candidateEmail", "==", searchText.toLowerCase());
+        } else {
+          baseQuery = baseQuery.where("candidateName", "==", searchText.toLowerCase());
+        }
+      }
       if (agencyName) baseQuery = baseQuery.where("agencyName", "==", filterOptions.agencyName);
       if (agencyJobAssignedByCorporateUserId) baseQuery = baseQuery.where("agencyJobAssignedByCorporateUserId", "==", agencyJobAssignedByCorporateUserId);
 

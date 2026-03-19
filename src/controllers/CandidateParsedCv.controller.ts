@@ -5,7 +5,7 @@ import { Request, Response, NextFunction } from "express";
 import { APIGatewayProxyResult } from "aws-lambda";
 
 // Import dtos
-import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvAdminEmbeddingListingFilterRequestDTO, CandidateParsedCvBulkFindMatchingScoreApiDto, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterRequestDTO, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvParseSubmitFormApiDto, CandidateParsedCvParseSubmitFormResponseDto, CandidateParsedCvRefreshApiDto, CandidateParsedCvSubmitFormCreateApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO, MoveToApplicantSubmitFormCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvAdminEmbeddingListingFilterRequestDTO, CandidateParsedCvBulkFindMatchingScoreApiDto, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterRequestDTO, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvParseSubmitFormApiDto, CandidateParsedCvParseSubmitFormResponseDto, CandidateParsedCvRefreshApiDto, CandidateParsedCvResetTempPasswordApiDto, CandidateParsedCvSubmitFormCreateApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO, MoveToApplicantSubmitFormCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 import { PaginatedResultsWithMatchingConditionsInternalResponse } from "../dtos/Common.dto";
 
@@ -22,7 +22,7 @@ import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJ
 import { candidateParsedCvServiceObj } from "../services/CandidateParsedCv.service";
 
 // Import schemas
-import { candidateParsedCvAdminEmbeddingFilterDtoValidation, candidateParsedCvBulkFindMatchingScoreApiValidationDto, candidateParsedCvCorpEmbeddingFilterDtoValidation, candidateParsedCvFindMatchingScoreApiValidationDto, candidateParsedCvParseSubmitFormApiValidationDto, candidateParsedCvRefreshApiValidationDto, candidateParsedCvUpdateApiValidationDto, duplicateJobApplicantBulkCandidateParsedCvApiDtoValidation, moveToApplicantBulkCandidateParsedCvCreateApiDtoValidation, moveToApplicantCandidateParsedCvCreateApiDtoValidation } from "../schemas/CandidateParsedCv.schema";
+import { candidateParsedCvAdminEmbeddingFilterDtoValidation, candidateParsedCvBulkFindMatchingScoreApiValidationDto, candidateParsedCvCorpEmbeddingFilterDtoValidation, candidateParsedCvFindMatchingScoreApiValidationDto, candidateParsedCvParseSubmitFormApiValidationDto, candidateParsedCvRefreshApiValidationDto, candidateParsedCvResetTempPasswordApiValidationDto, candidateParsedCvUpdateApiValidationDto, duplicateJobApplicantBulkCandidateParsedCvApiDtoValidation, moveToApplicantBulkCandidateParsedCvCreateApiDtoValidation, moveToApplicantCandidateParsedCvCreateApiDtoValidation } from "../schemas/CandidateParsedCv.schema";
 
 // import utils
 import HttpStatusCode from "../utils/http-codes.util";
@@ -384,6 +384,30 @@ class CandidateParsedCvController {
     } catch (error) {
       global.logger.error(`Update Candidate Parsed Cv By Id [Controller]`, {
         methodName: this.updateCandidateParsedCvById.name,
+        error
+      })
+
+      next(error);
+    }
+  }
+
+  resetTempPasswordCandidateParsedCv = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const reqBody: CandidateParsedCvResetTempPasswordApiDto = req.body;
+      const { error: reqBodyError, value: validatedReqBody } =
+        candidateParsedCvResetTempPasswordApiValidationDto.validate(req.body, {
+          abortEarly: false,
+        });
+      if (reqBodyError) {
+        throw new RequestValidationError(reqBodyError);
+      }
+      const response = await candidateParsedCvServiceObj.resetTempPasswordCandidateParsedCv(
+        reqBody.candidateEmail
+      );
+      res.status(HttpStatusCode.OK_200).json(response);
+    } catch (error) {
+      global.logger.error(`Resend Temp Password Candidate Parsed Cv [Controller]`, {
+        methodName: this.resetTempPasswordCandidateParsedCv.name,
         error
       })
 

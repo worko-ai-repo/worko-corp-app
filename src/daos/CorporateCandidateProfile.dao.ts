@@ -19,6 +19,8 @@ import { DbCorporateCandidateProfileDto } from "../db/gcp-firestore-models/Corpo
 
 // Import utils
 import { gcpFirestoreUtilObj } from "../utils/gcp-firestore.util";
+import { BaseError } from "../utils/errors.util";
+import HttpStatusCode from "../utils/http-codes.util";
 
 class CorporateCandidateProfileDao implements BaseDao {
   databaseName: string = `worko-corp-db-${process.env.APP_SLS_STAGE}`;
@@ -74,28 +76,95 @@ class CorporateCandidateProfileDao implements BaseDao {
       .get();
   }
 
+  async getCorporateCandidateProfileByCompIdAndCandName(companyId: string, candidateName: string): Promise<QuerySnapshot<DocumentData, DocumentData>> {
+    const db: Firestore = await this.getCorporateCandidateProfileFirestoreDatabase();
+
+    return db
+      .collection(this.collectionName)
+      .where("companyId", "==", companyId)
+      .where("candidateName", "==", candidateName)
+      .get();
+  }
+
   async getAllCorporateCandidateProfileByFilterOptions(
     filterOptions: CorporateCandidateProfileListingFilterOptions
   ): Promise<GcpFirestoreRecordListingResponseDTO<DbCorporateCandidateProfileDto[]>> {
-    const { refereeType, companyId, candidateEmail, sortOrder, hiringEligibilityStatus } = filterOptions;
+    const { refereeType, companyId, searchText, sortOrder, hiringEligibilityStatus } = filterOptions;
+
+    if(!companyId) {
+      throw new BaseError("CompanyId is required to fetch candidate profiles", HttpStatusCode.BAD_REQUEST_400);
+    }
 
     const db: Firestore = await this.getCorporateCandidateProfileFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db.collection(
       this.collectionName
     );
 
-    if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
-    if (refereeType) baseQuery = baseQuery.where("refereeType", "==", refereeType);
-    if (candidateEmail) baseQuery = baseQuery.where("candidateEmail", "==", candidateEmail);
-    if (hiringEligibilityStatus) baseQuery = baseQuery.where("hiringEligibilityStatus", "==", hiringEligibilityStatus);
+    if(
+      searchText
+    ) {
+      if(
+        searchText?.includes("@")
+      ) {
+        const candidateEmail: string = searchText.toLowerCase();
+        const candProfileByCompIdAndCandEmail: QuerySnapshot<DocumentData, DocumentData> = await this.getCorporateCandidateProfileByCompIdAndCandEmail(companyId,candidateEmail);
+        const candProfileResponse: GcpFirestoreRecordListingResponseDTO<DbCorporateCandidateProfileDto[]> = {
+          data: candProfileByCompIdAndCandEmail.docs.map((doc) => doc.data() as DbCorporateCandidateProfileDto),
+          pagination: {
+            count: candProfileByCompIdAndCandEmail.docs.length,
+            pageSize: filterOptions.pageSize,
+            sortOrder: sortOrder,
+          }
+        }
+        return candProfileResponse;
+      } else {
+        /**
+         * @description
+         *  1. If `searchText` is not an email id, then as of now we are assuming only candidate name is being searched.
+         */
+        const candidateName: string = searchText.toLowerCase();
+        const candProfileByCandName: QuerySnapshot<DocumentData, DocumentData> = await this.getCorporateCandidateProfileByCompIdAndCandName(companyId,candidateName);
+        const candProfileResponse: GcpFirestoreRecordListingResponseDTO<DbCorporateCandidateProfileDto[]> = {
+          data: candProfileByCandName.docs.map((doc) => doc.data() as DbCorporateCandidateProfileDto),
+          pagination: {
+            count: candProfileByCandName.docs.length,
+            pageSize: filterOptions.pageSize,
+            sortOrder: sortOrder,
+          }
+        }
+        return candProfileResponse;
+      }
+    } else {
+      if (companyId) baseQuery = baseQuery.where("companyId", "==", companyId);
+      if (refereeType) baseQuery = baseQuery.where("refereeType", "==", refereeType);
+      if (hiringEligibilityStatus) baseQuery = baseQuery.where("hiringEligibilityStatus", "==", hiringEligibilityStatus);
       if (sortOrder) {
         baseQuery = baseQuery.orderBy(FieldPath.documentId(), sortOrder);
       }
+    }
 
     return gcpFirestoreUtilObj.paginateGcpFirestore<
       CorporateCandidateProfileListingFilterOptions,
       DbCorporateCandidateProfileDto
     >(db, this.collectionName, baseQuery, filterOptions);
+  }
+
+  async scriptGetAllCorporateCandidateProfileForCandNameAdd(
+    pageSize: number
+  ) {
+    const db: Firestore = await this.getCorporateCandidateProfileFirestoreDatabase();
+    let baseQuery: Query<DocumentData, DocumentData> = db.collection(
+      this.collectionName
+    );
+
+    return gcpFirestoreUtilObj.paginateGcpFirestore<
+      {
+        pageSize: number
+      },
+      DbCorporateCandidateProfileDto
+    >(db, this.collectionName, baseQuery, {
+      pageSize
+    });
   }
 
   async getCorporateCandidateProfileByCompIdAndCandEmail(
@@ -113,6 +182,10 @@ class CorporateCandidateProfileDao implements BaseDao {
 
   async updateBulkCorporateCandidateProfileByIds(ids: string[], updateData: Partial<DbCorporateCandidateProfileDto>) {
     return gcpFirestoreLibrary.bulkUpdateDocumentByIds<Partial<DbCorporateCandidateProfileDto>>(this.getCorporateCandidateProfileModelDetails(), ids, updateData);
+  }
+
+  async scriptAddCandNameInCorporateCandidateProfile(updateCorporateCandidate: {id: string; updateData: {candidateName: string;}}[]) {
+    return gcpFirestoreLibrary.bulkUpdateDocumentByIdsWithDifferentData<Partial<DbCorporateCandidateProfileDto>>(this.getCorporateCandidateProfileModelDetails(), updateCorporateCandidate);
   }
 }
 

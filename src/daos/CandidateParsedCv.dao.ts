@@ -121,6 +121,12 @@ class CandidateParsedCvDao implements BaseDao {
     );
   }
 
+  async getCandidateParsedCvByCandEmail(candidateEmail: string) {
+    const db = await this.getCandidateParsedCvFirestoreDatabase();
+
+    return db.collection(this.collectionName).where("email", "==", candidateEmail).get();
+  }
+
   async updateCandidateParsedCvById(
     id: string,
     updateData: Partial<DbCandidateParsedCvDto>,

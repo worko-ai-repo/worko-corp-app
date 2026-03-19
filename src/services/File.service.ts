@@ -7,12 +7,16 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsS3ClientLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { AdminCandBulkCvUploadPsuToViewApiDto, AgencyBulkCvsPreSignedUrlToUploadFileDto, AgencyBulkCvsPsuToViewApiDto, AgencyBulkJdResumePreSignedUrlToUploadDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, CandidateSubmissionCvForJobPsuToUploadApiDto, CandidateSubmissionCvForJobPsuToViewApiDto, CorpCandBulkCvUploadPsuToViewApiDto, CorpCandReferralCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
+import { AdminCandBulkCvPsuToUploadApiDto, AdminCandBulkCvUploadPsuToViewApiDto, AgencyBulkCvsPreSignedUrlToUploadFileDto, AgencyBulkCvsPsuToViewApiDto, AgencyBulkJdResumePreSignedUrlToUploadDto, AgencyUserInviteContractCopyPsuToUploadApiDto, AgencyUserInviteContractCopyPsuToViewApiDto, AgencyUserSubmissionCvPsuToUploadApiDto, AgencyUserSubmissionCvPsuToViewApiDto, CandidateSubmissionCvForJobPsuToUploadApiDto, CandidateSubmissionCvForJobPsuToViewApiDto, CorpCandBulkCvPsuToUploadApiDto, CorpCandBulkCvUploadPsuToViewApiDto, CorpCandReferralCvPsuToUploadApiDto, CorpCandReferralCvPsuToViewApiDto, PreSignedUrlToUploadFileResponseDto, PreSignedUrlToViewFileResponseDto } from "../dtos/File.dto";
 import { CorporateCandidateProfileBulkCvPsuToUploadApiDto } from "../dtos/CorporateCandidateProfile.dto";
 import { CentralCandidateProfileBulkCvPsuToUploadApiDto } from "../dtos/CentralCandidateProfile.dto";
 
+// Import enums
+import { BulkSourceTypeParseResumeStatusEnum } from "../enums/BulkSourceTypeParseResume.enum";
+
 // Import helpers
 import { getActionByAgencyUserIds, getActionByUserId } from "../helpers/user.helper";
+import { dateHelperObj } from "../helpers/date.helper";
 
 // Import models
 import { DbCompanyDetailDto } from "../db/aws-dynamodb-models/CompanyDetail.model";
@@ -20,14 +24,17 @@ import { DbAgencyUserInviteDto } from "../db/gcp-firestore-models/AgencyUserInvi
 import { DbCorporateUserDto } from "../db/aws-dynamodb-models/CorporateUser.model";
 import { DbCompanyJobDto } from "../db/aws-dynamodb-models/CompanyJob.model";
 import { DbAgencyUserDto } from "../db/gcp-firestore-models/AgencyUser.model";
+import { DbBulkSourceTypeParseResumeDto } from "../db/gcp-firestore-models/BulkSourceTypeParseResume.model";
 
 // Import services
 import { companyDetailServiceObj } from "./CompanyDetail.service";
 import { agencyUserInviteServiceObj } from "./AgencyUserInvite.service";
 import { corporateUserServiceObj } from "./CorporateUser.service";
 import UlidService from "./Ulid.service";
+import { uuidServiceObj } from "./Uuid.service";
 import { companyJobServiceObj } from "./CompanyJob.service";
 import { agencyUserServiceObj } from "./AgencyUser.service";
+import { bulkSourceTypeParseResumeServiceObj } from "./BulkSourceTypeParseResume.service";
 
 // Import utils
 import { BaseError } from "../utils/errors.util";
@@ -92,7 +99,7 @@ class FileService {
   async generatePsuToBulkCvUploadCorporateCandidateProfile(
     requestBody: CorporateCandidateProfileBulkCvPsuToUploadApiDto,
     corporateUserEmail: string,
-  ): Promise<PreSignedUrlToUploadFileResponseDto[]> {
+  ) {
     const { companyId, bulkCvs } = requestBody;
     global.logger.info(
       `Generate the Pre-signed URL to upload bulk cvs for corporate candidate profile. [File Service]`,
@@ -117,45 +124,93 @@ class FileService {
       );
     }
 
-    return Promise.all(
-      bulkCvs.map(
-        async (eachFileDetail: { fileName: string; fileMimeType: string }) => {
-          // Get the given file extension
-          const fileExtension: string = eachFileDetail.fileName
-            .split(".")
-            .pop() as string; // Sample Output: "pdf"
+    const preSignedUrlsToUpload: PreSignedUrlToUploadFileResponseDto[] = [];
+    const bulkSourceTypeParseResumeLargeFileCreateData: DbBulkSourceTypeParseResumeDto[] = [];
+    const bulkSourceTypeParseResumeInvalidFileNameCreateData: DbBulkSourceTypeParseResumeDto[] = [];
+    const date: string = dateHelperObj.getISODate();
 
-          // Prepare the given file name
-          const cloudFileName: string = `${UlidService.getUlidId()}.${fileExtension}`;
+    bulkCvs.forEach(
+      async (eachFileDetail: {
+        fileName: string;
+        fileMimeType: string;
+        bulkSourceTypeParseResumeStatus?: BulkSourceTypeParseResumeStatusEnum;
+      }) => {
+        if(
+          eachFileDetail?.bulkSourceTypeParseResumeStatus 
+        ) {
+          if(
+            eachFileDetail.bulkSourceTypeParseResumeStatus === BulkSourceTypeParseResumeStatusEnum.LARGE_RESUME_FILE
+          ) {
+            bulkSourceTypeParseResumeLargeFileCreateData.push({
+              id: uuidServiceObj.getUuid(),
+              createdAt: date,
+              updatedAt: date,
+              bulkSourceTypeResumeId: requestBody.bulkSourceTypeResumeId,
+              status: BulkSourceTypeParseResumeStatusEnum.LARGE_RESUME_FILE,
+              userResumeFileName: eachFileDetail.fileName
+            })
+          }
 
-          // Generate the AWS S3 Signed Url
-          const fileSignedUrl: string =
-            await awsS3ClientLibrary.getSignedUrlForUploadingObject(
-              bucketName,
-              fileUploadPath + "/" + cloudFileName,
-              APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
-              {
-                ContentType: eachFileDetail.fileMimeType,
-                Metadata: {
-                  "bulkSourceTypeResumeId": requestBody.bulkSourceTypeResumeId,
-                  "corporateUserEmail": corporateUserEmail,
-                }
-              }
-            );
+          if(
+            eachFileDetail.bulkSourceTypeParseResumeStatus === BulkSourceTypeParseResumeStatusEnum.INVALID_FILE_NAME
+          ) {
+            bulkSourceTypeParseResumeInvalidFileNameCreateData.push({
+              id: uuidServiceObj.getUuid(),
+              createdAt: date,
+              updatedAt: date,
+              bulkSourceTypeResumeId: requestBody.bulkSourceTypeResumeId,
+              status: BulkSourceTypeParseResumeStatusEnum.INVALID_FILE_NAME,
+              userResumeFileName: eachFileDetail.fileName
+            })
+          }
 
-          // Prepare the response object
-          const resObject: PreSignedUrlToUploadFileResponseDto = {
-            userFileName: eachFileDetail.fileName,
-            cloudFileName: cloudFileName,
-            fileMimeType: eachFileDetail.fileMimeType,
-            fileExtension: fileExtension,
-            awsS3SignedUrl: fileSignedUrl,
-          };
-
-          return resObject;
+          // Skip the file upload to s3
+          return;
         }
-      )
+
+        // Get the given file extension
+        const fileExtension: string = eachFileDetail.fileName
+          .split(".")
+          .pop() as string; // Sample Output: "pdf"
+
+        // Prepare the given file name
+        const cloudFileName: string = `${UlidService.getUlidId()}.${fileExtension}`;
+
+        // Generate the AWS S3 Signed Url
+        const fileSignedUrl: string =
+          await awsS3ClientLibrary.getSignedUrlForUploadingObject(
+            bucketName,
+            fileUploadPath + "/" + cloudFileName,
+            APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
+            {
+              ContentType: eachFileDetail.fileMimeType,
+              Metadata: {
+                "bulkSourceTypeResumeId": requestBody.bulkSourceTypeResumeId,
+                "corporateUserEmail": corporateUserEmail,
+              }
+            }
+          );
+
+        // Prepare the response object
+        const resObject: PreSignedUrlToUploadFileResponseDto = {
+          userFileName: eachFileDetail.fileName,
+          cloudFileName: cloudFileName,
+          fileMimeType: eachFileDetail.fileMimeType,
+          fileExtension: fileExtension,
+          awsS3SignedUrl: fileSignedUrl,
+        };
+
+        preSignedUrlsToUpload.push(resObject);
+      }
     );
+
+    const createBulkSourceTypeParseResumeData: [boolean, boolean] = await Promise.all([
+      bulkSourceTypeParseResumeServiceObj.bulkCreateBulkSourceTypeParseResume(bulkSourceTypeParseResumeLargeFileCreateData),
+      bulkSourceTypeParseResumeServiceObj.bulkCreateBulkSourceTypeParseResume(bulkSourceTypeParseResumeInvalidFileNameCreateData),
+    ]);
+    global.logger.info(`Created bulk source type parse resume data.`, {createBulkSourceTypeParseResumeData})
+
+    return preSignedUrlsToUpload;
   }
 
   async generatePsuToViewCorpCandBulkCvUpload(requestBody: CorpCandBulkCvUploadPsuToViewApiDto) {
@@ -311,45 +366,97 @@ class FileService {
       );
     }
 
-    return Promise.all(
-      bulkCvs.map(
-        async (eachFileDetail: { fileName: string; fileMimeType: string }) => {
-          // Get the given file extension
-          const fileExtension: string = eachFileDetail.fileName
-            .split(".")
-            .pop() as string; // Sample Output: "pdf"
+    const preSignedUrlsToUpload: PreSignedUrlToUploadFileResponseDto[] = [];
+    const bulkSourceTypeParseResumeLargeFileCreateData: DbBulkSourceTypeParseResumeDto[] = [];
+    const bulkSourceTypeParseResumeInvalidFileNameCreateData: DbBulkSourceTypeParseResumeDto[] = [];
+    const date: string = dateHelperObj.getISODate();
 
-          // Prepare the given file name
-          const cloudFileName: string = `${UlidService.getUlidId()}.${fileExtension}`;
+    bulkCvs.forEach(
+      async (eachFileDetail: { 
+        fileName: string; 
+        fileMimeType: string;
+        bulkSourceTypeParseResumeStatus?: BulkSourceTypeParseResumeStatusEnum;
+      }) => {
+        if(
+          eachFileDetail?.bulkSourceTypeParseResumeStatus
+        ) {
+          if(
+            eachFileDetail.bulkSourceTypeParseResumeStatus === BulkSourceTypeParseResumeStatusEnum.LARGE_RESUME_FILE 
+          ) {
+            bulkSourceTypeParseResumeLargeFileCreateData.push({
+              id: uuidServiceObj.getUuid(),
+              createdAt: date,
+              updatedAt: date,
+              bulkSourceTypeResumeId: requestBody.bulkSourceTypeResumeId,
+              status: BulkSourceTypeParseResumeStatusEnum.LARGE_RESUME_FILE,
+              userResumeFileName: eachFileDetail.fileName
+            })
+          }
 
-          // Generate the AWS S3 Signed Url
-          const fileSignedUrl: string =
-            await awsS3ClientLibrary.getSignedUrlForUploadingObject(
-              bucketName,
-              fileUploadPath + "/" + cloudFileName,
-              APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
-              {
-                ContentType: eachFileDetail.fileMimeType,
-                "Metadata": {
-                  "bulkSourceTypeResumeId": requestBody.bulkSourceTypeResumeId,
-                  "workoAdminUserEmail": workoAdminUserEmail
-                }
-              }
-            );
+          if(
+            eachFileDetail.bulkSourceTypeParseResumeStatus === BulkSourceTypeParseResumeStatusEnum.INVALID_FILE_NAME
+          ) {
+            bulkSourceTypeParseResumeInvalidFileNameCreateData.push({
+              id: uuidServiceObj.getUuid(),
+              createdAt: date,
+              updatedAt: date,
+              bulkSourceTypeResumeId: requestBody.bulkSourceTypeResumeId,
+              status: BulkSourceTypeParseResumeStatusEnum.INVALID_FILE_NAME,
+              userResumeFileName: eachFileDetail.fileName
+            })
+          }
 
-          // Prepare the response object
-          const resObject: PreSignedUrlToUploadFileResponseDto = {
-            userFileName: eachFileDetail.fileName,
-            cloudFileName: cloudFileName,
-            fileMimeType: eachFileDetail.fileMimeType,
-            fileExtension: fileExtension,
-            awsS3SignedUrl: fileSignedUrl,
-          };
-
-          return resObject;
+          // Skip the file upload to aws s3
+          return;
         }
-      )
+
+        // Get the given file extension
+        const fileExtension: string = eachFileDetail.fileName
+          .split(".")
+          .pop() as string; // Sample Output: "pdf"
+
+        // Prepare the given file name
+        const cloudFileName: string = `${UlidService.getUlidId()}.${fileExtension}`;
+
+        // Generate the AWS S3 Signed Url
+        const fileSignedUrl: string =
+          await awsS3ClientLibrary.getSignedUrlForUploadingObject(
+            bucketName,
+            fileUploadPath + "/" + cloudFileName,
+            APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
+            {
+              ContentType: eachFileDetail.fileMimeType,
+              "Metadata": {
+                "bulkSourceTypeResumeId": requestBody.bulkSourceTypeResumeId,
+                "workoAdminUserEmail": workoAdminUserEmail
+              }
+            }
+          );
+
+        // Prepare the response object
+        const resObject: PreSignedUrlToUploadFileResponseDto = {
+          userFileName: eachFileDetail.fileName,
+          cloudFileName: cloudFileName,
+          fileMimeType: eachFileDetail.fileMimeType,
+          fileExtension: fileExtension,
+          awsS3SignedUrl: fileSignedUrl,
+        };
+
+        preSignedUrlsToUpload.push(resObject);
+      }
     );
+
+    const bulkSourceTypeParseResumeCreateResponse: [boolean, boolean] = await Promise.all([
+      bulkSourceTypeParseResumeServiceObj.bulkCreateBulkSourceTypeParseResume(
+        bulkSourceTypeParseResumeLargeFileCreateData
+      ),
+      bulkSourceTypeParseResumeServiceObj.bulkCreateBulkSourceTypeParseResume(
+        bulkSourceTypeParseResumeInvalidFileNameCreateData
+      ),
+    ]);
+    global.logger.info(`Created bulk source type parse resume data.`, {bulkSourceTypeParseResumeCreateResponse})
+
+    return preSignedUrlsToUpload;
   }
 
   async generatePsuToViewAdminCandBulkCvUpload(requestBody: AdminCandBulkCvUploadPsuToViewApiDto) {
@@ -556,7 +663,6 @@ class FileService {
 
   private async validatePsuToUploadAgencyUserSubmissionCv(
     requestBodyObject: AgencyUserSubmissionCvPsuToUploadApiDto,
-    convertedAgencyCognitoUserId: string
   ) {
     const { companyId, jobId } = requestBodyObject;
 
@@ -584,17 +690,6 @@ class FileService {
       throw new BaseError(
         `Job does not belong to the company.`,
         HttpStatusCode.CONFLICT_409
-      );
-    }
-
-    const agencyUserDetails: DbAgencyUserDto | undefined =
-      await agencyUserServiceObj.getAgencyUserById(
-        convertedAgencyCognitoUserId
-      );
-    if (!agencyUserDetails) {
-      throw new BaseError(
-        `We couldn’t verify your details. Please log out and sign in again to continue.`,
-        HttpStatusCode.NOT_FOUND_404
       );
     }
   }
@@ -713,18 +808,15 @@ class FileService {
       }
     );
 
-    const { convertedAgencyCognitoUserId } = getActionByAgencyUserIds();
-
     await this.validatePsuToUploadAgencyUserSubmissionCv(
       requestBodyObject,
-      convertedAgencyCognitoUserId
     );
 
-    const { companyId, jobId, fileMimeType, fileName } = requestBodyObject;
+    const { agencyUserId, companyId, jobId, fileMimeType, fileName } = requestBodyObject;
 
     const fileUploadPath: string =
       APP_CONSTANTS.AWS_S3_DIR_PATHS.AGENCY_SUBMIT_USER_CV.strtr({
-        "{agencyUserId}": convertedAgencyCognitoUserId,
+        "{agencyUserId}": agencyUserId,
         "{companyId}": companyId,
         "{jobId}": jobId,
       });
@@ -847,6 +939,154 @@ class FileService {
       fileExtension: fileExtension,
       awsS3SignedUrl: fileSignedUrl,
     };
+  }
+
+  async generatePsuToUploadSingleCorpCandBulkCv(
+    requestBodyObject: CorpCandBulkCvPsuToUploadApiDto,
+    skipParsing: boolean = false
+  ): Promise<PreSignedUrlToUploadFileResponseDto> {
+    const { companyId, fileMimeType, fileName } = requestBodyObject;
+
+    const fileUploadPath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.CORP_CAND_BULK_CV_UPLOAD.strtr({
+        "{companyId}": companyId,
+      });
+
+    const fileExtension: string = fileName.split(".").pop() as string;
+
+    const cloudFileName: string = `${UlidService.getUlidId()}.${fileExtension}`;
+
+    const bucketName: string | undefined =
+      process.env.APP_AWS_S3_BUCKET_WORKO_CORPORATE_CAND_PROFILE;
+    if (!bucketName) {
+      global.logger.error(`AWS S3 bucket name not found. [File Service]`, {
+        bucketName,
+        methodName: this.generatePsuToUploadSingleCorpCandBulkCv.name,
+      });
+
+      throw new BaseError(
+        `AWS S3 bucket name not found.`,
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const fileSignedUrl: string =
+      await awsS3ClientLibrary.getSignedUrlForUploadingObject(
+        bucketName,
+        `${fileUploadPath}/${cloudFileName}`,
+        APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
+        {
+          ContentType: fileMimeType,
+          Metadata: {
+            skipParsing: skipParsing ? "true" : "false",
+          }
+        }
+      );
+
+    return {
+      userFileName: fileName,
+      cloudFileName: cloudFileName,
+      fileMimeType: fileMimeType,
+      fileExtension: fileExtension,
+      awsS3SignedUrl: fileSignedUrl,
+    };
+  }
+  
+  async generatePsuToUploadSingleAdminCandBulkCv(
+    requestBodyObject: AdminCandBulkCvPsuToUploadApiDto,
+    skipParsing: boolean = false
+  ): Promise<PreSignedUrlToUploadFileResponseDto> {
+    const { fileName, fileMimeType } = requestBodyObject;
+    const fileUploadPath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.ADMIN_CAND_BULK_CV_UPLOAD;
+
+    const fileExtension: string = fileName.split(".").pop() as string;
+
+    const cloudFileName: string = `${UlidService.getUlidId()}.${fileExtension}`;
+
+    const bucketName: string | undefined =
+      process.env.APP_AWS_S3_BUCKET_WORKO_ADMIN_CAND_PROFILE;
+    if (!bucketName) {
+      global.logger.error(`AWS S3 bucket name not found. [File Service]`, {
+        bucketName,
+        methodName: this.generatePsuToUploadSingleAdminCandBulkCv.name,
+      });
+
+      throw new BaseError(
+        `AWS S3 bucket name not found.`,
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const fileSignedUrl: string =
+      await awsS3ClientLibrary.getSignedUrlForUploadingObject(
+        bucketName,
+        `${fileUploadPath}/${cloudFileName}`,
+        APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
+        {
+          ContentType: fileMimeType,
+          Metadata: {
+            skipParsing: skipParsing ? "true" : "false",
+          }
+        }
+      );
+
+    return (
+      {
+        userFileName: fileName,
+        cloudFileName: cloudFileName,
+        fileMimeType: fileMimeType,
+        fileExtension: fileExtension,
+        awsS3SignedUrl: fileSignedUrl,
+      }
+    )
+  }
+
+  async generatePsuToUploadCorpCandReferralCv(requestBodyObject: CorpCandReferralCvPsuToUploadApiDto): Promise<PreSignedUrlToUploadFileResponseDto> {
+    const { companyId, fileMimeType, fileName } = requestBodyObject;
+
+    const fileUploadPath: string =
+      APP_CONSTANTS.AWS_S3_DIR_PATHS.CORP_CAND_REFERRAL_CV.strtr({
+        "{companyId}": companyId,
+      });
+
+    const fileExtension: string = fileName.split(".").pop() as string;
+
+    const cloudFileName: string = `${UlidService.getUlidId()}.${fileExtension}`;
+
+    const bucketName: string | undefined =
+      process.env.APP_AWS_S3_BUCKET_WORKO_CORPORATE_REFERRAL_SOURCE_CV;
+    if (!bucketName) {
+      global.logger.error(`AWS S3 bucket name not found. [File Service]`, {
+        bucketName,
+        methodName: this.generatePsuToUploadCorpCandReferralCv.name,
+      });
+
+      throw new BaseError(
+        `AWS S3 bucket name not found.`,
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+
+    const fileSignedUrl: string =
+      await awsS3ClientLibrary.getSignedUrlForUploadingObject(
+        bucketName,
+        `${fileUploadPath}/${cloudFileName}`,
+        APP_CONSTANTS.AWS_S3_SIGNED_URL_TO_UPLOAD_FILE_EXPIRY_IN_SECONDS,
+        {
+          ContentType: fileMimeType,
+        }
+      );
+
+    return (
+      {
+        userFileName: fileName,
+        cloudFileName: cloudFileName,
+        fileMimeType: fileMimeType,
+        fileExtension: fileExtension,
+        awsS3SignedUrl: fileSignedUrl,
+      }
+    )
   }
 
   async generatePsuToViewCandidateSubmissionCvForJob(requestBodyObject: CandidateSubmissionCvForJobPsuToViewApiDto): Promise<PreSignedUrlToViewFileResponseDto> {

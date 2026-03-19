@@ -16,4 +16,8 @@ ScriptRouter.post("/email-to-lowercase-central-cand-profile", scriptController.s
 
 ScriptRouter.post("/append-dot-pdf-cv-candidate-parsed-cv", scriptController.scriptToAppendDotPdfInCvAwsS3FileCandidateParsedCvAsync);
 
+ScriptRouter.post("/add-cand-name-corporate-candidate-profile", scriptController.scriptToAddCandNameInCorporateCandidateProfileAsync);
+
+ScriptRouter.post("/add-cand-name-central-candidate-profile", scriptController.scriptToAddCandNameInCentralCandidateProfileAsync);
+
 export default ScriptRouter;

@@ -426,6 +426,7 @@ var checkWhitelistedUrl = function (url, httpMethod) {
     { path: "/candidate-parsed-cv/parse/submit-form", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/create/submit-form", method: HttpMethodsConstants.POST },
     { path: "/candidate-parsed-cv/move-to-applicant/submit-form", method: HttpMethodsConstants.POST },
+    { path: "/candidate-parsed-cv/reset-temporary-credentials", method: HttpMethodsConstants.POST }
   ];
 
   const result = checkMatchingPattern(url, urlList, httpMethod);
@@ -608,11 +609,19 @@ var isCorporateRecruiterUrl = function (url, httpMethod) {
       method: HttpMethodsConstants.POST,
     },
     {
+      path: "/file/gsu2u/AGENCY_SUBMIT_USER_CV",
+      method: HttpMethodsConstants.POST,
+    },
+    {
       path: "/file/gsu2v/CAND_SUBMIT_CV_JOB",
       method: HttpMethodsConstants.POST,
     },
     {
       path: "/file/gsu2v/CORP_CAND_BULK_CV_UPLOAD",
+      method: HttpMethodsConstants.POST,
+    },
+    {
+      path: "/file/gsu2u/CORP_CAND_BULK_CV_UPLOAD",
       method: HttpMethodsConstants.POST,
     },
     {
@@ -781,11 +790,19 @@ var isCorporateAdminUrl = function (url, httpMethod) {
       method: HttpMethodsConstants.POST,
     },
     {
+      path: "/file/gsu2u/AGENCY_SUBMIT_USER_CV",
+      method: HttpMethodsConstants.POST,
+    },
+    {
       path: "/file/gsu2v/CAND_SUBMIT_CV_JOB",
       method: HttpMethodsConstants.POST,
     },
     {
       path: "/file/gsu2v/CORP_CAND_BULK_CV_UPLOAD",
+      method: HttpMethodsConstants.POST,
+    },
+    {
+      path: "/file/gsu2u/CORP_CAND_BULK_CV_UPLOAD",
       method: HttpMethodsConstants.POST,
     },
     {
@@ -1011,6 +1028,10 @@ var isAdminUrl = function (url, httpMethod) {
       method: HttpMethodsConstants.POST,
     },
     {
+      path: "/file/gsu2u/AGENCY_SUBMIT_USER_CV",
+      method: HttpMethodsConstants.POST,
+    },
+    {
       path: "/file/gsu2v/CAND_SUBMIT_CV_JOB",
       method: HttpMethodsConstants.POST,
     },
@@ -1020,6 +1041,10 @@ var isAdminUrl = function (url, httpMethod) {
     },
     {
       path: "/file/gsu2v/CORP_CAND_BULK_CV_UPLOAD",
+      method: HttpMethodsConstants.POST,
+    },
+    {
+      path: "/file/gsu2u/CORP_CAND_BULK_CV_UPLOAD",
       method: HttpMethodsConstants.POST,
     },
     {

@@ -26,6 +26,13 @@ export interface EmailTemplatePlaceholderCAND_ACCOUNT_CHANGE_PASS_SIGNUP_REMINDE
   candidateTemporaryPassword: string;
 }
 
+export interface EmailTemplatePlaceholderCAND_ACCOUNT_RESET_TEMP_PASSWORD extends EmailTemplatePlaceholderSOCIAL_PROFILE_DETAILS {
+  candidateName: string;
+  candidateEmail: string;
+  candidateLoginUrl: string;
+  candidateTemporaryPassword: string;
+}
+
 export interface EmailTemplatePlaceholderCAND_SUCCESS_SUBMIT_FORM_FOR_JOB extends EmailTemplatePlaceholderSOCIAL_PROFILE_DETAILS {
   candidateName: string;
   jobTitle: string;

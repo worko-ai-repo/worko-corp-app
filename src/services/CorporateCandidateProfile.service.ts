@@ -236,6 +236,10 @@ class CorporateCandidateProfileService {
     );
   }
 
+  async scriptGetAllCorporateCandidateProfileForCandNameAdd(pageSize: number) {
+    return corporateCandidateProfileDaoObj.scriptGetAllCorporateCandidateProfileForCandNameAdd(pageSize);
+  }
+
   async validateCorporateCandidateProfileBulkUpload(
     companyId: string,
     candidateCvAwsS3FileName: string,
@@ -352,6 +356,7 @@ class CorporateCandidateProfileService {
         createdAt: currentDate,
         updatedAt: currentDate,
         companyId: companyId,
+        candidateName: lowerCaseCandidateName,
         candidateEmail: lowerCaseCandidateEmail,
         refereeType: CorporateCandidateProfileDbRefereeTypeEnum.INTERNAL,
         phoneNumberDetails: {
@@ -383,6 +388,10 @@ class CorporateCandidateProfileService {
                 companyName: companyData.name.toUpperCase(),
               }
             ],
+            candidateProfileInCompaniesList: [
+              ...(existingCentralCandidateProfile?.candidateProfileInCompaniesList ?? []),
+              companyData.name.toUpperCase()
+            ],
             corporateCandidateProfileIds: [
               ...(existingCentralCandidateProfile?.corporateCandidateProfileIds ?? []),
               corporateCandidateProfileCreateData.id
@@ -400,6 +409,7 @@ class CorporateCandidateProfileService {
           id: lowerCaseCandidateEmail,
           createdAt: currentDate,
           updatedAt: currentDate,
+          candidateName: lowerCaseCandidateName,
           candidateEmail: lowerCaseCandidateEmail,
           phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
           refereeType: CentralCandidateProfileDbRefereeTypeEnum.INTERNAL,
@@ -408,6 +418,9 @@ class CorporateCandidateProfileService {
               companyId: companyId,
               companyName: companyData.name.toUpperCase(),
             },
+          ],
+          candidateProfileInCompaniesList: [
+            companyData.name.toUpperCase()
           ],
           corporateCandidateProfileIds: [corporateCandidateProfileCreateData.id],
           candidateParsedCvIds: [candidateParsedCvCreateData.id],
@@ -668,6 +681,7 @@ class CorporateCandidateProfileService {
         createdAt: currentDate,
         updatedAt: currentDate,
         companyId: companyId,
+        candidateName: lowerCaseCandidateName,
         candidateEmail: lowerCaseCandidateEmail,
         refereeType: CorporateCandidateProfileDbRefereeTypeEnum.REFERRAL,
         phoneNumberDetails: {
@@ -699,6 +713,10 @@ class CorporateCandidateProfileService {
                 companyName: companyData.name.toUpperCase(),
               }
             ],
+            candidateProfileInCompaniesList: [
+              ...(existingCentralCandidateProfile?.candidateProfileInCompaniesList ?? []),
+              companyData.name.toUpperCase()
+            ],
             corporateCandidateProfileIds: [
               ...(existingCentralCandidateProfile?.corporateCandidateProfileIds ?? []),
               corporateCandidateProfileCreateData.id
@@ -716,6 +734,7 @@ class CorporateCandidateProfileService {
           id: lowerCaseCandidateEmail,
           createdAt: currentDate,
           updatedAt: currentDate,
+          candidateName: lowerCaseCandidateName,
           candidateEmail: lowerCaseCandidateEmail,
           phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
           refereeType: CentralCandidateProfileDbRefereeTypeEnum.REFERRAL,
@@ -724,6 +743,9 @@ class CorporateCandidateProfileService {
               companyId: companyId,
               companyName: companyData.name.toUpperCase(),
             },
+          ],
+          candidateProfileInCompaniesList: [
+            companyData.name.toUpperCase()
           ],
           corporateCandidateProfileIds: [corporateCandidateProfileCreateData.id],
           candidateParsedCvIds: [candidateParsedCvCreateData.id],
@@ -795,6 +817,17 @@ class CorporateCandidateProfileService {
       updatedAt: dateHelperObj.getISODate(),
       reasonForBlacklisting: requestBody.reasonForBlacklisting
     });
+  }
+
+  async scriptAddCandNameInCorporateCandidateProfile(
+    updateCorporateCandidate: {
+      id: string;
+      updateData: {
+        candidateName: string;
+      };
+    }[]
+  ) {
+    return corporateCandidateProfileDaoObj.scriptAddCandNameInCorporateCandidateProfile(updateCorporateCandidate);
   }
 }
 

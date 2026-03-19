@@ -4,4 +4,6 @@ export enum BulkSourceTypeParseResumeStatusEnum {
   SUCCESS = "SUCCESS",
   FAILED = "FAILED",
   DUPLICATE = "DUPLICATE",
+  LARGE_RESUME_FILE = "LARGE_RESUME_FILE",
+  INVALID_FILE_NAME = "INVALID_FILE_NAME",
 }

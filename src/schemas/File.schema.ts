@@ -69,6 +69,10 @@ export const agencyUserSubmissionCvPsuToViewApiDtoValidation = Joi.object({
 export const agencyUserSubmissionCvPsuToUploadApiDtoValidation =
   filePsuToUploadDtoValidation.concat(
     Joi.object({
+      agencyUserId: Joi.string().required().messages({
+        "string.empty": "Agency user id is required",
+        "any.required": "Agency user id is required",
+      }),
       companyId: Joi.string().required().messages({
         "string.empty": "Company id is required",
         "any.required": "Company id is required",
@@ -93,6 +97,28 @@ export const candidateSubmissionCvForJobPsuToUploadApiDtoValidation =
       }),
     })
   );
+
+export const corpCandBulkCvPsuToUploadApiDtoValidation =
+  filePsuToUploadDtoValidation.concat(
+    Joi.object({
+      companyId: Joi.string().required().messages({
+        "string.empty": "Company id is required",
+        "any.required": "Company id is required",
+      }),
+    })
+)
+
+export const corpCandReferralCvPsuToUploadApiDtoValidation =
+  filePsuToUploadDtoValidation.concat(
+    Joi.object({
+      companyId: Joi.string().required().messages({
+        "string.empty": "Company id is required",
+        "any.required": "Company id is required",
+      }),
+    })
+)
+
+export const adminCandBulkCvPsuToUploadApiDtoValidation = filePsuToUploadDtoValidation;
 
 export const agencyBulkCvsPsuToViewApiDtoValidation = Joi.object({
   agencyBulkJdId: Joi.string().required().messages({

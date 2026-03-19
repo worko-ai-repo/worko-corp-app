@@ -24,6 +24,7 @@ import { DbAgencyUserSubmissionDto } from "./db/gcp-firestore-models/AgencyUserS
 // Import services
 import { candidateParsedCvServiceObj } from "./services/CandidateParsedCv.service";
 import { agencyUserSubmissionServiceObj } from "./services/AgencyUserSubmission.service";
+import { scriptServiceObj } from "./services/Script.service";
 
 // Import utils
 import { BaseError } from "./utils/errors.util";
@@ -244,6 +245,16 @@ export const handler = async (
         await candidateParsedCvServiceObj.refreshCandidateParsedCv(
           {candidateParsedCvId: invokeData.candidateParsedCvId}
         );
+        break;
+      }
+
+      case InvokeLambdaHandlerEventTypeEnum.SCRIPT_TO_ADD_CAND_NAME_IN_CORPORATE_CANDIDATE_PROFILES: {
+        await scriptServiceObj.scriptToAddCandNameInCorporateCandidateProfile();
+        break;
+      }
+
+      case InvokeLambdaHandlerEventTypeEnum.SCRIPT_TO_ADD_CAND_NAME_IN_CENTRAL_CANDIDATE_PROFILES: {
+        await scriptServiceObj.scriptToAddCandNameInCentralCandidateProfile();
         break;
       }
 

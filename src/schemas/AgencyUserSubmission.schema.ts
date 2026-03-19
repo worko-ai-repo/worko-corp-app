@@ -79,33 +79,27 @@ export const agencyUserSubmissionCreateApiValidationDto = Joi.object({
   education: Joi.array()
     .items(
       Joi.object({
-        degree: Joi.string().required().lowercase().messages({
-          "string.empty": "Degree is required",
-          "any.required": "Degree is required",
+        degree: Joi.string().optional().lowercase().messages({
+          "string.base": "Degree must be a string",
         }),
 
-        collage: Joi.string().required().lowercase().messages({
-          "string.empty": "College is required",
-          "any.required": "College is required",
+        collage: Joi.string().optional().lowercase().messages({
+          "string.base": "Collage must be a string",
         }),
 
         startedYear: Joi.number().optional().messages({
-          "number.base": "Started Year is required",
-          "any.required": "Started Year is required",
+          "number.base": "Started Year must be a number",
         }),
 
-        passingYear: Joi.number().required().messages({
-          "number.base": "Passing Year is required",
-          "any.required": "Passing Year is required",
+        passingYear: Joi.number().optional().messages({
+          "number.base": "Passing Year must be a number",
         }),
 
         grade: Joi.string().optional().messages({
-          "string.empty": "Grade is required",
-          "any.required": "Grade is required",
+          "string.base": "Grade must be a string",
         }),
         field: Joi.string().optional().messages({
-          "string.empty": "Field is required",
-          "any.required": "Field is required",
+          "string.base": "Field must be a string",
         }),
       }),
     )
@@ -214,10 +208,6 @@ export const agencyUserSubmissionFilterDtoValidation = gcpFirestoreCommonSchema.
     }),
     jobId: Joi.string().optional().messages({
       "string.empty": "Job id should not be empty",
-    }),
-    candidateEmail: Joi.string().email().optional().lowercase().messages({
-      "string.empty": "Candidate Email should not be empty",
-      "string.email": "Invalid email",
     }),
     agencyRegisteredEmail: Joi.string().email().optional().lowercase().messages({
       "string.empty": "Agency Registered Email should not be empty",

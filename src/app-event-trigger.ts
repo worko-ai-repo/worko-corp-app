@@ -310,7 +310,7 @@ const validateCorporateCandProfileReferralSource = async (
     }
 
     const corpCandProfileActivityStatus: boolean = await corporateCandidateProfileServiceObj.validateCorporateCandProfileReferralSource(
-      companyId,
+      companyId.toUpperCase(),
       candidateCvAwsS3FileName,
       cvExtractedParsed
     );

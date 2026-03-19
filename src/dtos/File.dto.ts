@@ -70,6 +70,7 @@ export interface PreSignedUrlToViewFileResponseDto {
 }
 
 export interface AgencyUserSubmissionCvPsuToUploadApiDto {
+  agencyUserId: string;
   companyId: string;
   jobId: string;
   /**
@@ -111,6 +112,44 @@ export interface AgencyUserSubmissionCvPsuToViewApiDto {
    * @example "{ulidId}.pdf"
    */
   candidateCvAwsS3FileName: string;
+}
+
+export interface CorpCandBulkCvPsuToUploadApiDto {
+  companyId: string;
+  /**
+   * @example "raj_cv.pdf"
+   */
+  fileName: string;
+
+  /**
+   * @example "application/pdf"
+   */
+  fileMimeType: string;
+}
+
+export interface CorpCandReferralCvPsuToUploadApiDto {
+  companyId: string;
+  /**
+   * @example "raj_cv.pdf"
+   */
+  fileName: string;
+
+  /**
+   * @example "application/pdf"
+   */
+  fileMimeType: string;
+}
+
+export interface AdminCandBulkCvPsuToUploadApiDto {
+  /**
+   * @example "raj_cv.pdf"
+   */
+  fileName: string;
+
+  /**
+   * @example "application/pdf"
+   */
+  fileMimeType: string;
 }
 
 /**

@@ -12,7 +12,7 @@ import { QueryResponse } from "dynamoose/dist/ItemRetriever";
 import { APIGatewayProxyResult } from "aws-lambda";
 
 // Import aws client cognito identity provider
-import { AdminCreateUserCommandOutput } from "@aws-sdk/client-cognito-identity-provider";
+import { AdminCreateUserCommandOutput, AdminGetUserCommandOutput, UserStatusType } from "@aws-sdk/client-cognito-identity-provider";
 
 // Import configs
 import APP_CONSTANTS from "../configs/constants.config";
@@ -477,6 +477,59 @@ class CandidateParsedCvService {
       }
     }
   }
+
+  async getCandidateParsedCvByCandEmail(candidateEmail: string) {
+    return candidateParsedCvDaoObj.getCandidateParsedCvByCandEmail(candidateEmail);
+  }
+
+  resetTempPasswordCandidateParsedCv = async (
+    email: string
+  ) => {
+    const workoUserPoolId: string | undefined = process.env.APP_AWS_WORKO_COGNITO_USER_POOL_ID;
+    if(!workoUserPoolId) {
+      global.logger.error(`Failed to reset password, Worko User Pool Id not found`, { methodName: this.resetTempPasswordCandidateParsedCv.name });
+      throw new BaseError("Failed to reset password.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const candidateParsedCvDetails: QuerySnapshot<DocumentData, DocumentData> = await this.getCandidateParsedCvByCandEmail(email);
+    const candData = candidateParsedCvDetails.docs[0].data() as DbCandidateParsedCvDto;
+
+    const existingUserDetails: AdminGetUserCommandOutput = await awsClientCognitoIdentityProviderLibrary.getUserDetails(workoUserPoolId, email);
+
+    if(!existingUserDetails) {
+      global.logger.error(`Failed to reset password, User not found`, { methodName: this.resetTempPasswordCandidateParsedCv.name, email });
+      throw new BaseError("User not found to reset password.", HttpStatusCode.NOT_FOUND_404);
+    }
+
+    if(!existingUserDetails.UserStatus) {
+      global.logger.error(`Failed to reset password, User status not found`, { methodName: this.resetTempPasswordCandidateParsedCv.name, email, existingUserDetails });
+      throw new BaseError("Internal server error.", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    if(
+      existingUserDetails.UserStatus !== UserStatusType.FORCE_CHANGE_PASSWORD
+    ) {
+      global.logger.error(`Failed to reset password, User status is not 'FORCE_CHANGE_PASSWORD'`, { methodName: this.resetTempPasswordCandidateParsedCv.name, email, existingUserDetails });
+      throw new BaseError("You are not allowed to reset password.", HttpStatusCode.FORBIDDEN_403);
+    }
+
+    const newTemporaryPassword: string = `Temp${UlidService.getUlidId().toLowerCase()}!`;
+
+    return Promise.all([
+      awsClientCognitoIdentityProviderLibrary.setUserPassword(
+        workoUserPoolId,
+        email,
+        newTemporaryPassword,
+        false, // set a temporary password that the user must change on their next sign-in.
+      ),
+
+      UserDetailService.sendNewTemporaryPasswordEmailForCandAcctSignup(
+        email,
+        candData.name,
+        newTemporaryPassword
+      ),
+    ])
+  };
 
   async moveToApplicantCandidateParsedCv(
     validatedRequestBody: MoveToApplicantCandidateParsedCvCreateApiDTO,
@@ -1413,16 +1466,44 @@ class CandidateParsedCvService {
     updateDto: CandidateParsedCvUpdateApiDto
   ): Promise<DbCandidateParsedCvDto> {
     const {actionByUserId, actionByCorporateUserId} = getActionByUserId();
-    
+
     const updatedAt: string = dateHelperObj.getISODate();
+
+    const existingCandidateParsedCv: DbCandidateParsedCvDto | undefined = await this.getCandidateParsedCvById(id);
+    if (!existingCandidateParsedCv) {
+      global.logger.error(`Candidate Details does not exist.`, {
+        methodName: this.performUpdateCandidateParsedCv.name,
+        id
+      })
+      throw new BaseError(
+        "Candidate CV does not exist",
+        HttpStatusCode.NOT_FOUND_404
+      )
+    };
+
+    const updateData: Partial<DbCandidateParsedCvDto> = {
+      ...updateDto,
+      updatedByUserId:actionByUserId,
+      updatedByCorporateUserId:actionByCorporateUserId,
+      updatedAt,
+    }
+
+    if(updateDto?.cvAwsS3FileName) {
+      updateData.cvAwsS3FileTracker = [
+        ...existingCandidateParsedCv.cvAwsS3FileTracker,
+        {
+          actionDate: updatedAt,
+          resourceType: existingCandidateParsedCv.cvAwsS3ResourceType,
+          bucketName: existingCandidateParsedCv.cvAwsS3BucketName,
+          fileName: updateDto.cvAwsS3FileName,
+          filePath: existingCandidateParsedCv.cvAwsS3FilePath,
+        }
+      ]
+    }
+    
     const updatedCandidateParsedCv: DbCandidateParsedCvDto | undefined = await this.updateCandidateParsedCvWithEmbedding(
       id,
-      {
-        ...updateDto,
-        updatedByUserId:actionByUserId,
-        updatedByCorporateUserId:actionByCorporateUserId,
-        updatedAt,
-      }
+      updateData
     );
     if (!updatedCandidateParsedCv) {
       global.logger.error(`Failed to update candidate parsed cv.`, {
@@ -1667,6 +1748,7 @@ class CandidateParsedCvService {
       updatedAt: currentDate,
       companyId: reqBodyCompanyId,
       jobId: reqBodyJobId,
+      candidateName: lowerCaseCandidateName,
       candidateEmail: lowerCaseCandidateEmail,
       refereeType: refereeTypeForCorpCandProfile,
       candidateParsedCvId: candidateParsedCvCreateData.id,
@@ -1696,6 +1778,10 @@ class CandidateParsedCvService {
               jobIds: [reqBodyJobId]
             }
           ],
+          candidateProfileInCompaniesList: [
+            ...(existingCentralCandidateProfile?.candidateProfileInCompaniesList ?? []),
+            reqBodyCompanyData.name
+          ],
           corporateCandidateProfileIds: [
             ...(existingCentralCandidateProfile?.corporateCandidateProfileIds ?? []),
             corporateCandidateProfileCreateData.id
@@ -1712,6 +1798,7 @@ class CandidateParsedCvService {
         id: lowerCaseCandidateEmail,
         createdAt: currentDate,
         updatedAt: currentDate,
+        candidateName: lowerCaseCandidateName,
         candidateEmail: lowerCaseCandidateEmail,
         phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
         refereeType: refereeTypeForCentralCandProfile,

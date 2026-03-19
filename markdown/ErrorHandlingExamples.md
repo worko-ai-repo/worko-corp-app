@@ -369,3 +369,120 @@ PS C:\Users\rohit>
   "message": "Cannot reset password for the user as there is no registered/verified email or phone_number"
 }
 ```
+
+13. 
+```sh
+rohit@Rohith MINGW64 /d/Profession/Worko/Projects/WorkoCorpApp/worko-corp-app (feature/aws-sam-template)
+$ npm run deploy-offline
+
+> worko-corp-app@1.0.0 deploy-offline
+> npm run build && sam local start-api
+
+
+> worko-corp-app@1.0.0 build
+> webpack-cli
+
+
+<--- Last few GCs --->
+
+[16200:0000014DC0909000]    80794 ms: Mark-Compact 2012.9 (2132.2) -> 1988.1 (2136.2) MB, pooled: 0 MB, 1310.47 / 0.00 ms  (average mu = 0.683, current mu = 0.741) allocation failure; scavenge might not succeed
+[16200:0000014DC0909000]    85858 ms: Mark-Compact (reduce) 2343.1 (2491.0) -> 2236.4 (2335.7) MB, pooled: 0 MB, 929.51 / 0.00 ms  (+ 5.7 ms in 2 steps since start of marking, biggest step 5.2 ms, walltime since start of marking 4639 ms) (average mu = 0.7
+FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 00007FF6893CC36F node::OnFatalError+1343
+ 2: 00007FF68A014D77 v8::Function::NewInstance+423
+ 3: 00007FF689E15467 v8::base::AddressSpaceReservation::AddressSpaceReservation+322071
+ 4: 00007FF689E13106 v8::base::AddressSpaceReservation::AddressSpaceReservation+313014
+ 5: 00007FF689E96C09 v8::Unlocker::~Unlocker+9273
+ 6: 00007FF689A0C672 v8::String::Utf8Value::~Utf8Value+141746
+ 7: 0000014DF8F7733A
+
+rohit@Rohith MINGW64 /d/Profession/Worko/Projects/WorkoCorpApp/worko-corp-app (feature/aws-sam-template)
+$
+```
+
+14. 
+```sh
+rohit@Rohith MINGW64 /d/Profession/Worko/Projects/WorkoCorpApp/worko-corp-app (feature/aws-sam-template)
+$ npm run deploy-offline
+
+> mailto:worko-corp-app@1.0.0 deploy-offline
+> npm run build && sam local start-api
+
+> mailto:worko-corp-app@1.0.0 build
+> webpack-cli
+
+AWS SAM CLI does not guarantee 100% fidelity between authorizers locally
+and authorizers deployed on AWS. Any application critical behavior should
+be validated thoroughly before deploying to production.
+
+Testing application behaviour against authorizers deployed on AWS can be done using the sam sync command.
+
+Mounting WorkoCorpFunction at http://127.0.0.1:3000/{proxy+} [DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT]
+You can now browse to the above endpoints to invoke your functions. You do not need to restart/reload SAM CLI while working on your functions, changes will be reflected instantly/automatically. If you used sam
+build before running local commands, you will need to re-run sam build for the changes to be picked up. You only need to restart SAM CLI if you update your AWS SAM template
+
+Tip: There are .env files present. Install python-dotenv to use them. 2026-02-26 19:22:50 WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+
+Running on http://127.0.0.1:3000 2026-02-26 19:22:50 Press CTRL+C to quit worko-auth not found. Possible options in your template: ['WorkoCorpFunction', 'AppSchedulerFunction', 'AppEventTriggerFunction', 'AppInvokeLambdaFunction'] Failed to find a Function to invoke a Lambda authorizer, verify that this Function is defined and exists locally in the template. Lambda authorizer failed to invoke successfully: Unable to find a Function with name 'worko-auth' Invoking app.handler (nodejs22.x) Local image is up-to-date Using local image: public.ecr.aws/lambda/nodejs:22-rapid-x86_64.
+
+Mounting D:\Profession\Worko\Projects\WorkoCorpApp\worko-corp-app.aws-sam\build\WorkoCorpFunction as /var/task:ro,delegated, inside runtime container
+SAM_CONTAINER_ID: 1f4c653574b383e31326ae6e4be7cdb2aaf38d6b7fe2eeef8eee5d60cd538bef
+START RequestId: d3680712-0b70-46df-82ca-da34b54e7c50 Version: $LATEST
+2026-02-26T13:53:30.827Z undefined ERROR Uncaught Exception {"errorType":"Runtime.ImportModuleError","errorMessage":"Error: Cannot find module 'express'\nRequire stack:\n- /var/task/app.js\n- /var/runtime/index.mjs","stack":["Runtime.ImportModuleError: Error: Cannot find module 'express'","Require stack:","- /var/task/app.js","- /var/runtime/index.mjs"," at _loadUserApp (file:///var/runtime/index.mjs:1192:17)"," at async UserFunction.js.module.exports.load (file:///var/runtime/index.mjs:1235:21)"," at async start (file:///var/runtime/index.mjs:1454:23)"," at async file:///var/runtime/index.mjs:1464:1"]}
+26 Feb 2026 13:53:30,892 [ERROR] (rapid) Init failed InvokeID= error=Runtime exited with error: exit status 129
+26 Feb 2026 13:53:30,892 [ERROR] (rapid) Invoke failed InvokeID=5bd3811d-b37b-4eb7-a1f6-76bfcf57dbc6 error=Runtime exited with error: exit status 129
+26 Feb 2026 13:53:30,892 [ERROR] (rapid) Invoke DONE failed: Sandbox.Failure
+
+2026-02-26 19:23:32 127.0.0.1 - - [26/Feb/2026 19:23:32] "GET /candidate-parsed-cv/search-in-db/admin-action HTTP/1.1" 500 -
+worko-auth not found. Possible options in your template: ['WorkoCorpFunction', 'AppSchedulerFunction', 'AppEventTriggerFunction', 'AppInvokeLambdaFunction']
+Failed to find a Function to invoke a Lambda authorizer, verify that this Function is defined and exists locally in the template.
+Lambda authorizer failed to invoke successfully: Unable to find a Function with name 'worko-auth'
+Invoking app.handler (nodejs22.x)
+Using local image: public.ecr.aws/lambda/nodejs:22-rapid-x86_64.
+
+Mounting D:\Profession\Worko\Projects\WorkoCorpApp\worko-corp-app.aws-sam\build\WorkoCorpFunction as /var/task:ro,delegated, inside runtime container
+SAM_CONTAINER_ID: 7edb53254e37b438eb1e9b9ea6ecfd45a9f17d00feac564bffb53d8b943ae34c
+START RequestId: d2b09a97-9ef6-4715-8cb9-b3116c5c4e1c Version: $LATEST
+2026-02-26T13:54:25.393Z undefined ERROR Uncaught Exception {"errorType":"Runtime.ImportModuleError","errorMessage":"Error: Cannot find module 'express'\nRequire stack:\n- /var/task/app.js\n- /var/runtime/index.mjs","stack":["Runtime.ImportModuleError: Error: Cannot find module 'express'","Require stack:","- /var/task/app.js","- /var/runtime/index.mjs"," at _loadUserApp (file:///var/runtime/index.mjs:1192:17)"," at async UserFunction.js.module.exports.load (file:///var/runtime/index.mjs:1235:21)"," at async start (file:///var/runtime/index.mjs:1454:23)"," at async file:///var/runtime/index.mjs:1464:1"]}
+26 Feb 2026 13:54:25,448 [ERROR] (rapid) Init failed error=Runtime exited with error: exit status 129 InvokeID=
+26 Feb 2026 13:54:25,449 [ERROR] (rapid) Invoke failed error=Runtime exited with error: exit status 129 InvokeID=e61de100-7941-4564-99db-c4afaa182426
+26 Feb 2026 13:54:25,450 [ERROR] (rapid) Invoke DONE failed: Sandbox.Failure
+
+2026-02-26 19:24:27 127.0.0.1 - - [26/Feb/2026 19:24:27] "GET /candidate-parsed-cv/search-in-db/admin-action?pageNumber=1 HTTP/1.1" 500 -
+```
+
+15. 
+```sh
+2026-03-03T09:45:40.999Z	0a6e67ee-e04c-433b-9495-ae8200770daf	ERROR	(node:2) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+```
+
+16. 
+```ts
+/**
+ * @see https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_PasswordPolicyType.html
+ */
+```
+Request URL
+https://cognito-idp.ap-south-1.amazonaws.com/
+
+Request Method
+POST
+```json
+// payload
+{
+  "ChallengeName":  "PASSWORD_VERIFIER",
+  "ChallengeResponses" : {"USERNAME": "21637d1a-1051-70f4-f630-xxxxxxxx"},
+  "PASSWORD_CLAIM_SECRET_BLOCK": "AgV4rPB7k6nlrU5r0g/3F/rfrVNKaY......",
+  "PASSWORD_CLAIM_SIGNATURE": "REDACTED_SECRET",
+  "TIMESTAMP": "Sat Mar 7 06:27:32 UTC 2026",
+  "USERNAME": "21637d1a-1051-70f4-f630-xxxxxxxx",
+  "ClientId": "7ul99pqf5uflpl2ckvukklc6c3"
+}
+```
+```json
+// Response
+{"__type":"NotAuthorizedException","message":"Temporary password has expired and must be reset by an administrator."}
+```

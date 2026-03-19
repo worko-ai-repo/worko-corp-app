@@ -1,0 +1,59 @@
+version = 0.1
+
+[dev.deploy.parameters]
+stack_name = "worko-corp-dev"
+resolve_s3 = true
+s3_prefix = "worko-corp-dev"
+region = "ap-south-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_NAMED_IAM"
+parameter_overrides = [
+    "Stage=dev",
+    "AppAwsAccountId=211125353899",
+    "AppAwsVpc=vpc-0fc1b68f49b85a818",
+    "AppAwsSecurityGroup=sg-072a75d69a8f727fa",
+    "AppAwsSubnet1=subnet-053a378ed8764a609",
+    "AppAwsSubnet2=subnet-0a92c2704117d0bd8",
+    "AppSlsRegion=ap-south-1",
+    "AppAwsAgencyCognitoUserPoolId=ap-south-1_KB3omxXcw",
+    "AppAwsWorkoCognitoUserPoolId=ap-south-1_xGreJKkNc",
+    "AppAwsSecretsManagerGcpFirestoreArnSecret=GCP-firestore-secret-dev-1fEW4B",
+    "AppAwsSecretsManagerGcpAiPlatformArnSecret=GCP-aiplatform-secrect-dev-uNB85X",
+    "AppAwsS3BucketWorkoCorporate=worko-corporate-dev",
+    "AppAwsS3BucketWorkoApp=worko-app-dev",
+    "AppAwsS3BucketWorkoAgencyBulkCvs=worko-agency-bulk-cvs-dev",
+    "AppAwsS3BucketWorkoCorporateCandProfile=worko-corporate-cand-profile-dev",
+    "AppAwsS3BucketWorkoAdminCandProfile=worko-admin-cand-profile-dev",
+    "AppAwsS3BucketWorkoCorporateReferralSourceCv=worko-corporate-referral-source-cv-dev",
+    "AppWorkoFrontendBaseUrl=https://dev.worko.work",
+    "AppWorkoAgencyFrontendBaseUrl=https://agency.worko.work"
+]
+
+[prod.deploy.parameters]
+stack_name = "worko-corp-prod"
+s3_prefix = "worko-corp-prod"
+resolve_s3 = true
+region = "ap-south-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_NAMED_IAM"
+parameter_overrides = [
+    "Stage=prod",
+    "AppAwsAccountId=211125595046",
+    "AppAwsVpc=vpc-0ffe51db8ea05d9e5",
+    "AppAwsSecurityGroup=sg-0d92cdb1a32f3060c",
+    "AppAwsSubnet1=subnet-0fc02fbcf44b043b5",
+    "AppAwsSubnet2=subnet-08f96239f78d632ba",
+    "AppSlsRegion=ap-south-1",
+    "AppAwsAgencyCognitoUserPoolId=ap-south-1_B1kmQmUQK",
+    "AppAwsWorkoCognitoUserPoolId=ap-south-1_1f9O34ojY",
+    "AppAwsSecretsManagerGcpFirestoreArnSecret=GCP-firestore-secret-prod-bqqnAI",
+    "AppAwsSecretsManagerGcpAiPlatformArnSecret=GCP-aiplatform-secrect-prod-4YH7c4",
+    "AppAwsS3BucketWorkoCorporate=worko-corporate-prod",
+    "AppAwsS3BucketWorkoApp=worko-app-prod",
+    "AppAwsS3BucketWorkoAgencyBulkCvs=worko-agency-bulk-cvs-prod",
+    "AppAwsS3BucketWorkoCorporateCandProfile=worko-corporate-cand-profile-prod",
+    "AppAwsS3BucketWorkoAdminCandProfile=worko-admin-cand-profile-prod",
+    "AppAwsS3BucketWorkoCorporateReferralSourceCv=worko-corporate-referral-source-cv-prod",
+    "AppWorkoFrontendBaseUrl=https://worko.ai",
+    "AppWorkoAgencyFrontendBaseUrl=https://agency.worko.ai"
+]

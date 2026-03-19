@@ -221,7 +221,7 @@ class AgencyUserSubmissionService {
     ) {
       global.logger.error(`Agency User Invite is deleted or paused.`, {
         reqBodyAgencyInviteDetails,
-        methodName: this.performCreateAgencyUserSubmissionActivities.name,
+        methodName: this.parseAgencyUserSubmissionCandidateCv.name,
       });
       if (
         reqBodyAgencyInviteDetails.inviteAction ===
@@ -459,6 +459,11 @@ class AgencyUserSubmissionService {
       ]
     };
 
+    const candidateName: string = candidateParsedCvData.name.toLowerCase();
+
+    // The candidate profile came from a company.
+    const candidateFromCompanyName: string = reqBodyCompanyData.name.toUpperCase();
+
     /**
      * Prepare data to Store Agency User Submission details in "AgencyUserSubmission" model
      */
@@ -466,8 +471,10 @@ class AgencyUserSubmissionService {
       id: UlidService.getUlidId(),
       createdAt: currentDate,
       updatedAt: currentDate,
+      companyName: candidateFromCompanyName,
       companyId: reqBodyCompanyId,
       jobId: reqBodyJobId,
+      candidateName,
       candidateEmail: reqBodyParsedCvCandidateEmail,
       candidateParsedCvId: candidateParsedCvCreateData.id,
       agencyUserId: agencyUserDetails.id,
@@ -492,6 +499,7 @@ class AgencyUserSubmissionService {
       updatedAt: currentDate,
       companyId: reqBodyCompanyId,
       jobId: reqBodyJobId,
+      candidateName,
       candidateEmail: reqBodyParsedCvCandidateEmail,
       refereeType: CorporateCandidateProfileDbRefereeTypeEnum.AGENCY,
       candidateParsedCvId: candidateParsedCvCreateData.id,
@@ -524,9 +532,13 @@ class AgencyUserSubmissionService {
             ...(existingCentralCandidateProfile?.candidateProfileInCompanies ?? []),
             {
               companyId: reqBodyCompanyId,
-              companyName: reqBodyCompanyData.name,
+              companyName: candidateFromCompanyName,
               jobIds: [reqBodyJobId]
             }
+          ],
+          candidateProfileInCompaniesList: [
+            ...(existingCentralCandidateProfile?.candidateProfileInCompaniesList ?? []),
+            candidateFromCompanyName
           ],
           corporateCandidateProfileIds: [
             ...(existingCentralCandidateProfile?.corporateCandidateProfileIds ?? []),
@@ -544,6 +556,7 @@ class AgencyUserSubmissionService {
         id: reqBodyParsedCvCandidateEmail,
         createdAt: currentDate,
         updatedAt: currentDate,
+        candidateName,
         candidateEmail: reqBodyParsedCvCandidateEmail,
         phoneNumberDetails: candidateParsedCvCreateData.phoneNumberDetails,
         refereeType: CentralCandidateProfileDbRefereeTypeEnum.AGENCY,
@@ -551,9 +564,12 @@ class AgencyUserSubmissionService {
         candidateProfileInCompanies: [
           {
             companyId: reqBodyCompanyId,
-            companyName: reqBodyCompanyData.name,
+            companyName: candidateFromCompanyName,
             jobIds: [reqBodyJobId],
           },
+        ],
+        candidateProfileInCompaniesList: [
+          candidateFromCompanyName
         ],
         corporateCandidateProfileIds: [corporateCandidateProfileCreateData.id],
         candidateParsedCvIds: [candidateParsedCvCreateData.id],

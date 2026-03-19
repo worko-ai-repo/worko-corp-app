@@ -230,6 +230,9 @@ export const candidateParsedCvUpdateApiValidationDto = Joi.object({
   userPreferredRoles: Joi.array().items(Joi.string().lowercase()).optional().messages({
     "array.base": "User Preferred Roles must be an array",
   }),
+  cvAwsS3FileName: Joi.string().optional().messages({
+    "string.base": "CV AWS S3 File Name should be a string",
+  })
 }).options({ stripUnknown: true });
 
 export const candidateParsedCvParseSubmitFormApiValidationDto = Joi.object({
@@ -262,3 +265,10 @@ export const candidateParsedCvRefreshApiValidationDto = Joi.object({
     "any.required": "Candidate parsed cv id is required",
   })
 });
+
+export const candidateParsedCvResetTempPasswordApiValidationDto = Joi.object({
+  candidateEmail: Joi.string().required().lowercase().messages({
+    "string.empty": "Candidate email is required",
+    "any.required": "Candidate email is required",
+  })
+})

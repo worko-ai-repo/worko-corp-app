@@ -18,7 +18,7 @@ import userDetailDao from "../daos/UserDetail.dao";
 // Import dtos
 import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
 import { ScheduleJobAdminCandAcctCreateSignupReminderInputDto, ScheduleJobCreateDto } from "../dtos/ScheduleJob.dto";
-import { EmailTemplatePlaceholderCAND_ACCOUNT_CHANGE_PASS_SIGNUP_REMINDER } from "../dtos/EmailTemplatePlaceholder.dto";
+import { EmailTemplatePlaceholderCAND_ACCOUNT_CHANGE_PASS_SIGNUP_REMINDER, EmailTemplatePlaceholderCAND_ACCOUNT_RESET_TEMP_PASSWORD } from "../dtos/EmailTemplatePlaceholder.dto";
 
 // Import enums
 import { ScheduleJobStatus, ScheduleJobType } from "../enums/ScheduleJob.enum";
@@ -71,6 +71,34 @@ class UserDetailService {
 
     await emailLibrary.sendEmail(
       EmailTemplateEnum.CAND_ACCOUNT_CHANGE_PASS_SIGNUP_REMINDER,
+      toAddress,
+      emailPlaceholders
+    );
+
+    return true;
+  }
+
+  async sendNewTemporaryPasswordEmailForCandAcctSignup(
+    candidateEmail: string,
+    candidateName: string,
+    temporaryPassword: string,
+  ): Promise<boolean> {
+    const toAddress: EmailSourceDestinationAddress = {
+      email: candidateEmail,
+      fullName: candidateName.toTitleCase(),
+    };
+
+    const emailPlaceholders: EmailTemplatePlaceholderCAND_ACCOUNT_RESET_TEMP_PASSWORD =
+      {
+        candidateName: candidateName.toTitleCase(),
+        candidateEmail: candidateEmail,
+        candidateLoginUrl: APP_CONSTANTS.FRONTEND_URLS.WORKO_LOGIN_URL,
+        candidateTemporaryPassword: temporaryPassword,
+        ...APP_CONSTANTS.GET_WORKO_SOCIAL_PROFILES_TO_SEND_EMAIL
+      };
+
+    await emailLibrary.sendEmail(
+      EmailTemplateEnum.CAND_ACCOUNT_RESET_TEMP_PASSWORD,
       toAddress,
       emailPlaceholders
     );

@@ -1,8 +1,10 @@
 
+
 interface String {
   strtr(replacePairs: Record<string, string>): string;
-  toTitleCase(): string; // Method to convert a string to Title Case
+  toTitleCase(): string;
 }
+
 
 /**
  * strtr

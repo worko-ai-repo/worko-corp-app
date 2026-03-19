@@ -8,6 +8,7 @@ import {
 // Import enums
 import { CorporateCandidateProfileDbRefereeTypeEnum } from "../enums/CorporateCandidateProfile.enum";
 import { HiringEligibilityStatusEnum } from "../enums/Common.enum";
+import { BulkSourceTypeParseResumeStatusEnum } from "../enums/BulkSourceTypeParseResume.enum";
 
 export interface CorporateCandidateProfileDbPhoneNumberDto extends CommonPhoneNumberDto {}
 
@@ -15,7 +16,6 @@ export interface CorporateCandidateProfileListingFilterOptions extends GcpFirest
  refereeType?: CorporateCandidateProfileDbRefereeTypeEnum;
  hiringEligibilityStatus?: HiringEligibilityStatusEnum;
  companyId: string;
- candidateEmail?: string;
  includeCandidateParsedCvDetails?: boolean;
  includeJobDetails?: boolean;
 }
@@ -24,7 +24,6 @@ export interface CorporateCandidateProfileListingFilterRequestDTO extends GcpFir
  refereeType?: CorporateCandidateProfileDbRefereeTypeEnum;
  hiringEligibilityStatus?: HiringEligibilityStatusEnum;
  companyId: string;
- candidateEmail?: string;
  includeCandidateParsedCvDetails?: boolean;
  includeJobDetails?: boolean;
 }
@@ -46,6 +45,7 @@ export interface CorporateCandidateProfileBulkCvPsuToUploadApiDto {
   bulkCvs: {
     fileName: string; // "sample-cv.pdf"
     fileMimeType: string; // "application/pdf"
+    bulkSourceTypeParseResumeStatus?: BulkSourceTypeParseResumeStatusEnum;
   }[];
 
   /**

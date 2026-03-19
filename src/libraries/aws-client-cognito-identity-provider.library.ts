@@ -7,10 +7,12 @@ import {
   // Commands
   AdminGetUserCommand,
   AdminCreateUserCommand,
+  AdminSetUserPasswordCommand,
 
   // Command outputs
   AdminGetUserCommandOutput,
   AdminCreateUserCommandOutput,
+  AdminSetUserPasswordCommandOutput,
 
   // Types
   MessageActionType,
@@ -65,6 +67,41 @@ class AwsClientCognitoIdentityProviderLibrary {
   client = new CognitoIdentityProviderClient(
     this.initClientCognitoIdentityProviderArguments()
   );
+
+  async setUserPassword(
+    userPoolId: string,
+    username: string,
+    newTemporaryPassword: string,
+    permanent: boolean
+  ): Promise<AdminSetUserPasswordCommandOutput> {
+    try {
+      global.logger.info("Resetting temporary password for existing user. [LIBRARY]", {
+        methodName: this.setUserPassword.name,
+        userPoolId,
+        username,
+      });
+
+      const command = new AdminSetUserPasswordCommand({
+        UserPoolId: userPoolId,
+        Username: username,
+        Password: newTemporaryPassword,
+        Permanent: permanent, 
+      });
+
+      return this.client.send(command);
+    } catch (error) {
+      global.logger.error("Error caught while resetting password. [LIBRARY]", {
+        methodName: this.setUserPassword.name,
+        error: error,
+        username,
+      });
+
+      throw new BaseError(
+        "Unable to reset user password in cognito.",
+        HttpStatusCode.INTERNAL_SERVER_ERROR_500
+      );
+    }
+  }
 
   async createUser(
     userPoolId: string,

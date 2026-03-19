@@ -76,28 +76,59 @@ class CentralCandidateProfileDao implements BaseDao {
       .get();
   }
 
+  async getCentralCandidateProfileByCandName(candidateName: string): Promise<QuerySnapshot<DocumentData, DocumentData>> {
+    const db: Firestore = await this.getCentralCandidateProfileFirestoreDatabase();
+
+    return db
+      .collection(this.collectionName)
+      .where("candidateName", "==", candidateName)
+      .get();
+  }
+
   async getAllCentralCandidateProfileByFilterOptions(
     filterOptions: CentralCandidateProfileListingFilterOptions
   ): Promise<GcpFirestoreRecordListingResponseDTO<DbCentralCandidateProfileDto[]>> {
-    const { refereeType, candidateEmail, sortOrder } = filterOptions;
+    const { refereeType, searchText, sortOrder, companyName } = filterOptions;
 
     const db: Firestore = await this.getCentralCandidateProfileFirestoreDatabase();
     let baseQuery: Query<DocumentData, DocumentData> = db.collection(
       this.collectionName
     );
 
-    if(candidateEmail) {
-      const candProfileById: DbCentralCandidateProfileDto | undefined = await this.getCentralCandidateProfileById(candidateEmail);
-      const candProfileResponse: GcpFirestoreRecordListingResponseDTO<DbCentralCandidateProfileDto[]> = {
-        data: candProfileById ? [candProfileById] : [],
-        pagination: {
-          count: candProfileById ? 1 : 0,
-          pageSize: filterOptions.pageSize,
-          sortOrder: sortOrder,
+    if(searchText) {
+      if(
+        searchText?.includes("@")
+      ) {
+        const candidateEmail: string = searchText.toLowerCase();
+        const candProfileById: DbCentralCandidateProfileDto | undefined = await this.getCentralCandidateProfileById(candidateEmail);
+        const candProfileResponse: GcpFirestoreRecordListingResponseDTO<DbCentralCandidateProfileDto[]> = {
+          data: candProfileById ? [candProfileById] : [],
+          pagination: {
+            count: candProfileById ? 1 : 0,
+            pageSize: filterOptions.pageSize,
+            sortOrder: sortOrder,
+          }
         }
+        return candProfileResponse;
+      } else {
+        const candidateName: string = searchText.toLowerCase();
+        const candProfileByCandName: QuerySnapshot<DocumentData, DocumentData> = await this.getCentralCandidateProfileByCandName(candidateName);
+        const candProfileResponse: GcpFirestoreRecordListingResponseDTO<DbCentralCandidateProfileDto[]> = {
+          data: candProfileByCandName.docs.map((doc) => doc.data() as DbCentralCandidateProfileDto),
+          pagination: {
+            count: candProfileByCandName.docs.length,
+            pageSize: filterOptions.pageSize,
+            sortOrder: sortOrder,
+          }
+        }
+        return candProfileResponse;
       }
-      return candProfileResponse;
     } else {
+      if(companyName) {
+        baseQuery = baseQuery.where("candidateProfileInCompaniesList", 'array-contains-any', 
+          [companyName]
+        );
+      }
       if (refereeType) baseQuery = baseQuery.where("refereeType", "==", refereeType);
       if (sortOrder) baseQuery = baseQuery.orderBy("createdAt", sortOrder);
     }
@@ -117,6 +148,10 @@ class CentralCandidateProfileDao implements BaseDao {
       id,
       updateData
     );
+  }
+
+  async scriptAddCandNameInCentralCandidateProfile(updateCentralCandidateData: { id: string; updateData: Partial<DbCentralCandidateProfileDto> }[]) {
+    return gcpFirestoreLibrary.bulkUpdateDocumentByIdsWithDifferentData<Partial<DbCentralCandidateProfileDto>>(this.getCentralCandidateProfileModelDetails(), updateCentralCandidateData);
   }
 }
 

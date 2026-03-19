@@ -89,10 +89,10 @@ export interface AgencyUserSubmissionCreateApiDto {
   isNoticePeriodNegotiable: boolean;
   about?: string;
   education?: {
-    collage: string;
-    degree: string;
+    collage?: string;
+    degree?: string;
     startedYear?: number;
-    passingYear: number;
+    passingYear?: number;
     grade?: string;
     field?: string;
   }[];
@@ -150,7 +150,6 @@ export interface AgencyUserSubmissionListingFilterOptions extends GcpFirestoreRe
   agencyRegisteredEmail?: string;
   companyId?: string;
   jobId?: string;
-  candidateEmail?: string;
   agencyJobAssignedByCorporateUserId?: string;
   agencyName?: string;
   includeJobDetails?: boolean;
@@ -161,7 +160,6 @@ export interface AgencyUserSubmissionListingFilterRequestDTO extends GcpFirestor
   agencyRegisteredEmail?: string;  
   companyId?: string;
   jobId?: string;
-  candidateEmail?: string;
   agencyJobAssignedByCorporateUserId?: string;
   agencyName?: string;
   includeJobDetails?: boolean;
