@@ -1,5 +1,5 @@
 # About The Project
-It is a NodeJs based serverless microservice. It serves/facilitates WORKO CORP APP APIS.
+It is a NodeJs based serverless microservice. It serves/facilitates WORKO CORP APIS with agency dashboard, candidate incomming flow to worko system.
 
 # Getting Started
 These instructions will get you a copy of the project up and running on your local machine for development, testing purposes, and deployment on higher environments.
@@ -29,19 +29,6 @@ $ git checkout -b feature/todo-list dev
 $ npm i
 ```
 
-# Run Application In Your Local Machine
-```sh
-# Note: Open `docker` before running below command
-$ npm run local
-```
-
-This will clean the previous build (`.aws-sam`), run a fresh SAM build using esbuild, and start the API locally via `sam local start-api`.
-
-Alternatively, use nodemon for auto-restart on file changes:
-```sh
-$ npm run local-with-nodemon
-```
-
 # AWS CLI Configuration
 We need to set up the AWS CLI with multiple profiles in order to execute SAM commands for different environments using the corresponding profile.
 
@@ -58,6 +45,29 @@ Each command will prompt for:
 - `AWS Secret Access Key`
 - `Default region name` → `ap-south-1`
 - `Default output format` → `json`
+
+# Run Application In Your Local Machine
+1. Open `docker` and make sure its running
+2. Use below command in your `terminal` 
+```sh
+aws sso login
+```
+3. Verify and return details about the IAM identity (user or role) whose credentials are currently being used to authenticate a request by using below command
+```sh
+aws sts get-caller-identity 
+```
+4. Set `Stage` to `local` and before you push your code to `code catalyst` set it to `dev`
+5. Then run below command in your project directory by navigating to 
+```sh
+$ npm run local
+```
+
+This will clean the previous build (`.aws-sam`), run a fresh SAM build using esbuild, and start the API locally via `sam local start-api`.
+
+Alternatively, use nodemon for auto-restart on file changes:
+```sh
+$ npm run local-with-nodemon
+```
 
 # Deployment on Higher Environments (Prod)
 
