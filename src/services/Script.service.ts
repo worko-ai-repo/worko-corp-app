@@ -221,8 +221,8 @@ class ScriptService {
          return {
             id: centralCandidateProfile.id,
             updateData: {
-               candidateName: candidateParsedCv?.name || "",
-               candidateProfileInCompaniesList: centralCandidateProfile?.candidateProfileInCompanies?.map((item) => item.companyName)
+               candidateName: candidateParsedCv?.name.toLowerCase() || "",
+               candidateProfileInCompaniesList: centralCandidateProfile?.candidateProfileInCompanies?.map((item) => item.companyName.toUpperCase())
             }
          };
       });
@@ -258,7 +258,7 @@ class ScriptService {
          return {
             id: corporateCandidateProfile.id,
             updateData: {
-               candidateName: candidateParsedCv?.name || ""
+               candidateName: candidateParsedCv?.name.toLowerCase() || ""
             }
          };
       });
