@@ -56,7 +56,7 @@ aws sso login
 ```sh
 aws sts get-caller-identity 
 ```
-4. Set `Stage` to `local` and before you push your code to `code catalyst` set it to `dev`
+4. In `app.ts` in `registerAppRoutes` if condition to `DEV` and before you push your code to `code catalyst` set it to `LOCAL`
 5. Then run below command in your project directory by navigating to 
 ```sh
 $ npm run local
