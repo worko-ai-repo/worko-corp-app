@@ -115,10 +115,9 @@ Globals:
         APP_RAZORPAY_KEY_ID: "rzp_test_yq5Mt1KeflWopy"
         APP_RAZORPAY_KEY_SECRET: "REDACTED_SECRET"
 
-        # @todo Need to debug how to run application in local machine with nodemon
         # @note Use below envs only on your local machine
-        # APP_AWS_AUTH_MOCK_USER_ID: "REDACTED_SECRET"
-        # APP_AWS_AUTH_MOCK_USER_EMAIL: "rohithappala777+candidate3@gmail.com"
+        APP_AWS_AUTH_MOCK_USER_ID: "REDACTED_SECRET"
+        APP_AWS_AUTH_MOCK_USER_EMAIL: "rohithappala777+candidate3@gmail.com"
 
 Resources:
   # IAM Role for Lambda Functions
