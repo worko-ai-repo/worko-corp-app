@@ -88,7 +88,7 @@ class ScriptController {
       //    message: "Not Allowed",
       // });
       res.status(HttpStatusCode.ACCEPTED_202).json({
-        message: `Add candidate and company name in agencyUserSubmissions collection initaited successfully, check "worko-corp-${process.env.APP_STAGE}-appInvokeLambda" aws lambda cloudwatch logs for the success/failure tracking.`,
+        message: `Add candidate and company name in corporateCandidateProfiles collection initaited successfully, check "worko-corp-${process.env.APP_STAGE}-appInvokeLambda" aws lambda cloudwatch logs for the success/failure tracking.`,
         apiGatewayResponse: data
       });
    } catch (error) {
