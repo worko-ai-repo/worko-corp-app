@@ -4,11 +4,11 @@ import { Request, Response, NextFunction } from "express";
 import { userJobApplicationDao } from "../daos/UserJobApplication.dao";
 
 // Import services
-import { scriptServiceObj } from "../services/Script.service";
+// import { scriptServiceObj } from "../services/Script.service";
 
 // Import local utils
 import HttpStatusCode from "../utils/http-codes.util";
-import { candidateParsedCvServiceObj } from "../services/CandidateParsedCv.service";
+// import { candidateParsedCvServiceObj } from "../services/CandidateParsedCv.service";
 
 class ScriptController {
   scriptTest = async (
@@ -83,14 +83,14 @@ class ScriptController {
 
   scriptToAddCandNameInCorporateCandidateProfileAsync = async (req: Request, res: Response, next: NextFunction) => {
    try {
-      const data = await scriptServiceObj.scriptToAddCandNameInCorporateCandidateProfileAsync()
-      // res.status(HttpStatusCode.FORBIDDEN_403).json({
-      //    message: "Not Allowed",
-      // });
-      res.status(HttpStatusCode.ACCEPTED_202).json({
-        message: `Add candidate and company name in corporateCandidateProfiles collection initaited successfully, check "worko-corp-${process.env.APP_STAGE}-appInvokeLambda" aws lambda cloudwatch logs for the success/failure tracking.`,
-        apiGatewayResponse: data
+      // const data = await scriptServiceObj.scriptToAddCandNameInCorporateCandidateProfileAsync()
+      res.status(HttpStatusCode.FORBIDDEN_403).json({
+         message: "Not Allowed",
       });
+      // res.status(HttpStatusCode.ACCEPTED_202).json({
+      //   message: `Add candidate and company name in corporateCandidateProfiles collection initaited successfully, check "worko-corp-${process.env.APP_STAGE}-appInvokeLambda" aws lambda cloudwatch logs for the success/failure tracking.`,
+      //   apiGatewayResponse: data
+      // });
    } catch (error) {
       global.logger.error(`Script Test [Controller]`, {
          methodName: this.scriptTest.name,
@@ -102,14 +102,14 @@ class ScriptController {
 
   scriptToAddCandNameInCentralCandidateProfileAsync = async (req: Request, res: Response, next: NextFunction) => {
      try {
-        const data = await scriptServiceObj.scriptToAddCandNameInCentralCandidateProfileAsync()
-        // res.status(HttpStatusCode.FORBIDDEN_403).json({
-        //   message: "Not Allowed",
-        // });
-        res.status(HttpStatusCode.ACCEPTED_202).json({
-           message: `Add candidate name in centralCandidateProfiles collection initaited successfully, check "worko-corp-${process.env.APP_STAGE}-appInvokeLambda" aws lambda cloudwatch logs for the success/failure tracking.`,
-           apiGatewayResponse: data
+        // const data = await scriptServiceObj.scriptToAddCandNameInCentralCandidateProfileAsync()
+        res.status(HttpStatusCode.FORBIDDEN_403).json({
+          message: "Not Allowed",
         });
+      //   res.status(HttpStatusCode.ACCEPTED_202).json({
+      //      message: `Add candidate name in centralCandidateProfiles collection initaited successfully, check "worko-corp-${process.env.APP_STAGE}-appInvokeLambda" aws lambda cloudwatch logs for the success/failure tracking.`,
+      //      apiGatewayResponse: data
+      //   });
      } catch (error) {
         global.logger.error(`Script Test [Controller]`, {
            methodName: this.scriptTest.name,
