@@ -6,7 +6,7 @@ import { APIGatewayProxyResult } from "aws-lambda";
 import { QueryResponse } from "dynamoose/dist/ItemRetriever";
 
 // Import google cloud firestore
-import { DocumentData, QuerySnapshot } from "@google-cloud/firestore";
+import { DocumentData, FieldValue, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import aws packages
 import { AdminCreateUserCommandOutput } from "@aws-sdk/client-cognito-identity-provider";
@@ -811,7 +811,7 @@ class AgencyUserSubmissionService {
     return finalResponse;
   }
 
-  private async createJobApplAndUpdateAgencyUserSubmission(
+  private async createJobApplAndUpdateAgencyActivities(
     validatedRequestBody: AgencyUserSubmissionMoveToApplicantCreateApiDTO,
     cognitoUserGroups: string[],
     existingAgencyUserSubmissionDetails: DbAgencyUserSubmissionDto,
@@ -834,7 +834,7 @@ class AgencyUserSubmissionService {
       actionByCorporateUserId
     )
 
-    const updateAgencyUserSubmission: DbAgencyUserSubmissionDto | undefined = await this.updateAgencyUserSubmissionById(
+    const updateAgencyUserSubmission = this.updateAgencyUserSubmissionById(
       validatedRequestBody.agencyUserSubmissionId,
       {
         updatedAt: dateHelperObj.getISODate(),
@@ -847,16 +847,27 @@ class AgencyUserSubmissionService {
       }
     );
 
-    if(!updateAgencyUserSubmission) {
-      global.logger.error(`Failed to move to applicant, Failed to update Agency User Submission`, { 
+    const updateAgencyJobAssignment = agencyJobAssignmentServiceObj.updateAgencyJobAssignmentById(
+      existingAgencyUserSubmissionDetails.agencyJobAssignmentId,
+      {
+        candidatesInProcessCount: FieldValue.increment(1),
+        updatedAt: dateHelperObj.getISODate(),
+      }
+    );
+
+    const [updateAgencyUserSubmissionRes, updateAgencyJobAssignmentRes] = await Promise.all([updateAgencyUserSubmission, updateAgencyJobAssignment]);
+
+    if(!updateAgencyJobAssignmentRes || !updateAgencyUserSubmissionRes) {
+      global.logger.error(`Failed to move to applicant, Failed to update Agency User Submission or Agency Job Assignment`, { 
         methodName: this.moveToApplicantAgencyUserSubmission.name, 
         validatedRequestBody,
-        updateAgencyUserSubmission
+        updateAgencyJobAssignmentRes,
+        updateAgencyUserSubmissionRes
       });
       throw new BaseError("Failed to move to applicant", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
     }
 
-    return updateAgencyUserSubmission;
+    return updateAgencyUserSubmissionRes;
   }
 
   async moveToApplicantAgencyUserSubmission(
@@ -917,7 +928,7 @@ class AgencyUserSubmissionService {
       candidateEmail
     );
     if(applicantRegisteredDetails.count) {
-      return this.createJobApplAndUpdateAgencyUserSubmission(
+      return this.createJobApplAndUpdateAgencyActivities(
         validatedRequestBody, 
         cognitoUserGroups, 
         existingAgencyUserSubmissionDetails,
@@ -979,7 +990,7 @@ class AgencyUserSubmissionService {
 
     const userDetailAndJobAppl: [DbUserDetailDto, DbAgencyUserSubmissionDto,boolean, boolean] = await Promise.all([
       UserDetailService.createUserDetail(createUserDetailDto),
-      this.createJobApplAndUpdateAgencyUserSubmission(validatedRequestBody, cognitoUserGroups, existingAgencyUserSubmissionDetails, candidateParsedCvDetails, actionByUserId, actionByCorporateUserId),
+      this.createJobApplAndUpdateAgencyActivities(validatedRequestBody, cognitoUserGroups, existingAgencyUserSubmissionDetails, candidateParsedCvDetails, actionByUserId, actionByCorporateUserId),
       UserDetailService.sendEmailForCandAcctSignupReminder(
         candidateEmail,
         validatedRequestBody.jobTitle,

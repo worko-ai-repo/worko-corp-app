@@ -1,4 +1,7 @@
 
+// Import google cloud firestore
+import { FieldValue } from "@google-cloud/firestore";
+
 import { BaseFirestoreModel } from "./Base.model";
 
 // Import enums
@@ -48,6 +51,20 @@ interface DbAgencyJobAssignmentDto extends BaseFirestoreModel {
    *  1. Number of candidates uploaded or submitted by the agency for this particular job.
    */
   totalCandidatesUploaded?: number;
+
+  /**
+   * @description
+   *  1. Let's say the "totalCandidatesUploaded" is 2, then if one
+   *  candidate is rejected, then "candidatesRejectedCount" = 1
+   */
+  candidatesRejectedCount?: FieldValue | number;
+
+  /**
+   * @description
+   *  1. Let's say the "totalCandidatesUploaded" is 2, then if one
+   *  candidate is in process, then "candidatesInProcessCount" = 1
+   */
+  candidatesInProcessCount?: FieldValue | number;
 
   /**
    * @reference "id" attribute of "AgencyUserSubmission.model.ts" from "GCP Firestore"
