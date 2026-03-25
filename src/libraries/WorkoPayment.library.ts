@@ -13,7 +13,6 @@ import { razorpayPaymentLibraryObj } from "./RazorpayPayment.library";
 // Import utils
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
-import e from "express";
 
 class WorkoPaymentLibrary {
   async createOrder<WorkoPaymentNotesDto extends IMap<string | number>>(
