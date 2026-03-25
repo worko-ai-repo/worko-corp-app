@@ -3,7 +3,7 @@
 import { DateTime } from "luxon";
 
 // Import google cloud firestore
-import { DocumentData, QueryDocumentSnapshot, QuerySnapshot } from "@google-cloud/firestore";
+import { DocumentData, FieldValue, QueryDocumentSnapshot, QuerySnapshot } from "@google-cloud/firestore";
 
 // Import dynamoose
 import { QueryResponse } from "dynamoose/dist/ItemRetriever";
@@ -55,6 +55,7 @@ import { DbCandidateJobMatchingDto } from "../db/gcp-firestore-models/CandidateJ
 import { DbCentralCandidateProfileDto } from "../db/gcp-firestore-models/CentralCandidateProfile.model";
 import { DbCompanyDetailDto } from "../db/aws-dynamodb-models/CompanyDetail.model";
 import { DbCorporateCandidateProfileDto } from "../db/gcp-firestore-models/CorporateCandidateProfile.model";
+import { DbAgencyUserSubmissionDto } from "../db/gcp-firestore-models/AgencyUserSubmission.model";
 
 // Import services
 import { gcpFirestoreJobServiceObj } from "./GcpFirestoreJob.service";
@@ -67,6 +68,8 @@ import { candidateJobMatchingServiceObj } from "./CandidateJobMatching.service";
 import { centralCandidateProfileServiceObj } from "./CentralCandidateProfile.service";
 import { companyDetailServiceObj } from "./CompanyDetail.service";
 import { corporateCandidateProfileServiceObj } from "./CorporateCandidateProfile.service";
+import { agencyUserSubmissionServiceObj } from "./AgencyUserSubmission.service";
+import { agencyJobAssignmentServiceObj } from "./AgencyJobAssignment.service";
 
 // Import utils
 import { BaseError } from "../utils/errors.util";
@@ -531,6 +534,36 @@ class CandidateParsedCvService {
     ])
   };
 
+  private async moveToApplCandidateParsedCvAgencyActivity(
+    candidateParsedCvDetails: DbCandidateParsedCvDto,
+  ) {
+    if(
+      candidateParsedCvDetails.agencyUserSubmissionId 
+      && candidateParsedCvDetails.cvAwsS3ResourceType === CandidateParsedCvAwsS3ResourceTypeEnum.AGENCY_SUBMIT_USER_CV
+    ) {
+      const agencyUserSubmission: DbAgencyUserSubmissionDto | undefined = await agencyUserSubmissionServiceObj.getAgencyUserSubmissionById(candidateParsedCvDetails.agencyUserSubmissionId);
+      if(
+        agencyUserSubmission 
+      ) {
+        if(
+          agencyUserSubmission.agencyJobAssignmentId
+        ) {
+          const updatedAgencyJobAssignment = await agencyJobAssignmentServiceObj.updateAgencyJobAssignmentById(
+            agencyUserSubmission.agencyJobAssignmentId,
+            {
+              updatedAt: dateHelperObj.getISODate(),
+              candidatesInProcessCount: FieldValue.increment(1),
+            }
+          )
+          if(!updatedAgencyJobAssignment) {
+            global.logger.error(`Failed to update agency job assignment`, { methodName: this.moveToApplicantCandidateParsedCv.name, candidateParsedCvDetails, updatedAgencyJobAssignment });
+            throw new BaseError("Failed to update agency job assignment count", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+          }
+        }
+      }
+    }
+  }
+
   async moveToApplicantCandidateParsedCv(
     validatedRequestBody: MoveToApplicantCandidateParsedCvCreateApiDTO,
     cognitoUserGroups: string[],
@@ -595,7 +628,7 @@ class CandidateParsedCvService {
     if(applicantRegisteredDetails.count) {
       const awaitedResponse: [DbUserJobApplicationDto, void] = await Promise.all([
         this.createJobApplicationMoveToApplicant(validatedRequestBody, cognitoUserGroups, candidateParsedCvDetails, actionByUserId, actionByCorporateUserId),
-        this.moveToApplUpdateCtcDetailsCandidateParsedCv(validatedRequestBody, actionByUserId, actionByCorporateUserId)
+        this.moveToApplUpdateCtcDetailsCandidateParsedCv(validatedRequestBody, actionByUserId, actionByCorporateUserId),
       ]) 
 
       return awaitedResponse[0];
@@ -672,7 +705,7 @@ class CandidateParsedCvService {
           reminderSendCount: 0
         }
       ),
-      this.moveToApplUpdateCtcDetailsCandidateParsedCv(validatedRequestBody, actionByUserId, actionByCorporateUserId)
+      this.moveToApplUpdateCtcDetailsCandidateParsedCv(validatedRequestBody, actionByUserId, actionByCorporateUserId),
     ]);
 
     if(!userDetailAndJobAppl[0] || !userDetailAndJobAppl[1] || !userDetailAndJobAppl[2] || !userDetailAndJobAppl[3]) {

@@ -1,4 +1,7 @@
 
+// Import google cloud firestore
+import { FieldValue } from "@google-cloud/firestore";
+
 // Import dtos
 import { AgencyUserInviteDbActionTrackerDto, AgencyUserInviteDbPhoneNumberDto } from "../../dtos/AgencyUserInvite.dto";
 
@@ -104,6 +107,18 @@ interface DbAgencyUserInviteDto extends BaseFirestoreModel {
    *  1. Whenever the "agency" submits a candidate to particular job, then we will calculate and update this field
    */
   totalCandidatesSubmitted?: number;
+
+  /**
+   * @description
+   *  1. If `totalCandidatesSubmitted` is `3` and one candidate is rejected then `totalRejected` will be `1`
+   */
+  totalRejected?: FieldValue | number;
+
+  /**
+   * @description
+   *  1. If `totalCandidatesSubmitted` is `3` and one candidate is hired then `totalHired` will be `1`
+   */
+  totalHired?: FieldValue | number;
 
   /**
    * @reference "id" attribute of "AgencyJobAssignment.model.ts"

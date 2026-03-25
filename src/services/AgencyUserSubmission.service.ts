@@ -1081,7 +1081,7 @@ class AgencyUserSubmissionService {
       throw new BaseError("Failed to send for evaluation", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
     }
 
-    const updateAgencyUserSubmissionSendForEvaluation: DbAgencyUserSubmissionDto | undefined = await this.updateAgencyUserSubmissionById(
+    const updateAgencyUserSubmissionSendForEvaluation = this.updateAgencyUserSubmissionById(
       validatedReqBody.agencyUserSubmissionId,
       {
         updatedAt: dateHelperObj.getISODate(),
@@ -1094,7 +1094,23 @@ class AgencyUserSubmissionService {
       }
     );
 
-    if(!updateAgencyUserSubmissionSendForEvaluation) {
+    const updateAgencyJobAssignment = agencyJobAssignmentServiceObj.updateAgencyJobAssignmentById(
+      existingAgencyUserSubmissionDetails.agencyJobAssignmentId,
+      {
+        candidatesInProcessCount: FieldValue.increment(1),
+        updatedAt: dateHelperObj.getISODate(),
+      }
+    );
+
+    const [
+      updateAgencyUserSubmissionSendForEvaluationRes,
+      updateAgencyJobAssignmentRes
+    ] = await Promise.all([
+      updateAgencyUserSubmissionSendForEvaluation,
+      updateAgencyJobAssignment
+    ]);
+
+    if(!updateAgencyUserSubmissionSendForEvaluationRes || !updateAgencyJobAssignmentRes) {
       global.logger.error(`Failed to send for evaluation, Failed to update Agency User Submission`, { 
         methodName: this.moveToApplicantAgencyUserSubmission.name, 
         validatedReqBody,
@@ -1103,7 +1119,7 @@ class AgencyUserSubmissionService {
       throw new BaseError("Failed to send for evaluation", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
     }
 
-    return updateAgencyUserSubmissionSendForEvaluation;
+    return updateAgencyUserSubmissionSendForEvaluationRes;
   }
 
   async sendForEvaluationAgencyUserSubmission(
@@ -1324,10 +1340,12 @@ class AgencyUserSubmissionService {
       throw new BaseError("Candidate already moved to applicant, so you can't reject it.", HttpStatusCode.CONFLICT_409);
     }
 
-    const updateAgencyUserSubmission: DbAgencyUserSubmissionDto | undefined = await this.updateAgencyUserSubmissionById(
+    const updatedAt: string = dateHelperObj.getISODate();
+
+    const updateAgencyUserSubmission = this.updateAgencyUserSubmissionById(
       validatedReqBody.agencyUserSubmissionId,
       {
-        updatedAt: dateHelperObj.getISODate(),
+        updatedAt,
         jobApplicationStatus: AgencyUserSubmissionDbJobApplicationStatusEnum.REJECTED,
         rejectApplicantDetails: {
           reason: validatedReqBody.rejectApplicantReason,
@@ -1335,12 +1353,58 @@ class AgencyUserSubmissionService {
           actionByCorporateUserId,
           actionByUserId,
         },
+        
         updatedByCorporateUserId: actionByCorporateUserId,
         updatedByUserId: actionByUserId
       }
     );
 
-    if(!updateAgencyUserSubmission) {
+    const updateAgencyJobAssignment = agencyJobAssignmentServiceObj.updateAgencyJobAssignmentById(
+      existingAgencyUserSubmissionDetails.agencyJobAssignmentId,
+      {
+        candidatesRejectedCount: FieldValue.increment(1),
+        candidatesInProcessCount: FieldValue.increment(-1),
+        updatedAt,
+      }
+    );
+
+    const existingAgencyUserInvite = await agencyUserInviteServiceObj.getAgencyUserInviteById(existingAgencyUserSubmissionDetails.agencyUserInviteId);
+    if(!existingAgencyUserInvite) {
+      global.logger.error(`Failed to reject applicant, Agency User Invite not found`, { 
+        methodName: this.moveToApplicantAgencyUserSubmission.name, 
+        validatedReqBody,
+        existingAgencyUserSubmissionDetails
+      });
+      throw new BaseError("Failed to reject applicant", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    const updateAgencyUserInviteData: Partial<DbAgencyUserInviteDto> = {
+      updatedAt,
+      totalRejected: FieldValue.increment(1),
+    }
+
+    if(
+      existingAgencyUserInvite.totalHired
+      && existingAgencyUserSubmissionDetails.jobApplicationStatus === AgencyUserSubmissionDbJobApplicationStatusEnum.HIRED
+    ) {
+      updateAgencyUserInviteData.totalHired = FieldValue.increment(-1);
+    }
+    const updateAgencyUserInvite = agencyUserInviteServiceObj.updateAgencyUserInviteById(
+      existingAgencyUserSubmissionDetails.agencyUserInviteId,
+      updateAgencyUserInviteData
+    );
+
+    const [
+      updateAgencyUserSubmissionRes,
+      updateAgencyJobAssignmentRes,
+      updateAgencyUserInviteRes
+    ] = await Promise.all([
+      updateAgencyUserSubmission,
+      updateAgencyJobAssignment,
+      updateAgencyUserInvite
+    ]);
+
+    if(!updateAgencyUserSubmissionRes || !updateAgencyJobAssignmentRes || !updateAgencyUserInviteRes) {
       global.logger.error(`Failed to reject applicant, Failed to update Agency User Submission`, { 
         methodName: this.moveToApplicantAgencyUserSubmission.name, 
         validatedReqBody,
@@ -1349,7 +1413,7 @@ class AgencyUserSubmissionService {
       throw new BaseError("Failed to reject applicant", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
     }
 
-    return updateAgencyUserSubmission;
+    return updateAgencyUserSubmissionRes;
   }
 
   async rejectApplicantBulkAgencyUserSubmissionAsync(
