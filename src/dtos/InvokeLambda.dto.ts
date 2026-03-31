@@ -1,7 +1,10 @@
 // Import enums
 import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
 import { MatchingScoreEntityEnum } from "../enums/Common.enum";
-import { InvokeLambdaHandlerEventTypeEnum, SourceTypeMatchingScoreEntityEnum } from "../enums/InvokeLambda.enum";
+import {
+  InvokeLambdaHandlerEventTypeEnum,
+  SourceTypeMatchingScoreEntityEnum,
+} from "../enums/InvokeLambda.enum";
 
 export interface InvokeLambdaParseAgencyUserSubmissionCandidateCvDto {
   agencyUserId: string;
@@ -183,4 +186,8 @@ export interface InvokeLambdMatchingScoreCalcualtionDto {
     filePath: string;
     fileName: string;
   };
+}
+
+export interface InvokeLambdaCandidateSearchPromptParserDto {
+  searchByPrompt: string;
 }

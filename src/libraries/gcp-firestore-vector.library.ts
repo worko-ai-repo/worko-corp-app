@@ -10,7 +10,7 @@ import {
 
 // Import dtos
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
-import { GcpFirestoreVectorRecordListingFilterOptions } from "../dtos/Common.gcp-firestore-vector.dto";
+import { GcpFirestoreVectorPreFilterDto, GcpFirestoreVectorRecordListingFilterOptions } from "../dtos/Common.gcp-firestore-vector.dto";
 import { GcpFirestoreRecordListingResponseDTO, GcpFirestoreRecordListingPaginationResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import helpers
@@ -160,11 +160,7 @@ class GcpFirestoreVectorLibrary {
     // Apply additional filters if provided
     if (filterOptions?.preFilters && filterOptions.preFilters.length > 0) {
       filterOptions.preFilters.forEach(
-        (filter: {
-          field: string;
-          operator: WhereFilterOp;
-          value: string;
-        }) => {
+        (filter: GcpFirestoreVectorPreFilterDto) => {
           query = query.where(filter.field, filter.operator, filter.value);
         }
       );

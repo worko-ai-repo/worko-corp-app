@@ -19,7 +19,7 @@ import APP_CONSTANTS from "../configs/constants.config";
 import { awsClientCognitoIdentityProviderLibrary } from "../configs/aws-sdk.config";
 
 // Import dtos
-import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvBulkFindMatchingScoreApiDto, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvParseSubmitFormApiDto, CandidateParsedCvParseSubmitFormResponseDto, CandidateParsedCvRefreshApiDto, CandidateParsedCvRefreshResponseDto, CandidateParsedCvSubmitFormCreateApiDto, CandidateParsedCvUpdateApiDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO, MoveToApplicantSubmitFormCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvBulkFindMatchingScoreApiDto, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateParsedCvFindMatchingScoreApiDto, CandidateParsedCvParseSubmitFormApiDto, CandidateParsedCvParseSubmitFormResponseDto, CandidateParsedCvRefreshApiDto, CandidateParsedCvRefreshResponseDto, CandidateParsedCvSubmitFormCreateApiDto, CandidateParsedCvUpdateApiDto, CandidateSearchPromptParsedResponseDto, DuplicateJobApplicantBulkCandidateParsedCvApiDTO, MoveToApplicantBulkCandidateParsedCvCreateApiDTO, MoveToApplicantCandidateParsedCvCreateApiDTO, MoveToApplicantSubmitFormCandidateParsedCvCreateApiDTO } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
 import { UserJobApplicationMoveToApplicantCreateApiDTO, UserJobApplicationMoveToApplicantSubmitFormCreateApiDTO } from "../dtos/UserJobApplication.dto";
@@ -33,7 +33,7 @@ import { candidateParsedCvDaoObj } from "../daos/CandidateParsedCv.dao";
 // Import enums
 import { UserType } from "../enums/User.enum";
 import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
-import { InvokeLambdaHandlerEventTypeEnum, SourceTypeMatchingScoreEntityEnum } from "../enums/InvokeLambda.enum";
+import { InvocationTypeEnum, InvokeLambdaHandlerEventTypeEnum, SourceTypeMatchingScoreEntityEnum } from "../enums/InvokeLambda.enum";
 import { CorporateCandidateProfileDbRefereeTypeEnum } from "../enums/CorporateCandidateProfile.enum";
 import { CentralCandidateProfileDbRefereeTypeEnum } from "../enums/CentralCandidateProfile.enum";
 import { EmailTemplateEnum } from "../enums/EmailTemplate.enum";
@@ -192,6 +192,10 @@ class CandidateParsedCvService {
       }
     }
 
+    if(createData.about) {
+      embeddingParts.push(`About: ${createData.about}`);
+    }
+
     return embeddingParts.join(" | ");
   }
 
@@ -234,10 +238,54 @@ class CandidateParsedCvService {
     );
   }
 
+  private async getAllCurrentCtcCandidateParsedCvByCorpEmbedding(
+    filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions,
+    distanceThreshold: number,
+    companyId: string,
+    searchPromptWithSalaryRange: string,
+    searchPromptWithoutSalaryRange: string,
+    parsedPromptWithSalaryRange: CandidateSearchPromptParsedResponseDto,
+    parsedPromptWithoutSalaryRange: CandidateSearchPromptParsedResponseDto
+  ) {
+    // Hit both Firestore queries at the same time
+    const [resWithSalary, resWithoutSalary] = await Promise.all([
+      this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
+        filterOptions, distanceThreshold, companyId, searchPromptWithSalaryRange, parsedPromptWithSalaryRange
+      ),
+      this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
+        filterOptions, distanceThreshold, companyId, searchPromptWithoutSalaryRange, { ...parsedPromptWithoutSalaryRange, salaryRange: undefined }
+      )
+    ]);
+
+    const uniqueMap = new Map<string, QueryDocumentSnapshot<DocumentData, DocumentData>>();
+
+    // Merge results uniquely
+    resWithSalary.data.forEach(doc => uniqueMap.set(doc.id, doc));
+    resWithoutSalary.data.forEach(doc => {
+      if (!uniqueMap.has(doc.id)) {
+        uniqueMap.set(doc.id, doc);
+      }
+    });
+
+    const uniqueDocs = Array.from(uniqueMap.values());
+
+    return {
+      data: uniqueDocs,
+      pagination: {
+        ...resWithSalary.pagination,
+        count: uniqueDocs.length,
+        hasMore: resWithSalary.pagination.hasMore || resWithoutSalary.pagination.hasMore
+      }
+    };
+  }
+
   async performGetAllCandidateParsedCvByCorpEmbeddingActivities(
     filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions
   ): Promise<GcpFirestoreRecordListingResponseDTO<DbCandidateParsedCvDto[]>> {
     if(filterOptions.searchByJobId && filterOptions.searchByPrompt) throw new BaseError("Search by prompt and search by job description both are not allowed at the same time.", HttpStatusCode.BAD_REQUEST_400);
+
+    // if both search by job id and search by prompt is not provided then throw error
+    if(!filterOptions.searchByJobId && !filterOptions.searchByPrompt) throw new BaseError("Search by prompt or job description is required.", HttpStatusCode.BAD_REQUEST_400);
 
     const {actionByCorporateUserId} = getActionByUserId();
     if(!actionByCorporateUserId) {
@@ -247,38 +295,86 @@ class CandidateParsedCvService {
     const corporateUserDetails: DbCorporateUserDto = await corporateUserServiceObj.getCorpUserByIdWithParsing(actionByCorporateUserId);
     const {companyId} = corporateUserDetails;
 
-    let searchByJobDescription: string | undefined;
+    let searchPromptWithSalaryRange: string;
+    let searchPromptWithoutSalaryRange: string;
+    let parsedPromptWithSalaryRange: CandidateSearchPromptParsedResponseDto;
+    let parsedPromptWithoutSalaryRange: CandidateSearchPromptParsedResponseDto;
     if(filterOptions.searchByJobId) {
       // Get job description by job id
       const jobDetails: DbGcpFirestoreJobDto | undefined = await gcpFirestoreJobServiceObj.getJobById(filterOptions.searchByJobId);
       if(!jobDetails) throw new BaseError("Job not found", HttpStatusCode.NOT_FOUND_404);
       if(!jobDetails.jobDescription) throw new BaseError("Job description not found", HttpStatusCode.NOT_FOUND_404);
-      searchByJobDescription = jobDetails.jobDescription;
+      const jobDetailsPrompt: CandidateSearchPromptParsedResponseDto = {
+        jobTitle: jobDetails.jobTitle,
+        salaryRange: jobDetails.salaryRange,
+        experienceRange: jobDetails.experienceRange,
+        numberOfOpenings: jobDetails.numOfOpenings,
+        workMode: jobDetails.workMode,
+        location: jobDetails.location?.fullLocation?.join(", "),
+        noticePeriod: jobDetails.noticePeriod,
+        typeOfEmployment: jobDetails.typeofEmployment,
+        department: jobDetails.department,
+        industry: jobDetails.industry,
+        coreSkills: jobDetails.coreSkills,
+        softSkills: jobDetails.softSkills,
+        technicalSkills: jobDetails.technicalSkills,
+        goodToHaveSkills: jobDetails.goodToHaveSkills
+      }
+
+      parsedPromptWithSalaryRange = jobDetailsPrompt;
+      parsedPromptWithoutSalaryRange = {
+        ...jobDetailsPrompt,
+        salaryRange: undefined
+      };
+
+      // Convert object → string
+      const parsedPromptStringWithSalaryRange: string = JSON.stringify(parsedPromptWithSalaryRange);
+      const parsedPromptStringWithoutSalaryRange: string = JSON.stringify(parsedPromptWithoutSalaryRange);
+      searchPromptWithSalaryRange = parsedPromptStringWithSalaryRange;
+      searchPromptWithoutSalaryRange = parsedPromptStringWithoutSalaryRange;
+    } else {
+      if(!filterOptions.searchByPrompt) throw new BaseError("Search by prompt is required.", HttpStatusCode.BAD_REQUEST_400);
+      const invokePromptParse: APIGatewayProxyResult = await InvokeLambdaService.triggerCandidateSearchPromptParser(
+        InvocationTypeEnum.RequestResponseType,
+        {
+          searchByPrompt: filterOptions.searchByPrompt
+        }
+      );
+      const invokedParsedPrompt: CandidateSearchPromptParsedResponseDto = JSON.parse(invokePromptParse.body);
+
+      parsedPromptWithSalaryRange = invokedParsedPrompt;
+      parsedPromptWithoutSalaryRange = {
+        ...invokedParsedPrompt,
+        salaryRange: undefined
+      };
+
+      // Convert object → string
+      const parsedPromptStringWithSalaryRange: string = JSON.stringify(parsedPromptWithSalaryRange);
+      const parsedPromptStringWithoutSalaryRange: string = JSON.stringify(parsedPromptWithoutSalaryRange);
+      searchPromptWithSalaryRange = parsedPromptStringWithSalaryRange;
+      searchPromptWithoutSalaryRange = parsedPromptStringWithoutSalaryRange;
     }
 
-    let response: GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]> = await this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
+    let response: GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]> = await this.getAllCurrentCtcCandidateParsedCvByCorpEmbedding(
       filterOptions, 
-      0.4,
+      0.35,
       companyId,
-      searchByJobDescription
+      searchPromptWithSalaryRange,
+      searchPromptWithoutSalaryRange,
+      parsedPromptWithSalaryRange,
+      parsedPromptWithoutSalaryRange
     );
     if(response.data.length === 0) {
-      global.logger.info(`Candidates for "0.4" distance threshold not found, trying "0.5"`);
-      response = await this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
-        filterOptions, 
-        0.5,
+      global.logger.info(`Candidates for "0.35" distance threshold not found, trying "0.4"`);
+      response = await this.getAllCurrentCtcCandidateParsedCvByCorpEmbedding(
+        filterOptions,
+        0.4,
         companyId,
-        searchByJobDescription,
+        searchPromptWithSalaryRange,
+        searchPromptWithoutSalaryRange,
+        parsedPromptWithSalaryRange,
+        parsedPromptWithoutSalaryRange
       );
-      if(response.data.length === 0) {
-        global.logger.info(`Candidates for "0.5" distance threshold not found, trying "0.6"`);
-        response = await this.getAllCandidateParsedCvByCorpEmbeddingFilterOptions(
-          filterOptions,
-          0.6,
-          companyId,
-          searchByJobDescription
-        );
-      }
     }
     const data: DbCandidateParsedCvDto[] = response.data.map((doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => doc.data() as DbCandidateParsedCvDto);
     const dataWithPagination: GcpFirestoreRecordListingResponseDTO<
@@ -290,38 +386,129 @@ class CandidateParsedCvService {
     return dataWithPagination;
   }
 
+  private async getAllCurrentCtcCandidateParsedCvByAdminEmbedding(
+    filterOptions: CandidateParsedCvAdminEmbeddingListingFilterOptions,
+    distanceThreshold: number,
+    searchPromptWithSalaryRange: string,
+    searchPromptWithoutSalaryRange: string,
+    parsedPromptWithSalaryRange: CandidateSearchPromptParsedResponseDto,
+    parsedPromptWithoutSalaryRange: CandidateSearchPromptParsedResponseDto
+  ) {
+    // Hit both Firestore queries at the same time
+    const [resWithSalary, resWithoutSalary] = await Promise.all([
+      this.getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
+        filterOptions, distanceThreshold, searchPromptWithSalaryRange, parsedPromptWithSalaryRange
+      ),
+      this.getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
+        filterOptions, distanceThreshold, searchPromptWithoutSalaryRange, parsedPromptWithoutSalaryRange
+      )
+    ]);
+
+    const uniqueMap = new Map<string, QueryDocumentSnapshot<DocumentData, DocumentData>>();
+
+    // Merge results uniquely
+    resWithSalary.data.forEach(doc => uniqueMap.set(doc.id, doc));
+    resWithoutSalary.data.forEach(doc => {
+      if (!uniqueMap.has(doc.id)) {
+        uniqueMap.set(doc.id, doc);
+      }
+    });
+
+    const uniqueDocs = Array.from(uniqueMap.values());
+
+    return {
+      data: uniqueDocs,
+      pagination: {
+        ...resWithSalary.pagination,
+        count: uniqueDocs.length,
+        hasMore: resWithSalary.pagination.hasMore || resWithoutSalary.pagination.hasMore
+      }
+    };
+  }
+
   async performGetAllCandidateParsedCvByAdminEmbeddingActivities(filterOptions: CandidateParsedCvAdminEmbeddingListingFilterOptions) {
     if(filterOptions.searchByJobId && filterOptions.searchByPrompt) throw new BaseError("Search by prompt and search by job description both are not allowed at the same time.", HttpStatusCode.BAD_REQUEST_400);
+    // if both search by job id and search by prompt is not provided then throw error
+    if(!filterOptions.searchByJobId && !filterOptions.searchByPrompt) throw new BaseError("Search by prompt or job description is required.", HttpStatusCode.BAD_REQUEST_400);
 
-    let searchByJobDescription: string | undefined;
+    let searchPromptWithSalaryRange: string;
+    let searchPromptWithoutSalaryRange: string;
+    let parsedPromptWithSalaryRange: CandidateSearchPromptParsedResponseDto;
+    let parsedPromptWithoutSalaryRange: CandidateSearchPromptParsedResponseDto;
     if(filterOptions.searchByJobId) {
       // Get job description by job id
       const jobDetails: DbGcpFirestoreJobDto | undefined = await gcpFirestoreJobServiceObj.getJobById(filterOptions.searchByJobId);
       if(!jobDetails) throw new BaseError("Job not found", HttpStatusCode.NOT_FOUND_404);
       if(!jobDetails.jobDescription) throw new BaseError("Job description not found", HttpStatusCode.NOT_FOUND_404);
-      searchByJobDescription = jobDetails.jobDescription;
+      const jobDetailsPrompt: CandidateSearchPromptParsedResponseDto = {
+        jobTitle: jobDetails.jobTitle,
+        salaryRange: jobDetails.salaryRange,
+        experienceRange: jobDetails.experienceRange,
+        numberOfOpenings: jobDetails.numOfOpenings,
+        workMode: jobDetails.workMode,
+        location: jobDetails.location?.fullLocation?.join(", "),
+        noticePeriod: jobDetails.noticePeriod,
+        typeOfEmployment: jobDetails.typeofEmployment,
+        department: jobDetails.department,
+        industry: jobDetails.industry,
+        coreSkills: jobDetails.coreSkills,
+        softSkills: jobDetails.softSkills,
+        technicalSkills: jobDetails.technicalSkills,
+        goodToHaveSkills: jobDetails.goodToHaveSkills
+      }
+
+      parsedPromptWithSalaryRange = jobDetailsPrompt;
+      parsedPromptWithoutSalaryRange = {
+        ...jobDetailsPrompt,
+        salaryRange: undefined
+      };
+
+      // Convert object → string
+      const parsedPromptStringWithSalaryRange: string = JSON.stringify(parsedPromptWithSalaryRange);
+      const parsedPromptStringWithoutSalaryRange: string = JSON.stringify(parsedPromptWithoutSalaryRange);
+      searchPromptWithSalaryRange = parsedPromptStringWithSalaryRange;
+      searchPromptWithoutSalaryRange = parsedPromptStringWithoutSalaryRange;
+    } else {
+      if(!filterOptions.searchByPrompt) throw new BaseError("Search by prompt is required.", HttpStatusCode.BAD_REQUEST_400);
+      const invokePromptParse: APIGatewayProxyResult = await InvokeLambdaService.triggerCandidateSearchPromptParser(
+        InvocationTypeEnum.RequestResponseType,
+        {
+          searchByPrompt: filterOptions.searchByPrompt
+        }
+      );
+      const invokedParsedPrompt: CandidateSearchPromptParsedResponseDto = JSON.parse(invokePromptParse.body);
+
+      parsedPromptWithSalaryRange = invokedParsedPrompt;
+      parsedPromptWithoutSalaryRange = {
+        ...invokedParsedPrompt,
+        salaryRange: undefined
+      };
+
+      // Convert object → string
+      const parsedPromptStringWithSalaryRange: string = JSON.stringify(parsedPromptWithSalaryRange);
+      const parsedPromptStringWithoutSalaryRange: string = JSON.stringify(parsedPromptWithoutSalaryRange);
+      searchPromptWithSalaryRange = parsedPromptStringWithSalaryRange;
+      searchPromptWithoutSalaryRange = parsedPromptStringWithoutSalaryRange;
     }
 
-    let response: GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]> = await this.getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
+    let response: GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]> = await this.getAllCurrentCtcCandidateParsedCvByAdminEmbedding(
       filterOptions, 
-      0.4,
-      searchByJobDescription
+      0.35,
+      searchPromptWithSalaryRange,
+      searchPromptWithoutSalaryRange,
+      parsedPromptWithSalaryRange,
+      parsedPromptWithoutSalaryRange
     );
     if(response.data.length === 0) {
       global.logger.info(`Candidates for "0.4" distance threshold not found, trying "0.5"`);
-      response = await this.getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
+      response = await this.getAllCurrentCtcCandidateParsedCvByAdminEmbedding(
         filterOptions, 
-        0.5,
-        searchByJobDescription,
+        0.4,
+        searchPromptWithSalaryRange,
+        searchPromptWithoutSalaryRange,
+        parsedPromptWithSalaryRange,
+        parsedPromptWithoutSalaryRange
       );
-      if(response.data.length === 0) {
-        global.logger.info(`Candidates for "0.5" distance threshold not found, trying "0.6"`);
-        response = await this.getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
-          filterOptions,
-          0.6,
-          searchByJobDescription
-        );
-      }
     }
     const data: DbCandidateParsedCvDto[] = response.data.map((doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => doc.data() as DbCandidateParsedCvDto);
     const dataWithPagination: GcpFirestoreRecordListingResponseDTO<
@@ -337,7 +524,8 @@ class CandidateParsedCvService {
     filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions,
     distanceThreshold: number,
     companyId: string,
-    searchByJobDescription?: string
+    searchPrompt: string,
+    parsedPrompt: CandidateSearchPromptParsedResponseDto
   ): Promise<
     GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]>
   > {
@@ -345,21 +533,24 @@ class CandidateParsedCvService {
       filterOptions,
       distanceThreshold,
       companyId,
-      searchByJobDescription
+      searchPrompt,
+      parsedPrompt
     );
   }
 
   async getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
     filterOptions: CandidateParsedCvAdminEmbeddingListingFilterOptions,
     distanceThreshold: number,
-    searchByJobDescription?: string
+    searchPrompt: string,
+    parsedPrompt: CandidateSearchPromptParsedResponseDto
   ): Promise<
     GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]>
   > {
     return candidateParsedCvDaoObj.getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
       filterOptions,
       distanceThreshold,
-      searchByJobDescription
+      searchPrompt,
+      parsedPrompt
     );
   }
 

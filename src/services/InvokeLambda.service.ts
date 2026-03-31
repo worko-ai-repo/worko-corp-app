@@ -6,7 +6,7 @@ import { awsClientLambdaLibrary } from "../configs/aws-sdk.config";
 import APP_CONSTANTS from "../configs/constants.config";
 
 // import dtos
-import { InvokeLambdaSourceTypeJdResumeMatchingScoreDto, InvokeLambdaParseAgencyUserSubmissionCandidateCvDto, InvokeLambdaHandlerEventPayloadDto, InvokeLambdaParseSubmitFormCandidateParsedCvDto, InvokeLambdaRefreshCandidateParsedCvDto, InvokeLambdMatchingScoreCalcualtionDto } from "../dtos/InvokeLambda.dto";
+import { InvokeLambdaSourceTypeJdResumeMatchingScoreDto, InvokeLambdaParseAgencyUserSubmissionCandidateCvDto, InvokeLambdaHandlerEventPayloadDto, InvokeLambdaParseSubmitFormCandidateParsedCvDto, InvokeLambdaRefreshCandidateParsedCvDto, InvokeLambdMatchingScoreCalcualtionDto, InvokeLambdaCandidateSearchPromptParserDto } from "../dtos/InvokeLambda.dto";
 
 // import enums
 import { InvocationTypeEnum } from "../enums/InvokeLambda.enum";
@@ -112,6 +112,37 @@ class InvokeLambdaService {
       APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.MATCHING_SCORE_LAMBDA_NAME,
       payload
     );
+  }
+
+  async triggerCandidateSearchPromptParser(
+    awsLambdaInvocationType: InvocationTypeEnum,
+    payload: InvokeLambdaCandidateSearchPromptParserDto
+  ) {
+    switch (awsLambdaInvocationType) {
+      case InvocationTypeEnum.EventType:
+        return awsClientLambdaLibrary.triggerLambdaEventInvocationType(
+          APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.WORKO_CANDIDATE_SEARCH_PROMPT_PARSER,
+          payload,
+        );
+
+      case InvocationTypeEnum.RequestResponseType:
+        return awsClientLambdaLibrary.triggerLambdaRequestResponseInvocationType(
+          APP_CONSTANTS.LAMBDA_FUNCTION_NAMES.WORKO_CANDIDATE_SEARCH_PROMPT_PARSER,
+          payload,
+        );
+
+      case InvocationTypeEnum.DryRunType:
+        global.logger.error("DryRunType not supported as of now we may implement it in near future if needed.", {
+          methodName: this.triggerCandidateSearchPromptParser.name,
+        });
+        throw new BaseError("DryRunType not supported as of now, we may implement it in near future if needed.");
+
+      default:
+        global.logger.error("Invalid Invocation Type", {
+          methodName: this.triggerCandidateSearchPromptParser.name,
+        });
+        throw new BaseError("Invalid Invocation Type");
+    }
   }
 }
 

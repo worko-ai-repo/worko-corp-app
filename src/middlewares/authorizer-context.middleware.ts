@@ -19,7 +19,7 @@ export function getAuthorizerContextForLocal() {
         userId: mockUserId,
         userEmail: mockUserEmail,
         cognitoUserGroups: [
-          APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.ADMIN,
+          APP_CONSTANTS.COGNITO_IDENTITY_POOL_GROUPS.CORPORATE_ADMIN,
         ],
       };
       next();

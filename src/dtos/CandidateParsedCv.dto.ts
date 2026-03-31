@@ -1,6 +1,7 @@
 
 // Import dtos
-import { CommonPhoneNumberDto } from "./Common.dto";
+import { CommonPhoneNumberDto, MinMaxRange } from "./Common.dto";
+import { SalaryRangeDto } from "./Job.dto";
 import { GcpFirestoreRecordListingFilterOptions, GcpFirestoreRecordListingFilterRequestDTO } from "./Common.gcp-firestore.dto";
 
 // Import enums
@@ -354,4 +355,32 @@ export interface CandidateParsedCvRefreshResponseDto {
 
 export interface CandidateParsedCvResetTempPasswordApiDto {
   candidateEmail: string;
+}
+
+export interface CandidateSearchPromptParsedResponseDto {
+  jobTitle: string;
+
+  salaryRange?: SalaryRangeDto;
+  experienceRange?: MinMaxRange;
+
+  numberOfOpenings?: number;
+  workMode?: string;
+  location?: string;
+  noticePeriod?: number;
+  typeOfEmployment?: string;
+
+  // readyToRelocate??: "Yes" | "No";
+
+  department?: string;
+  industry?: string;
+  role?: string;
+
+  coreSkills?: string[];
+  softSkills?: string[];
+  technicalSkills?: string[];
+  goodToHaveSkills?: string[];
+  mustHaveSkills?: string[];
+
+  mandatoryRequirements?: string[];
+  preferredRequirements?: string[];
 }

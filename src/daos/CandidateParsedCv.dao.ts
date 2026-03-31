@@ -8,8 +8,9 @@ import APP_CONSTANTS from "../configs/constants.config";
 
 // Import dtos
 import { GcpFirestoreInteractionDto } from "../dtos/Common.dto";
-import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterOptions } from "../dtos/CandidateParsedCv.dto";
+import { CandidateParsedCvAdminEmbeddingListingFilterOptions, CandidateParsedCvCorpEmbeddingListingFilterOptions, CandidateSearchPromptParsedResponseDto } from "../dtos/CandidateParsedCv.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
+import { GcpFirestoreVectorPreFilterDto } from "../dtos/Common.gcp-firestore-vector.dto";
 
 // Import daos
 import BaseDao from "./BaseGcpFirestore.dao";
@@ -23,7 +24,6 @@ import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidatePars
 // Import utils
 import { BaseError } from "../utils/errors.util";
 import HttpStatusCode from "../utils/http-codes.util";
-
 
 class CandidateParsedCvDao implements BaseDao {
   constructor() {
@@ -66,16 +66,69 @@ class CandidateParsedCvDao implements BaseDao {
   async getAllCandidateParsedCvByAdminEmbeddingFilterOptions(
     filterOptions: CandidateParsedCvAdminEmbeddingListingFilterOptions,
     distanceThreshold: number,
-    searchByJobDescription?: string
+    searchPrompt: string,
+    parsedPrompt: CandidateSearchPromptParsedResponseDto
   ) {
-    if(!filterOptions.searchByPrompt && !searchByJobDescription) throw new BaseError("Search by prompt or job description is required.", HttpStatusCode.BAD_REQUEST_400);
+    if(!searchPrompt) throw new BaseError("Search by prompt or job description is required.", HttpStatusCode.BAD_REQUEST_400);
 
-    let searchPrompt: string = searchByJobDescription ? searchByJobDescription : (filterOptions.searchByPrompt as string);
+    let salaryRange = parsedPrompt.salaryRange;
+    let experienceRange = parsedPrompt.experienceRange;
+
+    global.logger.info(`parsedPrompt`, parsedPrompt);
+
+    let preFilters: GcpFirestoreVectorPreFilterDto[] = []
+
+    if(salaryRange) {
+      global.logger.info(`salaryRange`, salaryRange);
+      if(
+        salaryRange?.min
+      ) {
+        preFilters.push({
+          field: "currentCTC",
+          operator: ">=",
+          value: salaryRange.min
+        })
+      }
+
+      if(
+        salaryRange.max
+      ) {
+        preFilters.push({
+          field: "currentCTC",
+          operator: "<=",
+          value: salaryRange.max
+        })
+      }
+    }
+
+    if(experienceRange) {
+      global.logger.info(`experienceRange`, experienceRange);
+      if(
+        experienceRange.min
+      ) {
+        preFilters.push({
+          field: "relevantYOE",
+          operator: ">=",
+          value: experienceRange.min
+        })
+      }
+
+      if(
+        experienceRange.max
+      ) {
+        preFilters.push({
+          field: "relevantYOE",
+          operator: "<=",
+          value: experienceRange.max
+        })
+      }
+    }
 
     return gcpFirestoreVectorLibrary.getDocumentsByEmbedding<DbCandidateParsedCvDto>(
       this.getCandidateParsedCvModelDetails(),
       searchPrompt,
       {
+        preFilters,
         pageSize: filterOptions.pageSize,
         pageNumber: filterOptions.pageNumber,
         distanceThreshold,
@@ -87,26 +140,76 @@ class CandidateParsedCvDao implements BaseDao {
     filterOptions: CandidateParsedCvCorpEmbeddingListingFilterOptions,
     distanceThreshold: number,
     companyId: string,
-    searchByJobDescription?: string
+    searchPrompt: string,
+    parsedPrompt: CandidateSearchPromptParsedResponseDto
   ): Promise<
     GcpFirestoreRecordListingResponseDTO<QueryDocumentSnapshot<DocumentData, DocumentData>[]>
   > {
     if(!companyId) throw new BaseError("You Can only list candidates for particular your company.", HttpStatusCode.BAD_REQUEST_400);
-    if(!filterOptions.searchByPrompt && !searchByJobDescription) throw new BaseError("Search by prompt or job description is required.", HttpStatusCode.BAD_REQUEST_400);
+    if(!searchPrompt) throw new BaseError("Search by prompt or job description is required.", HttpStatusCode.BAD_REQUEST_400);
 
-    let searchPrompt: string = searchByJobDescription ? searchByJobDescription : (filterOptions.searchByPrompt as string);
+    let salaryRange = parsedPrompt.salaryRange;
+    let experienceRange = parsedPrompt.experienceRange;
+
+    global.logger.info(`parsedPrompt`, parsedPrompt);
+
+    let preFilters: GcpFirestoreVectorPreFilterDto[] = [
+      {
+        field: "companyId",
+        operator: "==",
+        value: companyId
+      }
+    ]
+
+    if(salaryRange) {
+      if(
+        salaryRange?.min
+      ) {
+        preFilters.push({
+          field: "currentCTC",
+          operator: ">=",
+          value: salaryRange.min
+        })
+      }
+
+      if(
+        salaryRange.max
+      ) {
+        preFilters.push({
+          field: "currentCTC",
+          operator: "<=",
+          value: salaryRange.max
+        })
+      }
+    }
+
+    if(experienceRange) {
+      if(
+        experienceRange.min
+      ) {
+        preFilters.push({
+          field: "relevantYOE",
+          operator: ">=",
+          value: experienceRange.min
+        })
+      }
+
+      if(
+        experienceRange.max
+      ) {
+        preFilters.push({
+          field: "relevantYOE",
+          operator: "<=",
+          value: experienceRange.max
+        })
+      }
+    }
 
     return gcpFirestoreVectorLibrary.getDocumentsByEmbedding<DbCandidateParsedCvDto>(
       this.getCandidateParsedCvModelDetails(),
       searchPrompt,
       {
-        preFilters: [
-          {
-            field: "companyId",
-            operator: "==",
-            value: companyId
-          }
-        ],
+        preFilters,
         pageSize: filterOptions.pageSize,
         pageNumber: filterOptions.pageNumber,
         distanceThreshold,

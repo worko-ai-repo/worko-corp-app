@@ -129,6 +129,12 @@ const APP_CONSTANTS = {
      * you can check in `appInvokeLambda` function in `serverless.ts` file 
      */
     WORKO_JOB_APP_INVOKE_LAMBDA_NAME: `worko-job-app-${process.env.APP_STAGE}-appInvokeLambda`,
+
+    /**
+     * This lambda is used to parse the prompt searched by corporate or admin for vector search in gcp firestore,
+     * this will give json response of parsed prompt
+     */
+    WORKO_CANDIDATE_SEARCH_PROMPT_PARSER: `worko-candidate-search-prompt-parser-${process.env.APP_STAGE}`,
   },
 
   CASUAL_EMAIL_DOMAINS: [

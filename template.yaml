@@ -116,8 +116,8 @@ Globals:
         APP_RAZORPAY_KEY_SECRET: "REDACTED_SECRET"
 
         # @note Use below envs only on your local machine
-        APP_AWS_AUTH_MOCK_USER_ID: "REDACTED_SECRET"
-        APP_AWS_AUTH_MOCK_USER_EMAIL: "rohithappala777+candidate3@gmail.com"
+        APP_AWS_AUTH_MOCK_USER_ID: "REDACTED_SECRET" # "REDACTED_SECRET"
+        APP_AWS_AUTH_MOCK_USER_EMAIL: "rohith.appala+byjus@worko.ai" # "rohithappala777+candidate3@gmail.com"
 
 Resources:
   # IAM Role for Lambda Functions
@@ -220,6 +220,7 @@ Resources:
                   - !Sub "arn:aws:lambda:${AppSlsRegion}:${AppAwsAccountId}:function:worko-job-app-${Stage}-app-opensearch-operations"
                   - !Sub "arn:aws:lambda:${AppSlsRegion}:${AppAwsAccountId}:function:worko-sourcetype-jd-resume-matching-${Stage}"
                   - !Sub "arn:aws:lambda:${AppSlsRegion}:${AppAwsAccountId}:function:worko-corp-${Stage}-app-sourcetype-bulk-find-jd-cv-match-score"
+                  - !Sub "arn:aws:lambda:${AppSlsRegion}:${AppAwsAccountId}:function:worko-candidate-search-prompt-parser-${Stage}"
                   - !Sub "arn:aws:lambda:${AppSlsRegion}:${AppAwsAccountId}:function:worko-corp-${Stage}-appInvokeLambda"
         
         - PolicyName: SchedulerAccess
