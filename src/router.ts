@@ -20,6 +20,7 @@ import AgencyCvDebitTransactionRouter from "./routers/AgencyCvDebitTransaction.r
 import AgencyCvRechargeOrderRouter from "./routers/AgencyCvRechargeOrder.router";
 import ScriptRouter from "./routers/Script.router";
 import BulkSourceTypeResumeRouter from "./routers/BulkSourceTypeResume.router";
+import AgencyAnalyticsRouter from "./routers/AgencyAnalytics.router";
 
 // Router that contains all the routes/endpoints in the application
 const router = Router();
@@ -141,5 +142,12 @@ router.use("/file", FileRouter);
  * @authorisedRoles ["admin"]
  */
 router.use("/script", ScriptRouter);
+
+/**
+ * AGENCY ANALYTICS ROUTERS
+ *
+ * @authorisedRoles ["admin", "corporate-admin"]
+ */
+router.use("/analytics", AgencyAnalyticsRouter);
 
 export default router;

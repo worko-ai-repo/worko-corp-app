@@ -20,6 +20,7 @@ import { awsClientCognitoIdentityProviderLibrary } from "../configs/aws-sdk.conf
 
 // Import dtos
 import { AgencyUserSubmissionBulkFindMatchingScoreApiDto, AgencyUserSubmissionCandidateParseCvApiDto, AgencyUserSubmissionCandidateParseCvResponseDto, AgencyUserSubmissionCreateApiDto, AgencyUserSubmissionFindMatchingScoreApiDto, AgencyUserSubmissionInvokedMatchingScoreResponseDto, AgencyUserSubmissionListingFilterOptions, AgencyUserSubmissionMoveToApplicantBulkCreateApiDTO, AgencyUserSubmissionMoveToApplicantCreateApiDTO, AgencyUserSubmissionRejectApplicantBulkApiDTO, AgencyUserSubmissionRejectApplicantCreateApiDTO, AgencyUserSubmissionSendForEvaluationBulkCreateApiDTO, AgencyUserSubmissionSendForEvaluationCreateApiDTO } from "../dtos/AgencyUserSubmission.dto";
+import { AgencyAnalyticsEventTypeEnum } from "../dtos/AgencyAnalytics.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
 // Import daos
@@ -74,6 +75,7 @@ import { agencyUserInviteServiceObj } from "./AgencyUserInvite.service";
 import { centralCandidateProfileServiceObj } from "./CentralCandidateProfile.service";
 import { candidateParsedCvServiceObj } from "./CandidateParsedCv.service";
 import { userJobApplicationServiceObj } from "./UserJobApplication.service";
+import { agencyAnalyticsServiceObj } from "./AgencyAnalytics.service";
 
 // Import utils
 import HttpStatusCode from "../utils/http-codes.util";
@@ -644,6 +646,27 @@ class AgencyUserSubmissionService {
         HttpStatusCode.INTERNAL_SERVER_ERROR_500
       );
     }
+    // Use applyAgencyAnalyticsEvent method to update analytics with event "Candidate Submitted" when agency submit a candidate for a job
+    try {
+      await agencyAnalyticsServiceObj.applyAgencyAnalyticsEvent({
+        agencyId: agencyUserDetails.id,
+        agencyName: reqBodyAgencyInviteDetails.agencyName,
+        companyId: reqBodyCompanyId,
+        eventId: `${agencyUserSubmissionCreateData.id}_CANDIDATE_SUBMITTED`,
+        eventType: AgencyAnalyticsEventTypeEnum.CANDIDATE_SUBMITTED,
+        roleId: reqBodyJobId,
+        roleTitle:
+          (validatedAgencyUserCompanyJobDetails.reqBodyJobData as any)
+            .jobTitle ??
+          (validatedAgencyUserCompanyJobDetails.reqBodyJobData as any).title,
+      });
+    } catch (analyticsError) {
+      global.logger.error("Failed to update agency analytics for submission. [Service]", {
+        agencyUserSubmissionId: agencyUserSubmissionCreateData.id,
+        analyticsError,
+        methodName: this.performCreateAgencyUserSubmissionActivities.name,
+      });
+    }
 
     return createAgencyUserSubmissionResult[1];
   }
@@ -865,6 +888,38 @@ class AgencyUserSubmissionService {
         updateAgencyUserSubmissionRes
       });
       throw new BaseError("Failed to move to applicant", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    try {
+      await Promise.all([
+        agencyAnalyticsServiceObj.applyAgencyAnalyticsEvent({
+          agencyId: existingAgencyUserSubmissionDetails.agencyUserId,
+          agencyName: existingAgencyUserSubmissionDetails.agencyName,
+          companyId: existingAgencyUserSubmissionDetails.companyId,
+          eventId: `${validatedRequestBody.agencyUserSubmissionId}_CANDIDATE_ACCEPTED`,
+          eventType: AgencyAnalyticsEventTypeEnum.CANDIDATE_ACCEPTED,
+          roleId: existingAgencyUserSubmissionDetails.jobId,
+          roleTitle: jobTitle,
+        }),
+        agencyAnalyticsServiceObj.applyAgencyAnalyticsEvent({
+          agencyId: existingAgencyUserSubmissionDetails.agencyUserId,
+          agencyName: existingAgencyUserSubmissionDetails.agencyName,
+          companyId: existingAgencyUserSubmissionDetails.companyId,
+          eventId: `${validatedRequestBody.agencyUserSubmissionId}_CANDIDATE_IN_PROCESS`,
+          eventType: AgencyAnalyticsEventTypeEnum.CANDIDATE_IN_PROCESS,
+          roleId: existingAgencyUserSubmissionDetails.jobId,
+          roleTitle: jobTitle,
+        }),
+      ]);
+    } catch (analyticsError) {
+      global.logger.error(
+        "Failed to update agency analytics for move to applicant. [Service]",
+        {
+          agencyUserSubmissionId: validatedRequestBody.agencyUserSubmissionId,
+          analyticsError,
+          methodName: this.createJobApplAndUpdateAgencyActivities.name,
+        },
+      );
     }
 
     return updateAgencyUserSubmissionRes;
@@ -1117,6 +1172,27 @@ class AgencyUserSubmissionService {
         updateAgencyUserSubmissionSendForEvaluation
       });
       throw new BaseError("Failed to send for evaluation", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    try {
+      await agencyAnalyticsServiceObj.applyAgencyAnalyticsEvent({
+        agencyId: existingAgencyUserSubmissionDetails.agencyUserId,
+        agencyName: existingAgencyUserSubmissionDetails.agencyName,
+        companyId: existingAgencyUserSubmissionDetails.companyId,
+        eventId: `${validatedReqBody.agencyUserSubmissionId}_CANDIDATE_IN_PROCESS`,
+        eventType: AgencyAnalyticsEventTypeEnum.CANDIDATE_IN_PROCESS,
+        roleId: existingAgencyUserSubmissionDetails.jobId,
+        roleTitle: jobTitle,
+      });
+    } catch (analyticsError) {
+      global.logger.error(
+        "Failed to update agency analytics for send for evaluation. [Service]",
+        {
+          agencyUserSubmissionId: validatedReqBody.agencyUserSubmissionId,
+          analyticsError,
+          methodName: this.createJobApplSendForEvalAndUpdateAgencyUserSubmission.name,
+        },
+      );
     }
 
     return updateAgencyUserSubmissionSendForEvaluationRes;
@@ -1411,6 +1487,23 @@ class AgencyUserSubmissionService {
         updateAgencyUserSubmission
       });
       throw new BaseError("Failed to reject applicant", HttpStatusCode.INTERNAL_SERVER_ERROR_500);
+    }
+
+    try {
+      await agencyAnalyticsServiceObj.applyAgencyAnalyticsEvent({
+        agencyId: existingAgencyUserSubmissionDetails.agencyUserId,
+        agencyName: existingAgencyUserSubmissionDetails.agencyName,
+        companyId: existingAgencyUserSubmissionDetails.companyId,
+        eventId: `${validatedReqBody.agencyUserSubmissionId}_CANDIDATE_REJECTED`,
+        eventType: AgencyAnalyticsEventTypeEnum.CANDIDATE_REJECTED,
+        roleId: existingAgencyUserSubmissionDetails.jobId,
+      });
+    } catch (analyticsError) {
+      global.logger.error("Failed to update agency analytics for rejection. [Service]", {
+        agencyUserSubmissionId: validatedReqBody.agencyUserSubmissionId,
+        analyticsError,
+        methodName: this.rejectApplicantAgencyUserSubmission.name,
+      });
     }
 
     return updateAgencyUserSubmissionRes;
