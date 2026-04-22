@@ -7,7 +7,7 @@ import { gcpFirestoreCommonSchema } from "./Common.gcp-firestore.schema";
 /**
  * agencyAnalyticsFilterDtoValidation
  *
- * Validation schema for performance matrix/ranking filter query params.
+ * Validation schema for performance matrix filter query params.
  */
 export const agencyAnalyticsFilterDtoValidation = gcpFirestoreCommonSchema.concat(
   Joi.object({
@@ -20,9 +20,8 @@ export const agencyAnalyticsFilterDtoValidation = gcpFirestoreCommonSchema.conca
       "string.base": "The companyId must be a valid string.",
     }),
 
-    roleId: Joi.string().optional().allow("", null).messages({
-      "string.base": "The roleId field must be a valid string.",
+    jobId: Joi.string().optional().allow("", null).messages({
+      "string.base": "The jobId field must be a valid string.",
     }),
   }),
 );
-

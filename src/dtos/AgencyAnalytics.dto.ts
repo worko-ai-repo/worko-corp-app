@@ -26,10 +26,12 @@ export interface AgencyAnalyticsApplyEventDto {
   agencyId: string;
   agencyName: string;
   companyId: string;
+  companyName?: string;
   eventId: string;
   eventType: AgencyAnalyticsEventTypeEnum;
-  roleId: string;
-  roleTitle?: string;
+  jobAssignedDate?: string;
+  jobId: string;
+  jobTitle?: string;
 }
 
 /**
@@ -41,7 +43,7 @@ export interface AgencyAnalyticsListingFilterOptions
   extends GcpFirestoreRecordListingFilterOptions {
   agencyId?: string;
   companyId: string;
-  roleId?: string;
+  jobId?: string;
 }
 
 /**
@@ -53,7 +55,7 @@ export interface AgencyAnalyticsListingFilterRequestDTO
   extends GcpFirestoreRecordListingFilterRequestDTO {
   agencyId?: string;
   companyId: string;
-  roleId?: string;
+  jobId?: string;
 }
 
 /**
@@ -65,29 +67,15 @@ export interface AgencyPerformanceMatrixItemDto {
   acceptedCount: number;
   agencyId: string;
   agencyName: string;
+  companyName?: string;
   hiredCount: number;
   inProcessCount: number;
+  jobAssignedDate?: string;
+  jobId: string;
+  jobTitle?: string;
   lastActivityAt: string;
   rejectedCount: number;
-  roleId: string;
-  roleTitle?: string;
   submittedCount: number;
   totalCandidates: number;
-}
-
-/**
- * AgencyRankingItemDto
- *
- * Ranking item representation.
- */
-export interface AgencyRankingItemDto {
-  acceptedCount: number;
-  agencyId: string;
-  agencyName: string;
-  hiredCount: number;
-  inProcessCount: number;
-  rankBucket: "TOP_PERFORMER" | "MEDIUM" | "LOW" | "POOR";
-  rankPosition: number;
-  score: number;
 }
 

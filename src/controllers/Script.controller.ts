@@ -4,13 +4,48 @@ import { Request, Response, NextFunction } from "express";
 // import { userJobApplicationDao } from "../daos/UserJobApplication.dao";
 
 // Import services
-// import { scriptServiceObj } from "../services/Script.service";
+import { scriptServiceObj } from "../services/Script.service";
 
 // Import local utils
 import HttpStatusCode from "../utils/http-codes.util";
 // import { candidateParsedCvServiceObj } from "../services/CandidateParsedCv.service";
 
 class ScriptController {
+  seedAgencyAnalyticsFromAgencySubmissions = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const { companyId, dryRun } = req.body as {
+        companyId?: string;
+        dryRun?: boolean;
+      };
+
+      if (!companyId) {
+        return res.status(HttpStatusCode.BAD_REQUEST_400).json({
+          message: "companyId is required.",
+        });
+      }
+
+      const response = await scriptServiceObj.seedAgencyAnalyticsFromAgencyUserSubmissions(
+        companyId,
+        Boolean(dryRun)
+      );
+
+      return res.status(HttpStatusCode.OK_200).json({
+        data: response,
+        message: "Agency analytics seed execution completed.",
+      });
+    } catch (error) {
+      global.logger.error("Seed Agency Analytics Script Failed. [Controller]", {
+        error,
+        methodName: this.seedAgencyAnalyticsFromAgencySubmissions.name,
+      });
+      return next(error);
+    }
+  };
+
   scriptTest = async (
     req: Request,
     res: Response,

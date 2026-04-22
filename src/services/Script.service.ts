@@ -8,6 +8,8 @@ import APP_CONSTANTS from "../configs/constants.config";
 // Import daos
 import { centralCandidateProfileDaoObj } from "../daos/CentralCandidateProfile.dao";
 import { candidateParsedCvDaoObj } from "../daos/CandidateParsedCv.dao";
+import { agencyUserSubmissionDaoObj } from "../daos/AgencyUserSubmission.dao";
+import { agencyAnalyticsDaoObj } from "../daos/AgencyAnalytics.dao";
 
 // Import dtos
 import { CandidateParsedCvAwsS3FileTrackerDto } from "../dtos/CandidateParsedCv.dto";
@@ -21,14 +23,190 @@ import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsed
 import { DbCentralCandidateProfileDto } from "../db/gcp-firestore-models/CentralCandidateProfile.model";
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
 import { DbCorporateCandidateProfileDto } from "../db/gcp-firestore-models/CorporateCandidateProfile.model";
+import { DbAgencyUserSubmissionDto } from "../db/gcp-firestore-models/AgencyUserSubmission.model";
+import { DbAgencyAnalyticsDto } from "../db/gcp-firestore-models/AgencyAnalytics.model";
 
 // Import services
 import { centralCandidateProfileServiceObj } from "./CentralCandidateProfile.service";
 import InvokeLambdaService from "./InvokeLambda.service";
 import { corporateCandidateProfileServiceObj } from "./CorporateCandidateProfile.service";
 import { candidateParsedCvServiceObj } from "./CandidateParsedCv.service";
+import { AgencyUserSubmissionDbJobApplicationStatusEnum } from "../enums/AgencyUserSubmission.enum";
+import { dateHelperObj } from "../helpers/date.helper";
+import { DbCompanyDetailDto } from "../db/aws-dynamodb-models/CompanyDetail.model";
+import { companyDetailServiceObj } from "./CompanyDetail.service";
+import { companyJobServiceObj } from "./CompanyJob.service";
 
 class ScriptService {
+   async seedAgencyAnalyticsFromAgencyUserSubmissions(
+      companyId: string,
+      dryRun: boolean = false
+   ): Promise<{
+      companyId: string;
+      dryRun: boolean;
+      scannedSubmissions: number;
+      upsertedDocs: number;
+      aggregates: number;
+   }> {
+      global.logger.info("Seed agency analytics from agency user submissions started. [Service]", {
+         companyId,
+         dryRun,
+         methodName: this.seedAgencyAnalyticsFromAgencyUserSubmissions.name,
+         fileName: __filename,
+      });
+
+      const db: Firestore = await agencyUserSubmissionDaoObj.getAgencyUserSubmissionFirestoreDatabase();
+      const querySnapshot: QuerySnapshot<DocumentData, DocumentData> = await db
+         .collection(agencyUserSubmissionDaoObj.collectionName)
+         .where("companyId", "==", companyId)
+         .get();
+
+      const corporateCompanyName = await companyDetailServiceObj.getCompanyDetailById(companyId);
+
+      type AggregateCounters = {
+         acceptedCount: number;
+         agencyId: string;
+         agencyName: string;
+         companyId: string;
+         companyName?: string;
+         hiredCount: number;
+         inProcessCount: number;
+         rejectedCount: number;
+         jobAssignedDate?: string;
+         jobId: string;
+         jobTitle?: string;
+         submittedCount: number;
+         totalCandidates: number;
+      };
+
+      const aggregateMap: Map<string, AggregateCounters> = new Map();
+
+      querySnapshot.docs.forEach((doc: QueryDocumentSnapshot<DocumentData, DocumentData>) => {
+         const item = doc.data() as DbAgencyUserSubmissionDto;
+         const agencyId: string = item.agencyUserId;
+         const jobId: string = item.jobId;
+         const key: string = `${companyId}_${agencyId}_${jobId}`;
+
+         if (!aggregateMap.has(key)) {
+            aggregateMap.set(key, {
+               acceptedCount: 0,
+               agencyId,
+               agencyName: item.agencyName ?? "",
+               companyId,
+               ...(corporateCompanyName[0] ? { companyName: corporateCompanyName[0].name } : {}),
+               hiredCount: 0,
+               inProcessCount: 0,
+               jobAssignedDate: item.createdAt,
+               jobId,
+               jobTitle: undefined,
+               rejectedCount: 0,
+               submittedCount: 0,
+               totalCandidates: 0,
+            });
+         }
+
+         const aggregate: AggregateCounters = aggregateMap.get(key)!;
+         aggregate.submittedCount += 1;
+         aggregate.totalCandidates += 1;
+
+         if (item.jobApplicationStatus === AgencyUserSubmissionDbJobApplicationStatusEnum.ACCEPTED) {
+            aggregate.acceptedCount += 1;
+         } else if (
+            item.jobApplicationStatus === AgencyUserSubmissionDbJobApplicationStatusEnum.UNDER_EVALUATION ||
+            item.jobApplicationStatus === AgencyUserSubmissionDbJobApplicationStatusEnum.PROCESSING_INTERVIEW
+         ) {
+            aggregate.inProcessCount += 1;
+         } else if (item.jobApplicationStatus === AgencyUserSubmissionDbJobApplicationStatusEnum.REJECTED) {
+            aggregate.rejectedCount += 1;
+         } else if (
+            item.jobApplicationStatus === AgencyUserSubmissionDbJobApplicationStatusEnum.HIRED ||
+            item.jobApplicationStatus === AgencyUserSubmissionDbJobApplicationStatusEnum.JOINED
+         ) {
+            aggregate.hiredCount += 1;
+         }
+      });
+
+      if (dryRun) {
+         return {
+            aggregates: aggregateMap.size,
+            companyId,
+            dryRun: true,
+            scannedSubmissions: querySnapshot.docs.length,
+            upsertedDocs: 0,
+         };
+      }
+
+      const currentDate: string = dateHelperObj.getISODate();
+      let upsertedDocs: number = 0;
+      // create a set of unique jobIds to fetch job details in batch
+      const uniqueJobIds: Set<string> = new Set(
+         Array.from(aggregateMap.values()).map((aggregate) => aggregate.jobId)
+      );
+
+      // fetch job details in batch and create a map of jobId to jobTitle
+      const jobDetails: Map<string, { title: string }> = new Map(
+         await Promise.all(
+         Array.from(uniqueJobIds).map(async (jobId): Promise<[string, { title: string }]> => {
+            const jobDetail = await companyJobServiceObj.getJobById(jobId);
+            return [jobId, jobDetail[0] ? { title: jobDetail[0].jobTitle } : { title: "" }];
+         })
+         )
+      );
+
+      /**
+       * If the document doesn't exist, create a new one with the aggregate data and metadata fields.
+       * If the document already exists, update the existing document with the new aggregate data and metadata fields.
+       */
+      for (const [docId, aggregate] of aggregateMap.entries()) {
+         const existing: DbAgencyAnalyticsDto | undefined =
+            await agencyAnalyticsDaoObj.getAgencyAnalyticsById(docId);
+
+         // enrich aggregate with job title from job details map
+         const jobDetail = jobDetails.get(aggregate.jobId);
+         aggregate.jobTitle = jobDetail ? jobDetail.title : "";
+
+         if (!existing) {
+            const createData: DbAgencyAnalyticsDto = {
+               ...aggregate,
+               createdAt: currentDate,
+               id: docId,
+               lastActivityAt: currentDate,
+               lastEventId: `SEED_${companyId}`,
+               lastEventType: "SEED_BACKFILL",
+               updatedAt: currentDate,
+            };
+            await agencyAnalyticsDaoObj.createAgencyAnalytics(createData);
+         } else {
+            await agencyAnalyticsDaoObj.updateAgencyAnalyticsById(docId, {
+               acceptedCount: aggregate.acceptedCount,
+               agencyName: aggregate.agencyName,
+               companyName: aggregate.companyName,
+               hiredCount: aggregate.hiredCount,
+               inProcessCount: aggregate.inProcessCount,
+               jobAssignedDate: aggregate.jobAssignedDate,
+               jobTitle: aggregate.jobTitle,
+               lastActivityAt: currentDate,
+               lastEventId: `SEED_${companyId}`,
+               lastEventType: "SEED_BACKFILL",
+               rejectedCount: aggregate.rejectedCount,
+               submittedCount: aggregate.submittedCount,
+               totalCandidates: aggregate.totalCandidates,
+               updatedAt: currentDate,
+            });
+         }
+
+         upsertedDocs += 1;
+      }
+
+      return {
+         aggregates: aggregateMap.size,
+         companyId,
+         dryRun: false,
+         scannedSubmissions: querySnapshot.docs.length,
+         upsertedDocs,
+      };
+   }
+
    async scriptToConvertCentralCandidateProfileEmailToLowerCaseAsync() {
       // return InvokeLambdaService.triggerWorkoCorpAppInvokeLambdaTrigger({
       //    eventType: InvokeLambdaHandlerEventTypeEnum.SCRIPT_TO_CONVERT_EMAIL_TO_LOWERCASE,

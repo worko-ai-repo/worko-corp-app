@@ -21,16 +21,6 @@ AgencyAnalyticsRouter.get(
 );
 
 /**
- * getAgencyRanking
- *
- * @authorisedRoles ["admin", "corporate-admin"]
- */
-AgencyAnalyticsRouter.get(
-  "/agency-ranking",
-  agencyAnalyticsController.getAgencyRanking,
-);
-
-/**
  * getAgencyPerformanceSummary
  *
  * @authorisedRoles ["admin", "corporate-admin"]

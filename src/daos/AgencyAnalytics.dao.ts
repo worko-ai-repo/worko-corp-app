@@ -129,7 +129,7 @@ class AgencyAnalyticsDao {
     const {
       agencyId,
       companyId,
-      roleId,
+      jobId,
       sortOrder,
     } = filterOptions;
 
@@ -142,8 +142,8 @@ class AgencyAnalyticsDao {
       baseQuery = baseQuery.where("agencyId", "==", agencyId);
     }
 
-    if (roleId) {
-      baseQuery = baseQuery.where("roleId", "==", roleId);
+    if (jobId) {
+      baseQuery = baseQuery.where("jobId", "==", jobId);
     }
 
     if (sortOrder) {

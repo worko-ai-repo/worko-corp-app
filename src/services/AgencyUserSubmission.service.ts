@@ -652,13 +652,12 @@ class AgencyUserSubmissionService {
         agencyId: agencyUserDetails.id,
         agencyName: reqBodyAgencyInviteDetails.agencyName,
         companyId: reqBodyCompanyId,
+        companyName: reqBodyCompanyData.name,
         eventId: `${agencyUserSubmissionCreateData.id}_CANDIDATE_SUBMITTED`,
         eventType: AgencyAnalyticsEventTypeEnum.CANDIDATE_SUBMITTED,
-        roleId: reqBodyJobId,
-        roleTitle:
-          (validatedAgencyUserCompanyJobDetails.reqBodyJobData as any)
-            .jobTitle ??
-          (validatedAgencyUserCompanyJobDetails.reqBodyJobData as any).title,
+        jobAssignedDate: jobAssignedToAgency.createdAt,
+        jobId: reqBodyJobId,
+        jobTitle:(validatedAgencyUserCompanyJobDetails.reqBodyJobData as DbCompanyJobDto).jobTitle
       });
     } catch (analyticsError) {
       global.logger.error("Failed to update agency analytics for submission. [Service]", {
@@ -896,19 +895,21 @@ class AgencyUserSubmissionService {
           agencyId: existingAgencyUserSubmissionDetails.agencyUserId,
           agencyName: existingAgencyUserSubmissionDetails.agencyName,
           companyId: existingAgencyUserSubmissionDetails.companyId,
+          companyName: existingAgencyUserSubmissionDetails.companyName,
           eventId: `${validatedRequestBody.agencyUserSubmissionId}_CANDIDATE_ACCEPTED`,
           eventType: AgencyAnalyticsEventTypeEnum.CANDIDATE_ACCEPTED,
-          roleId: existingAgencyUserSubmissionDetails.jobId,
-          roleTitle: jobTitle,
+          jobId: existingAgencyUserSubmissionDetails.jobId,
+          jobTitle,
         }),
         agencyAnalyticsServiceObj.applyAgencyAnalyticsEvent({
           agencyId: existingAgencyUserSubmissionDetails.agencyUserId,
           agencyName: existingAgencyUserSubmissionDetails.agencyName,
           companyId: existingAgencyUserSubmissionDetails.companyId,
+          companyName: existingAgencyUserSubmissionDetails.companyName,
           eventId: `${validatedRequestBody.agencyUserSubmissionId}_CANDIDATE_IN_PROCESS`,
           eventType: AgencyAnalyticsEventTypeEnum.CANDIDATE_IN_PROCESS,
-          roleId: existingAgencyUserSubmissionDetails.jobId,
-          roleTitle: jobTitle,
+          jobId: existingAgencyUserSubmissionDetails.jobId,
+          jobTitle,
         }),
       ]);
     } catch (analyticsError) {
@@ -1179,10 +1180,11 @@ class AgencyUserSubmissionService {
         agencyId: existingAgencyUserSubmissionDetails.agencyUserId,
         agencyName: existingAgencyUserSubmissionDetails.agencyName,
         companyId: existingAgencyUserSubmissionDetails.companyId,
+        companyName: existingAgencyUserSubmissionDetails.companyName,
         eventId: `${validatedReqBody.agencyUserSubmissionId}_CANDIDATE_IN_PROCESS`,
         eventType: AgencyAnalyticsEventTypeEnum.CANDIDATE_IN_PROCESS,
-        roleId: existingAgencyUserSubmissionDetails.jobId,
-        roleTitle: jobTitle,
+        jobId: existingAgencyUserSubmissionDetails.jobId,
+        jobTitle,
       });
     } catch (analyticsError) {
       global.logger.error(
@@ -1494,9 +1496,10 @@ class AgencyUserSubmissionService {
         agencyId: existingAgencyUserSubmissionDetails.agencyUserId,
         agencyName: existingAgencyUserSubmissionDetails.agencyName,
         companyId: existingAgencyUserSubmissionDetails.companyId,
+        companyName: existingAgencyUserSubmissionDetails.companyName,
         eventId: `${validatedReqBody.agencyUserSubmissionId}_CANDIDATE_REJECTED`,
         eventType: AgencyAnalyticsEventTypeEnum.CANDIDATE_REJECTED,
-        roleId: existingAgencyUserSubmissionDetails.jobId,
+        jobId: existingAgencyUserSubmissionDetails.jobId,
       });
     } catch (analyticsError) {
       global.logger.error("Failed to update agency analytics for rejection. [Service]", {

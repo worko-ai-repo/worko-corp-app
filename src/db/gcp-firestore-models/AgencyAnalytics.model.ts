@@ -4,14 +4,19 @@ import { BaseFirestoreModel } from "./Base.model";
 /**
  * DbAgencyAnalyticsDto
  *
- * A Firestore aggregate document for unique company-agency-role combination.
- * Document id format: {companyId}_{agencyId}_{roleId}
+ * A Firestore aggregate document for unique company-agency-job combination.
+ * Document id format: {companyId}_{agencyId}_{jobId}
  */
 interface DbAgencyAnalyticsDto extends BaseFirestoreModel {
   /**
    * Company tenant identifier used for scoped analytics reads/writes.
    */
   companyId: string;
+
+  /**
+   * Company name for analytics display.
+   */
+  companyName?: string;
 
   /**
    * Agency identifier for which counters are maintained.
@@ -24,14 +29,19 @@ interface DbAgencyAnalyticsDto extends BaseFirestoreModel {
   agencyName: string;
 
   /**
-   * Role identifier (jd/position).
+   * Job identifier.
    */
-  roleId: string;
+  jobId: string;
 
   /**
-   * Denormalized role title used in matrix responses.
+   * Denormalized job title used in matrix responses.
    */
-  roleTitle?: string;
+  jobTitle?: string;
+
+  /**
+   * Date when job was assigned to agency.
+   */
+  jobAssignedDate?: string;
 
   /**
    * Total number of candidate submissions tracked in this aggregate.

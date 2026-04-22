@@ -10,7 +10,6 @@ import {
   AgencyAnalyticsEventTypeEnum,
   AgencyAnalyticsListingFilterOptions,
   AgencyPerformanceMatrixItemDto,
-  AgencyRankingItemDto,
 } from "../dtos/AgencyAnalytics.dto";
 import { GcpFirestoreRecordListingResponseDTO } from "../dtos/Common.gcp-firestore.dto";
 
@@ -37,16 +36,16 @@ class AgencyAnalyticsService {
   private buildAgencyAnalyticsDocId(
     companyId: string,
     agencyId: string,
-    roleId: string,
+    jobId: string,
   ): string {
     global.logger.info("Building agency analytics document id. [Service]", {
       companyId,
       agencyId,
-      roleId,
+      jobId,
       methodName: this.buildAgencyAnalyticsDocId.name,
       fileName: __filename,
     });
-    return `${companyId}_${agencyId}_${roleId}`;
+    return `${companyId}_${agencyId}_${jobId}`;
   }
 
   /**
@@ -106,15 +105,17 @@ class AgencyAnalyticsService {
       agencyId,
       agencyName,
       companyId,
+      companyName,
       eventId,
       eventType,
-      roleId,
-      roleTitle,
+      jobAssignedDate,
+      jobId,
+      jobTitle,
     } = eventPayload;
     const docId: string = this.buildAgencyAnalyticsDocId(
       companyId,
       agencyId,
-      roleId,
+      jobId,
     );
     const currentDate: string = dateHelperObj.getISODate();
     const existingAnalytics: DbAgencyAnalyticsDto | undefined =
@@ -126,16 +127,18 @@ class AgencyAnalyticsService {
         agencyId,
         agencyName,
         companyId,
+        companyName,
         createdAt: currentDate,
         hiredCount: 0,
         id: docId,
         inProcessCount: 0,
+        jobAssignedDate,
+        jobId,
+        jobTitle,
         lastActivityAt: currentDate,
         lastEventId: eventId,
         lastEventType: eventType,
         rejectedCount: 0,
-        roleId,
-        roleTitle,
         submittedCount: 0,
         totalCandidates: 0,
         updatedAt: currentDate,
@@ -155,10 +158,12 @@ class AgencyAnalyticsService {
     return agencyAnalyticsDaoObj.updateAgencyAnalyticsById(docId, {
       ...this.getEventCounterDelta(eventType),
       agencyName,
+      companyName,
+      jobAssignedDate: jobAssignedDate ?? existingAnalytics.jobAssignedDate,
+      jobTitle: jobTitle ?? existingAnalytics.jobTitle,
       lastActivityAt: currentDate,
       lastEventId: eventId,
       lastEventType: eventType,
-      roleTitle: roleTitle ?? existingAnalytics.roleTitle,
       updatedAt: currentDate,
     });
   }
@@ -188,101 +193,18 @@ class AgencyAnalyticsService {
         acceptedCount: item.acceptedCount ?? 0,
         agencyId: item.agencyId,
         agencyName: item.agencyName,
+        companyName: item.companyName,
         hiredCount: item.hiredCount ?? 0,
         inProcessCount: item.inProcessCount ?? 0,
+        jobAssignedDate: item.jobAssignedDate,
+        jobId: item.jobId ?? (item as any).roleId,
+        jobTitle: item.jobTitle ?? (item as any).roleTitle,
         lastActivityAt: item.lastActivityAt ?? item.updatedAt,
         rejectedCount: item.rejectedCount ?? 0,
-        roleId: item.roleId,
-        roleTitle: item.roleTitle,
         submittedCount: item.submittedCount ?? 0,
         totalCandidates: item.totalCandidates ?? 0,
       })),
       pagination: response.pagination,
-    };
-  }
-
-  /**
-   * getAgencyRanking
-   *
-   * Aggregates role docs by agency and calculates ranking buckets.
-   */
-  async getAgencyRanking(
-    filterOptions: AgencyAnalyticsListingFilterOptions,
-  ): Promise<GcpFirestoreRecordListingResponseDTO<AgencyRankingItemDto[]>> {
-    global.logger.info("Getting agency ranking. [Service]", {
-      filterOptions,
-      methodName: this.getAgencyRanking.name,
-      fileName: __filename,
-    });
-    const response =
-      await agencyAnalyticsDaoObj.getAgencyAnalyticsByFilterOptions({
-        ...filterOptions,
-        pageSize: 100,
-        sortOrder: GcpFirestoreSortOrderTypeEnum.DESCENDING,
-      });
-
-    const rankingMap: Record<
-      string,
-      {
-        acceptedCount: number;
-        agencyId: string;
-        agencyName: string;
-        hiredCount: number;
-        inProcessCount: number;
-      }
-    > = {};
-
-    response.data.forEach((item: DbAgencyAnalyticsDto) => {
-      if (!rankingMap[item.agencyId]) {
-        rankingMap[item.agencyId] = {
-          acceptedCount: 0,
-          agencyId: item.agencyId,
-          agencyName: item.agencyName,
-          hiredCount: 0,
-          inProcessCount: 0,
-        };
-      }
-
-      rankingMap[item.agencyId].acceptedCount += item.acceptedCount ?? 0;
-      rankingMap[item.agencyId].hiredCount += item.hiredCount ?? 0;
-      rankingMap[item.agencyId].inProcessCount += item.inProcessCount ?? 0;
-    });
-
-    const rankedData: AgencyRankingItemDto[] = Object.values(rankingMap)
-      .map((item) => {
-        const score: number =
-          item.acceptedCount * 0.3 +
-          item.inProcessCount * 0.2 +
-          item.hiredCount * 0.5;
-
-        let rankBucket: AgencyRankingItemDto["rankBucket"] = "POOR";
-        if (score >= 75) {
-          rankBucket = "TOP_PERFORMER";
-        } else if (score >= 45) {
-          rankBucket = "MEDIUM";
-        } else if (score >= 20) {
-          rankBucket = "LOW";
-        }
-
-        return {
-          ...item,
-          rankBucket,
-          rankPosition: 0,
-          score: Number(score.toFixed(2)),
-        };
-      })
-      .sort((a, b) => b.score - a.score)
-      .map((item, index) => ({
-        ...item,
-        rankPosition: index + 1,
-      }));
-
-    return {
-      data: rankedData,
-      pagination: {
-        count: rankedData.length,
-        pageSize: rankedData.length,
-      },
     };
   }
 
@@ -298,8 +220,8 @@ class AgencyAnalyticsService {
     totalAgencies: number;
     totalHiredCount: number;
     totalInProcessCount: number;
+    totalJobs: number;
     totalRejectedCount: number;
-    totalRoles: number;
     totalSubmittedCount: number;
   }> {
     global.logger.info("Getting agency performance summary. [Service]", {
@@ -315,12 +237,12 @@ class AgencyAnalyticsService {
       });
 
     const agencies: Set<string> = new Set<string>();
-    const roles: Set<string> = new Set<string>();
+    const jobs: Set<string> = new Set<string>();
 
     const totals = response.data.reduce(
       (accumulator, item: DbAgencyAnalyticsDto) => {
         agencies.add(item.agencyId);
-        roles.add(item.roleId);
+        jobs.add(item.jobId ?? (item as any).roleId);
         accumulator.totalAcceptedCount += item.acceptedCount ?? 0;
         accumulator.totalHiredCount += item.hiredCount ?? 0;
         accumulator.totalInProcessCount += item.inProcessCount ?? 0;
@@ -340,7 +262,7 @@ class AgencyAnalyticsService {
     return {
       ...totals,
       totalAgencies: agencies.size,
-      totalRoles: roles.size,
+      totalJobs: jobs.size,
     };
   }
 }
