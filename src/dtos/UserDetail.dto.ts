@@ -63,9 +63,18 @@ export interface UserDetailCreateDto {
   email: string;
   number: string;
   linkedinUrl?: string;
+  CTC?: number;
   ECTC?: number;
   YOE?: number;
+  noticePeriod?: number;
+  isNoticePeriodNegotiable?: boolean;
+  location?: string;
+  about?: string;
   CV?: string;
+  userCvFileName?: string;
+  candidateExperience?: UserDetailDbCandidateExperienceDto;
+  multipleCandidateExperience?: UserDetailDbCandidateExperienceDto[];
+  multipleCandidateExperiencedDate?: string;
   emailList: { [key: string]: string };
   userType: string[];
   isEmailVerified: boolean;
