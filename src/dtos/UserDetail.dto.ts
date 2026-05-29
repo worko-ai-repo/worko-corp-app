@@ -1,3 +1,5 @@
+import { CandidateParsedCvAwsS3ResourceTypeEnum } from "../enums/CandidateParsedCv.enum";
+
 export interface UserDetailDTO {
   name: string;
   emailList: { [key: string]: string };
@@ -72,6 +74,9 @@ export interface UserDetailCreateDto {
   about?: string;
   CV?: string;
   userCvFileName?: string;
+  cvAwsS3ResourceType?: CandidateParsedCvAwsS3ResourceTypeEnum;
+  cvAwsS3BucketName?: string;
+  cvAwsS3FilePath?: string;
   candidateExperience?: UserDetailDbCandidateExperienceDto;
   multipleCandidateExperience?: UserDetailDbCandidateExperienceDto[];
   multipleCandidateExperiencedDate?: string;

@@ -985,6 +985,11 @@ class AgencyUserSubmissionService {
       candidateEmail
     );
     if(applicantRegisteredDetails.count) {
+      await UserDetailService.syncInternalUserCvPointerFromCandidateParsedCv(
+        applicantRegisteredDetails[0],
+        candidateParsedCvDetails
+      );
+
       return this.createJobApplAndUpdateAgencyActivities(
         validatedRequestBody, 
         cognitoUserGroups, 
@@ -1267,6 +1272,12 @@ class AgencyUserSubmissionService {
     );
     if(applicantRegisteredDetails.count) {
       const candidateDetails: DbUserDetailDto = applicantRegisteredDetails[0];
+      if (candidateDetails.isUserCreatedInternally) {
+        await UserDetailService.syncInternalUserCvPointerFromCandidateParsedCv(
+          candidateDetails,
+          candidateParsedCvDetails
+        );
+      }
       if(candidateDetails.CV || candidateDetails.isUserCreatedInternally) {
         return this.createJobApplSendForEvalAndUpdateAgencyUserSubmission(validatedReqBody, cognitoUserGroups, existingAgencyUserSubmissionDetails, actionByUserId, actionByCorporateUserId);
       }

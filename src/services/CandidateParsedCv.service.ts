@@ -818,6 +818,12 @@ class CandidateParsedCvService {
       candidateEmail
     );
     if(applicantRegisteredDetails.count) {
+      const existingUser: DbUserDetailDto = applicantRegisteredDetails[0];
+      await UserDetailService.syncInternalUserCvPointerFromCandidateParsedCv(
+        existingUser,
+        candidateParsedCvDetails
+      );
+
       const awaitedResponse: [DbUserJobApplicationDto, void] = await Promise.all([
         this.createJobApplicationMoveToApplicant(validatedRequestBody, cognitoUserGroups, candidateParsedCvDetails, actionByUserId, actionByCorporateUserId),
         this.moveToApplUpdateCtcDetailsCandidateParsedCv(validatedRequestBody, actionByUserId, actionByCorporateUserId),

@@ -28,10 +28,15 @@ import { EmailTemplateEnum } from "../enums/EmailTemplate.enum";
 import { emailLibrary, EmailSourceDestinationAddress } from "../libraries/email.library";
 
 // Import helpers
-import { generateCvSignedUrlForUserDetail } from "../helpers/internalUserDetail.helper";
+import {
+  buildInternalUserCvFieldsFromCandidateParsedCv,
+  generateCvSignedUrlForUserDetail,
+  getUserDetailCvAwsS3Pointer,
+} from "../helpers/internalUserDetail.helper";
 
 // Load the local models
 import { DbUserDetailDto } from "../db/aws-dynamodb-models/UserDetail.model";
+import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
 import { DbScheduleJobDto } from "../db/aws-dynamodb-models/ScheduleJob.model";
 
 // Load the local services
@@ -271,6 +276,27 @@ class UserDetailService {
     createUserDetailDto: UserDetailCreateDto
   ): Promise<DbUserDetailDto> {
     return userDetailDao.createUserDetail(createUserDetailDto);
+  }
+
+  /**
+   * Backfills CV S3 pointer on internal UserDetail from candidateParsedCv when missing.
+   */
+  async syncInternalUserCvPointerFromCandidateParsedCv(
+    existingUser: DbUserDetailDto,
+    candidateParsedCv: DbCandidateParsedCvDto
+  ): Promise<void> {
+    const email: string | undefined = existingUser.emailList?.primary;
+    if (!email || !existingUser.SK || !existingUser.isUserCreatedInternally) {
+      return;
+    }
+
+    const s3Pointer = getUserDetailCvAwsS3Pointer(existingUser);
+    if (s3Pointer.cvAwsS3ResourceType) {
+      return;
+    }
+
+    const cvFields = buildInternalUserCvFieldsFromCandidateParsedCv(candidateParsedCv);
+    await userDetailDao.update(email, existingUser.SK, cvFields);
   }
 
   /**
