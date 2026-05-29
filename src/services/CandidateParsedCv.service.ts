@@ -41,7 +41,7 @@ import { EmailTemplateEnum } from "../enums/EmailTemplate.enum";
 // Import helpers
 import { getActionByUserId } from "../helpers/user.helper";
 import { dateHelperObj } from "../helpers/date.helper";
-import { buildInternalUserProfileFieldsFromCandidateParsedCv } from "../helpers/internalUserDetail.helper";
+import { buildInternalUserCvFieldsFromCandidateParsedCv } from "../helpers/internalUserDetail.helper";
 
 // Import libraries
 import { emailLibrary, EmailSourceDestinationAddress } from "../libraries/email.library";
@@ -818,19 +818,6 @@ class CandidateParsedCvService {
       candidateEmail
     );
     if(applicantRegisteredDetails.count) {
-      const existingUser: DbUserDetailDto = applicantRegisteredDetails[0];
-      if (existingUser.isUserCreatedInternally) {
-        await UserDetailService.syncInternalUserDetailFromCandidateParsedCv(
-          existingUser,
-          candidateParsedCvDetails,
-          {
-            currentCTC: validatedRequestBody.currentCTC,
-            expectedCTC: validatedRequestBody.expectedCTC,
-            noticePeriod: validatedRequestBody.noticePeriod,
-          }
-        );
-      }
-
       const awaitedResponse: [DbUserJobApplicationDto, void] = await Promise.all([
         this.createJobApplicationMoveToApplicant(validatedRequestBody, cognitoUserGroups, candidateParsedCvDetails, actionByUserId, actionByCorporateUserId),
         this.moveToApplUpdateCtcDetailsCandidateParsedCv(validatedRequestBody, actionByUserId, actionByCorporateUserId),
@@ -867,6 +854,8 @@ class CandidateParsedCvService {
       name: candidateName,
       email: candidateEmail,
       number: candidateFullPhoneNumber,
+      ECTC: candidateParsedCvDetails.expectedCTC,
+      YOE: candidateParsedCvDetails.relevantYOE,
       emailList: {
         primary: candidateEmail
       },
@@ -885,14 +874,7 @@ class CandidateParsedCvService {
 
       acceptedTermsAndConditions: false,
       isUserCreatedInternally: true,
-      ...buildInternalUserProfileFieldsFromCandidateParsedCv(
-        candidateParsedCvDetails,
-        {
-          currentCTC: validatedRequestBody.currentCTC,
-          expectedCTC: validatedRequestBody.expectedCTC,
-          noticePeriod: validatedRequestBody.noticePeriod,
-        }
-      ),
+      ...buildInternalUserCvFieldsFromCandidateParsedCv(candidateParsedCvDetails),
     };
 
     const userDetailAndJobAppl: [DbUserDetailDto, DbUserJobApplicationDto,boolean, boolean, void] = await Promise.all([
@@ -991,6 +973,8 @@ class CandidateParsedCvService {
       name: candidateName,
       email: candidateEmail,
       number: candidateFullPhoneNumber,
+      ECTC: candidateParsedCvDetails.expectedCTC,
+      YOE: candidateParsedCvDetails.relevantYOE,
       emailList: {
         primary: candidateEmail
       },
@@ -1009,9 +993,7 @@ class CandidateParsedCvService {
 
       acceptedTermsAndConditions: false,
       isUserCreatedInternally: true,
-      ...buildInternalUserProfileFieldsFromCandidateParsedCv(
-        candidateParsedCvDetails
-      ),
+      ...buildInternalUserCvFieldsFromCandidateParsedCv(candidateParsedCvDetails),
     };
 
     const userDetailAndJobAppl: [DbUserDetailDto, boolean,boolean, boolean] = await Promise.all([

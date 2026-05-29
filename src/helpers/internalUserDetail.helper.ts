@@ -3,104 +3,38 @@ import { awsS3ClientLibrary } from "../configs/aws-sdk.config";
 import { candidateParsedCvDaoObj } from "../daos/CandidateParsedCv.dao";
 import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
 import { DbUserDetailDto } from "../db/aws-dynamodb-models/UserDetail.model";
-import {
-  UserDetailCreateDto,
-  UserDetailDbCandidateExperienceDto,
-} from "../dtos/UserDetail.dto";
-
-export interface InternalUserDetailCtcOverrides {
-  currentCTC?: number;
-  expectedCTC?: number;
-  noticePeriod?: number;
-}
+import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
 
 /**
- * Profile and CV fields copied from Firestore candidateParsedCv when creating or
- * enriching an internally created UserDetail record.
+ * Sets the existing CV filename on UserDetail when creating an internal user.
+ * Bucket and path are resolved from candidateParsedCv at read time (not stored on UserDetail).
  */
-export function buildInternalUserProfileFieldsFromCandidateParsedCv(
-  candidateParsedCv: DbCandidateParsedCvDto,
-  overrides?: InternalUserDetailCtcOverrides
-): Partial<UserDetailCreateDto> & {
-  userCvFileName?: string;
-  CTC?: number;
-  noticePeriod?: number;
-  isNoticePeriodNegotiable?: boolean;
-  location?: string;
-  about?: string;
-  multipleCandidateExperience?: UserDetailDbCandidateExperienceDto[];
-  multipleCandidateExperiencedDate?: string;
-  candidateExperience?: UserDetailDbCandidateExperienceDto;
-} {
+export function buildInternalUserCvFieldsFromCandidateParsedCv(
+  candidateParsedCv: DbCandidateParsedCvDto
+): Pick<UserDetailCreateDto, "CV" | "userCvFileName"> {
   const cvCloudFileName = candidateParsedCv.cvAwsS3FileName;
-
-  const multipleCandidateExperience: UserDetailDbCandidateExperienceDto[] | undefined =
-    candidateParsedCv.multipleCandidateExperience?.map((experience) => ({
-      companyId: experience.companyId,
-      companyName: experience.companyName,
-      designation: experience.designation,
-      department: experience.department ?? "",
-      YOE: experience.YOE,
-      startDate: experience.startDate,
-      endDate: experience.endDate,
-    }));
-
-  let candidateExperience: UserDetailDbCandidateExperienceDto | undefined;
-  if (candidateParsedCv.currentCompany && candidateParsedCv.currentDesignation) {
-    candidateExperience = {
-      companyName: candidateParsedCv.currentCompany,
-      designation: candidateParsedCv.currentDesignation,
-      department: "",
-      YOE: candidateParsedCv.relevantYOE,
-    };
-  }
 
   return {
     CV: cvCloudFileName,
     userCvFileName: cvCloudFileName,
-    CTC: overrides?.currentCTC ?? candidateParsedCv.currentCTC,
-    ECTC: overrides?.expectedCTC ?? candidateParsedCv.expectedCTC,
-    noticePeriod: overrides?.noticePeriod ?? candidateParsedCv.noticePeriod,
-    isNoticePeriodNegotiable: candidateParsedCv.isNoticePeriodNegotiable,
-    YOE: candidateParsedCv.relevantYOE ?? candidateParsedCv.totalYOE,
-    location: candidateParsedCv.location,
-    about: candidateParsedCv.about,
-    multipleCandidateExperience,
-    multipleCandidateExperiencedDate: multipleCandidateExperience?.length
-      ? new Date().toISOString()
-      : undefined,
-    candidateExperience,
   };
 }
 
+/**
+ * Resolves CV signed URL for UserDetail.
+ * Internal users: candidateParsedCv S3 location (bulk/agency/admin paths).
+ * Self-registered users: users/{userId}/resumes (USER_RESUME).
+ */
 export async function generateCvSignedUrlForUserDetail(
   userDetails: DbUserDetailDto,
   candidateEmail: string
 ): Promise<string | null> {
-  if (!userDetails.CV) {
-    return null;
+  if (userDetails.isUserCreatedInternally) {
+    return resolveInternalUserCvSignedUrl(candidateEmail);
   }
 
-  if (userDetails.isUserCreatedInternally) {
-    const candidateParsedCvSnapshot =
-      await candidateParsedCvDaoObj.getCandidateParsedCvByCandEmail(
-        candidateEmail
-      );
-
-    if (!candidateParsedCvSnapshot.empty) {
-      const candidateParsedCv = candidateParsedCvSnapshot.docs[0].data() as DbCandidateParsedCvDto;
-
-      if (
-        candidateParsedCv.cvAwsS3BucketName &&
-        candidateParsedCv.cvAwsS3FilePath &&
-        candidateParsedCv.cvAwsS3FileName
-      ) {
-        return awsS3ClientLibrary.generateObjectUrl(
-          candidateParsedCv.cvAwsS3BucketName,
-          `${candidateParsedCv.cvAwsS3FilePath}/${candidateParsedCv.cvAwsS3FileName}`
-        );
-      }
-    }
+  if (!userDetails.CV) {
+    return null;
   }
 
   const userId: string = userDetails.SK?.split("#").pop() ?? "";
@@ -111,5 +45,31 @@ export async function generateCvSignedUrlForUserDetail(
   return awsS3ClientLibrary.generateObjectUrl(
     process.env.APP_AWS_S3_BUCKET_WORKO_APP as string,
     `${filePath}/${userDetails.CV}`
+  );
+}
+
+async function resolveInternalUserCvSignedUrl(
+  candidateEmail: string
+): Promise<string | null> {
+  const candidateParsedCvSnapshot =
+    await candidateParsedCvDaoObj.getCandidateParsedCvByCandEmail(candidateEmail);
+
+  if (candidateParsedCvSnapshot.empty) {
+    return null;
+  }
+
+  const candidateParsedCv = candidateParsedCvSnapshot.docs[0].data() as DbCandidateParsedCvDto;
+
+  if (
+    !candidateParsedCv.cvAwsS3BucketName ||
+    !candidateParsedCv.cvAwsS3FilePath ||
+    !candidateParsedCv.cvAwsS3FileName
+  ) {
+    return null;
+  }
+
+  return awsS3ClientLibrary.generateObjectUrl(
+    candidateParsedCv.cvAwsS3BucketName,
+    `${candidateParsedCv.cvAwsS3FilePath}/${candidateParsedCv.cvAwsS3FileName}`
   );
 }

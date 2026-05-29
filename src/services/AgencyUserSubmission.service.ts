@@ -45,7 +45,7 @@ import { AgencyUserInviteDbActionEnum } from "../enums/AgencyUserInvite.enum";
 import { getActionByAgencyUserIds, getActionByUserId } from "../helpers/user.helper";
 import { dateHelperObj } from "../helpers/date.helper";
 import { injectEntityDetailsHelperObj } from "../helpers/injectEntityDetails.helper";
-import { buildInternalUserProfileFieldsFromCandidateParsedCv } from "../helpers/internalUserDetail.helper";
+import { buildInternalUserCvFieldsFromCandidateParsedCv } from "../helpers/internalUserDetail.helper";
 
 // Import models
 import { DbAgencyUserDto } from "../db/gcp-firestore-models/AgencyUser.model";
@@ -985,14 +985,6 @@ class AgencyUserSubmissionService {
       candidateEmail
     );
     if(applicantRegisteredDetails.count) {
-      const existingUser: DbUserDetailDto = applicantRegisteredDetails[0];
-      if (existingUser.isUserCreatedInternally) {
-        await UserDetailService.syncInternalUserDetailFromCandidateParsedCv(
-          existingUser,
-          candidateParsedCvDetails
-        );
-      }
-
       return this.createJobApplAndUpdateAgencyActivities(
         validatedRequestBody, 
         cognitoUserGroups, 
@@ -1031,6 +1023,8 @@ class AgencyUserSubmissionService {
       name: candidateName,
       email: existingAgencyUserSubmissionDetails.candidateEmail,
       number: candidateFullPhoneNumber,
+      ECTC: candidateParsedCvDetails.expectedCTC,
+      YOE: candidateParsedCvDetails.relevantYOE,
       emailList: {
         primary: candidateEmail
       },
@@ -1049,9 +1043,7 @@ class AgencyUserSubmissionService {
 
       acceptedTermsAndConditions: false,
       isUserCreatedInternally: true,
-      ...buildInternalUserProfileFieldsFromCandidateParsedCv(
-        candidateParsedCvDetails
-      ),
+      ...buildInternalUserCvFieldsFromCandidateParsedCv(candidateParsedCvDetails),
     };
 
     const userDetailAndJobAppl: [DbUserDetailDto, DbAgencyUserSubmissionDto,boolean, boolean] = await Promise.all([
@@ -1275,14 +1267,7 @@ class AgencyUserSubmissionService {
     );
     if(applicantRegisteredDetails.count) {
       const candidateDetails: DbUserDetailDto = applicantRegisteredDetails[0];
-      if (candidateDetails.isUserCreatedInternally) {
-        await UserDetailService.syncInternalUserDetailFromCandidateParsedCv(
-          candidateDetails,
-          candidateParsedCvDetails
-        );
-        return this.createJobApplSendForEvalAndUpdateAgencyUserSubmission(validatedReqBody, cognitoUserGroups, existingAgencyUserSubmissionDetails, actionByUserId, actionByCorporateUserId);
-      }
-      if(candidateDetails.CV) {
+      if(candidateDetails.CV || candidateDetails.isUserCreatedInternally) {
         return this.createJobApplSendForEvalAndUpdateAgencyUserSubmission(validatedReqBody, cognitoUserGroups, existingAgencyUserSubmissionDetails, actionByUserId, actionByCorporateUserId);
       }
     }
@@ -1315,6 +1300,8 @@ class AgencyUserSubmissionService {
       name: candidateName,
       email: existingAgencyUserSubmissionDetails.candidateEmail,
       number: candidateFullPhoneNumber,
+      ECTC: candidateParsedCvDetails.expectedCTC,
+      YOE: candidateParsedCvDetails.relevantYOE,
       emailList: {
         primary: candidateEmail
       },
@@ -1332,9 +1319,7 @@ class AgencyUserSubmissionService {
       expiryDate: DateTime.now().toJSDate(), 
       isUserCreatedInternally: true,
       acceptedTermsAndConditions: false,
-      ...buildInternalUserProfileFieldsFromCandidateParsedCv(
-        candidateParsedCvDetails
-      ),
+      ...buildInternalUserCvFieldsFromCandidateParsedCv(candidateParsedCvDetails),
     };
 
     const userDetailAndJobAppl: [DbUserDetailDto, DbAgencyUserSubmissionDto, boolean, boolean] = await Promise.all([

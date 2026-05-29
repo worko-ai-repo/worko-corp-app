@@ -16,7 +16,7 @@ import { awsClientCognitoIdentityProviderLibrary, awsS3ClientLibrary } from "../
 import userDetailDao from "../daos/UserDetail.dao";
 
 // Import dtos
-import { UserDetailCreateDto, UserDetailDTO } from "../dtos/UserDetail.dto";
+import { UserDetailCreateDto } from "../dtos/UserDetail.dto";
 import { ScheduleJobAdminCandAcctCreateSignupReminderInputDto, ScheduleJobCreateDto } from "../dtos/ScheduleJob.dto";
 import { EmailTemplatePlaceholderCAND_ACCOUNT_CHANGE_PASS_SIGNUP_REMINDER, EmailTemplatePlaceholderCAND_ACCOUNT_RESET_TEMP_PASSWORD } from "../dtos/EmailTemplatePlaceholder.dto";
 
@@ -28,15 +28,10 @@ import { EmailTemplateEnum } from "../enums/EmailTemplate.enum";
 import { emailLibrary, EmailSourceDestinationAddress } from "../libraries/email.library";
 
 // Import helpers
-import {
-  buildInternalUserProfileFieldsFromCandidateParsedCv,
-  generateCvSignedUrlForUserDetail,
-  InternalUserDetailCtcOverrides,
-} from "../helpers/internalUserDetail.helper";
+import { generateCvSignedUrlForUserDetail } from "../helpers/internalUserDetail.helper";
 
 // Load the local models
 import { DbUserDetailDto } from "../db/aws-dynamodb-models/UserDetail.model";
-import { DbCandidateParsedCvDto } from "../db/gcp-firestore-models/CandidateParsedCv.model";
 import { DbScheduleJobDto } from "../db/aws-dynamodb-models/ScheduleJob.model";
 
 // Load the local services
@@ -279,58 +274,6 @@ class UserDetailService {
   }
 
   /**
-   * Fills missing profile/CV fields on an internally created user from candidateParsedCv.
-   */
-  async syncInternalUserDetailFromCandidateParsedCv(
-    existingUser: DbUserDetailDto,
-    candidateParsedCv: DbCandidateParsedCvDto,
-    overrides?: InternalUserDetailCtcOverrides
-  ): Promise<void> {
-    const email: string | undefined = existingUser.emailList?.primary;
-    if (!email || !existingUser.SK) {
-      return;
-    }
-
-    const profileFields = buildInternalUserProfileFieldsFromCandidateParsedCv(
-      candidateParsedCv,
-      overrides
-    );
-    const updatePayload: Partial<UserDetailDTO> & {
-      userCvFileName?: string;
-      multipleCandidateExperience?: UserDetailCreateDto["multipleCandidateExperience"];
-      multipleCandidateExperiencedDate?: string;
-      candidateExperience?: UserDetailCreateDto["candidateExperience"];
-      isNoticePeriodNegotiable?: boolean;
-    } = {};
-
-    for (const [fieldKey, fieldValue] of Object.entries(profileFields)) {
-      if (fieldValue === undefined) {
-        continue;
-      }
-
-      const existingValue = (existingUser as unknown as Record<string, unknown>)[fieldKey];
-      if (
-        existingValue === undefined ||
-        existingValue === null ||
-        existingValue === ""
-      ) {
-        (updatePayload as Record<string, unknown>)[fieldKey] = fieldValue;
-      }
-    }
-
-    if (Object.keys(updatePayload).length === 0) {
-      return;
-    }
-
-    global.logger.info("Sync internal user detail from candidate parsed cv [service]", {
-      email,
-      updatePayloadKeys: Object.keys(updatePayload),
-    });
-
-    await userDetailDao.update(email, existingUser.SK, updatePayload);
-  }
-
-  /**
    * Retrieves user details by email id.
    *
    * @param {string} email - Email of the user
@@ -400,7 +343,7 @@ class UserDetailService {
     let cvAwsS3SignedUrl = null;
     let profileImageAwsS3SignedUrl = null;
 
-    if (userDetails.CV) {
+    if (userDetails.CV || userDetails.isUserCreatedInternally) {
       cvAwsS3SignedUrl = await generateCvSignedUrlForUserDetail(
         userDetails,
         email
